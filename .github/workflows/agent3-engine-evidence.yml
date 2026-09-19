@@ -1,0 +1,47 @@
+name: Agent 3 engine evidence
+
+on:
+  push:
+    branches:
+      - agent3/engine-services-gate-20260920
+  pull_request:
+
+concurrency:
+  group: agent3-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  native-agent3:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      AETHER_EVIDENCE: ${{ runner.temp }}/aether-agent3-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Swift 6.2 or newer
+        run: |
+          selected=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' -print | sort -V | tail -1)
+          if [ -z "$selected" ]; then
+            echo "macOS runner lacks required Xcode 26 / Swift 6.2+" >&2
+            exit 1
+          fi
+          sudo xcode-select -s "$selected/Contents/Developer"
+          swift --version
+      - name: Release build
+        run: swift build -c release
+      - name: Bounded Swift Testing regression suite
+        run: python3 Scripts/test_macos.py --timeout 900 --maximum-rss-mib 4096
+      - name: Real daemon and dynamic capture qualification
+        run: |
+          binary_dir=$(swift build -c release --show-bin-path)
+          python3 Scripts/verify_browser.py --bin "$binary_dir" --output "$AETHER_EVIDENCE"
+      - name: Upload qualification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent3-engine-evidence
+          path: ${{ env.AETHER_EVIDENCE }}
+          if-no-files-found: warn
