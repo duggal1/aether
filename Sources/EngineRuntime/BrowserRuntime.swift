@@ -559,6 +559,11 @@ public actor BrowserRuntime {
     } else {
       let storage = context.storage.localStorage(for: originKey(loaded.url))
       runtime = JSRuntime(document: loaded.document, localStorage: storage)
+      // Restored/discarded pages must receive the same origin-aware Fetch host
+      // as a freshly navigated page, not the unrestricted standalone bridge.
+      configureRuntime(
+        runtime, page: &page, loaded: loaded, jar: context.network.cookieJar,
+        network: context.network)
     }
     wireScriptRuntime(runtime, network: context.network)
     let before = loaded.document.mutationVersion
@@ -1630,7 +1635,7 @@ public actor BrowserRuntime {
     let pageURL = loaded.url
     let pageOrigin = Origin(url: pageURL) ?? .opaque
     runtime.hostHooks.cookieString = { jar.scriptVisibleHeader(for: pageURL) ?? "" }
-    runtime.hostHooks.setCookieString = { jar.absorb(setCookie: $0, from: pageURL) }
+    runtime.hostHooks.setCookieString = { jar.setFromScript($0, from: pageURL) }
     runtime.hostHooks.viewportSize = { [viewportBox] in
       let size = viewportBox.size
       return (size.width, size.height)

@@ -91,18 +91,36 @@ enum PageHostWiring {
       }
       let sameOrigin =
         Origin(url: url).map { $0.isSameOrigin(as: pageOrigin) } ?? false
-      let needsPreflight =
-        !CORSPolicy.isSimpleMethod(method)
-        || headerMap.keys.contains(where: { !CORSPolicy.isSimpleHeader($0) })
+      // Scripts cannot forge browser-controlled credentials or origin identity.
+      let forbidden: Set<String> = ["cookie", "cookie2", "host", "origin", "referer",
+        "access-control-request-method", "access-control-request-headers"]
+      guard !headerMap.keys.contains(where: { forbidden.contains($0.lowercased()) }) else {
+        throw FetchHostError.blocked("fetch cannot set forbidden browser-controlled headers")
+      }
+      let unsafeHeaders = headerMap.filter {
+        !CORSPolicy.isSafelistedRequestHeader(name: $0.key, value: $0.value)
+      }
+      let needsPreflight = !CORSPolicy.isSimpleMethod(method) || !unsafeHeaders.isEmpty
       if !sameOrigin, needsPreflight {
         let preflightHeaders = [
+          "Origin": pageOrigin.description,
           "Access-Control-Request-Method": method.uppercased(),
-          "Access-Control-Request-Headers": headerMap.keys.sorted().joined(separator: ", "),
+          "Access-Control-Request-Headers": unsafeHeaders.keys.sorted().joined(separator: ", "),
         ]
         let preflight = try await network.fetch(
-          HTTPRequest(url: url, method: .options, headers: preflightHeaders))
+          HTTPRequest(url: url, method: .options, headers: preflightHeaders,
+            sendsCookies: false))
+        guard (200..<300).contains(preflight.statusCode) else {
+          throw FetchHostError.blocked("CORS preflight failed with HTTP \(preflight.statusCode)")
+        }
+        if case .deny(let reason) = CORSPolicy.checkResponse(
+          requestOrigin: pageOrigin, responseHeaders: preflight.headers,
+          allowsCredentials: false)
+        {
+          throw FetchHostError.blocked("CORS preflight origin denied: \(reason)")
+        }
         switch CORSPolicy.checkPreflight(
-          method: method, headers: Array(headerMap.keys),
+          method: method, headers: Array(unsafeHeaders.keys),
           responseHeaders: preflight.headers)
         {
         case .allow: break
@@ -110,6 +128,7 @@ enum PageHostWiring {
         }
       }
       var headers = headerMap
+      if !sameOrigin { headers["Origin"] = pageOrigin.description }
       if sameOrigin {
         let context = CookieRequestContext(topLevelHost: pageOrigin.host, method: method)
         if headers["Cookie"] == nil,
@@ -118,16 +137,23 @@ enum PageHostWiring {
           headers["Cookie"] = cookie
         }
       }
-      let httpMethod = HTTPMethod(rawValue: method.uppercased()) ?? .get
+      guard let httpMethod = HTTPMethod(rawValue: method.uppercased()) else {
+        throw FetchHostError.blocked("Unsupported fetch method \(method)")
+      }
       let body = bodyText.flatMap { $0.data(using: .utf8) }
       let response: HTTPResponse
       do {
         response = try await network.fetch(
-          HTTPRequest(url: url, method: httpMethod, headers: headers, body: body))
+          HTTPRequest(url: url, method: httpMethod, headers: headers, body: body,
+            sendsCookies: sameOrigin))
       } catch {
         throw FetchHostError.transport(String(describing: error))
       }
-      if !sameOrigin {
+      guard MixedContent.decision(pageURL: pageURL, resourceURL: response.url) != .block
+      else { throw FetchHostError.blocked("mixed content redirect blocked") }
+      let finalSameOrigin =
+        Origin(url: response.url).map { $0.isSameOrigin(as: pageOrigin) } ?? false
+      if !finalSameOrigin {
         switch CORSPolicy.checkResponse(
           requestOrigin: pageOrigin, responseHeaders: response.headers,
           allowsCredentials: false)
@@ -136,7 +162,7 @@ enum PageHostWiring {
         case .deny(let reason): throw FetchHostError.blocked("CORS denied: \(reason)")
         }
       }
-      return (response.statusCode, safelistedHeaders(response.headers), response.body)
+      return (response.statusCode, finalSameOrigin ? response.headers : safelistedHeaders(response.headers), response.body)
     }
   }
 

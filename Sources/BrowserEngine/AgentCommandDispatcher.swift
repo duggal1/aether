@@ -8,9 +8,13 @@ import Foundation
 
 public final class AgentCommandDispatcher: Sendable {
   public let engine: NativeBrowserEngine
+  private let requireCapabilities: Bool
+  private let authority = ContextAuthority()
 
-  public init(engine: NativeBrowserEngine) {
+  // In-process legacy callers remain compatible; the socket-facing daemon MUST opt in.
+  public init(engine: NativeBrowserEngine, requireCapabilities: Bool = false) {
     self.engine = engine
+    self.requireCapabilities = requireCapabilities
   }
 
   public func handle(_ request: AgentRequest) async -> AgentResponse {
@@ -18,18 +22,33 @@ public final class AgentCommandDispatcher: Sendable {
       guard let method = AgentMethod(rawValue: request.method) else {
         return failure(request, code: "method_not_found", message: request.method)
       }
+      if requireCapabilities, let denied = await denyUnauthorized(request, method: method) {
+        return denied
+      }
       let result: JSONValue
       switch method {
       case .ping:
         result = .object(["ok": .bool(true), "engine": .string("NativeBrowserEngine")])
       case .contextCreate:
-        result = contextJSON(
-          await engine.runtime.createContext(name: request.params["name"]?.string ?? ""))
+        let info = await engine.runtime.createContext(name: request.params["name"]?.string ?? "")
+        var object = contextJSON(info).object ?? [:]
+        if requireCapabilities {
+          object["capability"] = .string(await authority.issue(for: info.id))
+        }
+        result = .object(object)
       case .contextDestroy:
-        try await engine.runtime.destroyContext(ContextID(rawValue: try uint64(request, "context")))
+        let context = ContextID(rawValue: try uint64(request, "context"))
+        try await engine.runtime.destroyContext(context)
+        if requireCapabilities { await authority.revoke(context: context) }
         result = .object(["ok": .bool(true)])
       case .contextList:
-        result = .array(await engine.runtime.listContexts().map(contextJSON))
+        let contexts = await engine.runtime.listContexts()
+        if requireCapabilities {
+          let allowed = await authority.permittedContexts(for: request.params["capability"]?.string ?? "")
+          result = .array(contexts.filter { allowed.contains($0.id) }.map(contextJSON))
+        } else {
+          result = .array(contexts.map(contextJSON))
+        }
       case .pageCreate:
         let context = ContextID(rawValue: try uint64(request, "context"))
         let width = request.params["width"]?.number ?? 1280
@@ -465,6 +484,58 @@ public final class AgentCommandDispatcher: Sendable {
     } catch {
       return failure(request, code: "engine_error", message: String(describing: error))
     }
+  }
+
+  // This guard runs BEFORE the dispatcher touches BrowserRuntime or sensitive state.
+  // A self-reported owner, session name or page number is not proof of authority.
+  private func denyUnauthorized(_ request: AgentRequest, method: AgentMethod) async -> AgentResponse? {
+    switch method {
+    case .ping, .contextCreate:
+      return nil
+    case .pageCapture, .dialogResolve, .sessionCreate, .sessionList, .sessionDestroy,
+      .sessionPages, .fleetStats, .fleetPages, .fleetSweep, .contextOpenProfile:
+      // These operations need an explicit principal-scoped contract before exposure.
+      return failure(request, code: "unauthorized", message: "Operation requires scoped authorization")
+    default:
+      break
+    }
+    guard let token = request.params["capability"]?.string, !token.isEmpty else {
+      return failure(request, code: "unauthorized", message: "Missing context capability")
+    }
+    if method == .contextList { return nil }
+    if method == .contextDownload, request.params["path"]?.string != nil {
+      return failure(request, code: "unauthorized", message: "Caller-selected download paths are not authorized")
+    }
+    if method == .contextSetPermission,
+      let decision = request.params["decision"]?.string?.lowercased(),
+      decision == "allow" || decision == "grant" || decision == "granted"
+    {
+      return failure(request, code: "unauthorized", message: "Agent cannot self-approve privileged permissions")
+    }
+
+    let context: ContextID
+    if method == .pageCreate || method.rawValue.hasPrefix("context.") {
+      guard let number = request.params["context"]?.number,
+        let id = UInt64(exactly: number)
+      else {
+        return failure(request, code: "unauthorized", message: "Missing valid context")
+      }
+      context = ContextID(rawValue: id)
+    } else if method.rawValue.hasPrefix("page.") {
+      guard let number = request.params["page"]?.number,
+        let id = UInt64(exactly: number),
+        let info = try? await engine.runtime.pageInfo(PageID(rawValue: id))
+      else {
+        return failure(request, code: "unauthorized", message: "Page unavailable")
+      }
+      context = info.contextID
+    } else {
+      return failure(request, code: "unauthorized", message: "Operation is not scoped to a context")
+    }
+    guard await authority.permits(token, context: context) else {
+      return failure(request, code: "unauthorized", message: "Context capability rejected")
+    }
+    return nil
   }
 
   private func uint64(_ request: AgentRequest, _ key: String) throws -> UInt64 {

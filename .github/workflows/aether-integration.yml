@@ -31,6 +31,8 @@ jobs:
           swift --version
       - name: Release build
         run: swift build -c release
+      - name: Real daemon capability isolation smoke
+        run: python3 Scripts/verify_authority.py --bin .build/release
       - name: Hardened network regression tests
         run: swift test --filter NetworkHardeningIntegrationTests
       - name: Existing network regression tests
@@ -38,4 +40,4 @@ jobs:
       - name: Benchmark
         run: swift run -c release enginebench
       - name: Full regression tests
-        run: swift test
+        run: python3 Scripts/test_macos.py --timeout 1200 --maximum-rss-mib 4096

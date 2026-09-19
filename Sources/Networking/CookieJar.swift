@@ -107,7 +107,14 @@ public final class CookieJar: @unchecked Sendable {
       isSecureTransport: url.scheme?.lowercased() == "https")
   }
 
-  public func absorb(setCookie: String, from url: URL, isSecureTransport: Bool) {
+  public func setFromScript(_ value: String, from url: URL) {
+    absorb(setCookie: value, from: url,
+      isSecureTransport: url.scheme?.lowercased() == "https", fromScript: true)
+  }
+
+  public func absorb(
+    setCookie: String, from url: URL, isSecureTransport: Bool, fromScript: Bool = false
+  ) {
     guard let host = url.host?.lowercased() else { return }
     let segments = setCookie.split(separator: ";", omittingEmptySubsequences: true).map {
       $0.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -155,6 +162,9 @@ public final class CookieJar: @unchecked Sendable {
     }
     if maxAgeInvalid { cookie.expires = nil }
     if cookie.secure, !isSecureTransport { return }
+    // HttpOnly is a network-only attribute. Script must neither create nor
+    // replace a cookie protected by an HTTP Set-Cookie response.
+    if fromScript && cookie.httpOnly { return }
     if cookieName.hasPrefix("__Secure-"), !cookie.secure { return }
     if cookieName.hasPrefix("__Host-") {
       if !cookie.secure || sawDomain || cookie.path != "/" { return }
@@ -163,6 +173,9 @@ public final class CookieJar: @unchecked Sendable {
     }
     if cookie.sameSitePolicy == .none, !cookie.secure { return }
     state.withLock { state in
+      if fromScript, let existing = state.cookies[Self.key(cookie)], existing.httpOnly {
+        return
+      }
       if cookie.value.isEmpty {
         if let expires = cookie.expires, expires <= Date() {
           state.cookies.removeValue(forKey: Self.key(cookie))

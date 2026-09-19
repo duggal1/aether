@@ -52,7 +52,6 @@ public enum CORSPolicy {
         })
       for header in headers {
         let name = header.lowercased()
-        if isSimpleHeader(name) { continue }
         if !allowed.contains(name) && !allowed.contains("*") {
           return .deny("header \(header) not preflight-allowlisted")
         }
@@ -67,6 +66,20 @@ public enum CORSPolicy {
 
   public static func isSimpleHeader(_ name: String) -> Bool {
     ["accept", "accept-language", "content-language", "content-type"].contains(name.lowercased())
+  }
+
+  public static func isSafelistedRequestHeader(name: String, value: String) -> Bool {
+    let name = name.lowercased()
+    guard isSimpleHeader(name), value.utf8.count <= 128 else { return false }
+    if name == "content-type" {
+      let mime = value.split(separator: ";", maxSplits: 1).first?
+        .trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+      return ["application/x-www-form-urlencoded", "multipart/form-data",
+        "text/plain"].contains(mime)
+    }
+    return !value.unicodeScalars.contains { scalar in
+      scalar.value < 0x20 && scalar.value != 0x09 || scalar.value == 0x7F
+    }
   }
 
   static func lowercased(_ headers: [String: String]) -> [String: String] {

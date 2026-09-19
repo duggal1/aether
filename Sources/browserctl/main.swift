@@ -72,6 +72,8 @@ struct BrowserControl {
   private static func runRemote(_ args: [String], socket: String) throws {
     guard let command = args.first else { throw CLIError.usage }
     let client = AgentSocketClient(path: socket)
+    // The capability is an opaque secret returned by context-create; never use owner labels.
+    let capability = ProcessInfo.processInfo.environment["AETHER_CAPABILITY"]
     let request: AgentRequest
     switch command {
     case "ping": request = AgentRequest(method: .ping)
@@ -81,8 +83,9 @@ struct BrowserControl {
     case "context-list": request = AgentRequest(method: .contextList)
     case "page-open":
       guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
-      let create = try client.send(
-        AgentRequest(method: .pageCreate, params: ["context": .number(context)]))
+      var createParams: [String: JSONValue] = ["context": .number(context)]
+      if let capability { createParams["capability"] = .string(capability) }
+      let create = try client.send(AgentRequest(method: .pageCreate, params: createParams))
       try printResponse(create)
       guard let page = create.result?.object?["id"]?.number else { return }
       request = AgentRequest(
@@ -438,7 +441,11 @@ struct BrowserControl {
         ])
     default: throw CLIError.usage
     }
-    try printResponse(client.send(request))
+    var authorizedRequest = request
+    if let capability, request.method != AgentMethod.contextCreate.rawValue {
+      authorizedRequest.params["capability"] = .string(capability)
+    }
+    try printResponse(client.send(authorizedRequest))
   }
 
   private static func open(
