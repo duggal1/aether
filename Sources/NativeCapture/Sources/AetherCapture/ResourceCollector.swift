@@ -10,7 +10,13 @@ public enum ResourceCollector {
             let stylesheetBase = sheet.sourceURL.flatMap(URL.init(string:)) ?? baseURL
             for ref in CSSURLScanner.references(in: sheet.css) {
                 if let resolved = URL(string: ref, relativeTo: stylesheetBase)?.absoluteURL {
-                    ordered.append(.init(url: resolved.absoluteString, kind: "asset"))
+                    let ext = resolved.pathExtension.lowercased()
+                    let kind: String = switch ext {
+                    case "woff", "woff2", "ttf", "otf": "font"
+                    case "svg": "svg"
+                    default: "asset"
+                    }
+                    ordered.append(.init(url: resolved.absoluteString, kind: kind))
                 }
             }
         }
