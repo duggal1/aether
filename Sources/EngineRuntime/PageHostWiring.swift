@@ -162,7 +162,7 @@ enum PageHostWiring {
         case .deny(let reason): throw FetchHostError.blocked("CORS denied: \(reason)")
         }
       }
-      return (response.statusCode, safelistedHeaders(response.headers), response.body)
+      return (response.statusCode, finalSameOrigin ? response.headers : safelistedHeaders(response.headers), response.body)
     }
   }
 
