@@ -66,9 +66,10 @@ public struct AgentSocketServer: Sendable {
       _ = umask(0o077)
       let fd = socket(AF_UNIX, engineSocketStreamType, 0)
       guard fd >= 0 else { throw AgentTransportError.socket("socket() failed") }
+      var ownsSocket = false
       defer {
         close(fd)
-        _ = path.withCString { unlink($0) }
+        if ownsSocket { _ = path.withCString { unlink($0) } }
       }
       var address = try makeUnixAddress(path)
       let addressLength = unixAddressLength(address)
@@ -76,6 +77,7 @@ public struct AgentSocketServer: Sendable {
         pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, addressLength) }
       }
       guard bindResult == 0 else { throw AgentTransportError.socket("bind() failed for \(path)") }
+      ownsSocket = true
       guard chmod(path, mode_t(0o600)) == 0 else {
         throw AgentTransportError.socket("chmod() failed for \(path)")
       }
