@@ -514,7 +514,7 @@ public final class AgentCommandDispatcher: Sendable {
     }
 
     let context: ContextID
-    if method.rawValue.hasPrefix("context.") {
+    if method == .pageCreate || method.rawValue.hasPrefix("context.") {
       guard let number = request.params["context"]?.number,
         let id = UInt64(exactly: number)
       else {
