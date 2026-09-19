@@ -18,6 +18,7 @@ public final class JSParser {
   private func declaration() throws -> JSStatement {
     if checkKeyword("async") && peekNextIsKeyword("function") && !peekNextHasLineBreak() {
       advance()
+      advance()
       return try functionDeclaration(isAsync: true)
     }
     if matchKeyword("function") { return try functionDeclaration(isAsync: false) }
