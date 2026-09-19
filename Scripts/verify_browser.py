@@ -249,9 +249,13 @@ def main():
             call('context.storageSet', context=context, origin=base, key='persist', value='value')
             call('context.checkpoint', context=context)
             call('context.destroy', context=context)
-            restored = call('context.create', name='restored')['id']
+            restored = call('context.create', name='verification')['id']
             call('context.openProfile', context=restored, directory=str(output / 'profile'))
             require(call('context.storageValues', context=restored, origin=base)['persist'] == 'value', 'profile data lost')
+            pages = call('page.list', context=restored)
+            require(len(pages) == 1 and not pages[0]['loaded'], 'session page missing')
+            recovered = call('page.restore', page=pages[0]['id'])
+            require(recovered['title'] == 'Next', 'session restore wrong history entry')
             call('context.destroy', context=restored)
         check('profile checkpoint and reopen', profile)
         def sessions():
