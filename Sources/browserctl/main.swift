@@ -87,6 +87,14 @@ struct BrowserControl {
       guard let page = create.result?.object?["id"]?.number else { return }
       request = AgentRequest(
         method: .pageNavigate, params: ["page": .number(page), "url": .string(args[2])])
+    case "page-navigate-input":
+      guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pageNavigateInput,
+        params: [
+          "page": .number(page),
+          "input": .string(args.dropFirst(2).joined(separator: " ")),
+        ])
     case "page-inspect":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .pageInspect, params: ["page": .number(page)])
@@ -617,6 +625,7 @@ struct BrowserControl {
     browserctl --socket <path> context-create <name>
     browserctl --socket <path> context-list
     browserctl --socket <path> page-open <context> <url>
+    browserctl --socket <path> page-navigate-input <page> <url-or-search-terms>
     browserctl --socket <path> page-inspect <page>
     browserctl --socket <path> page-snapshot <page>
     browserctl --socket <path> page-query <page> <selector>
