@@ -8,10 +8,10 @@ import tempfile
 import time
 
 
-def rpc(path, method, **params):
+def rpc(socket_path, method, **params):
     with socket.socket(socket.AF_UNIX) as client:
         client.settimeout(15)
-        client.connect(str(path))
+        client.connect(str(socket_path))
         payload = {"id": "authority-smoke", "method": method, "params": params}
         client.sendall((json.dumps(payload) + "\n").encode())
         response = bytearray()
