@@ -52,7 +52,6 @@ public enum CORSPolicy {
         })
       for header in headers {
         let name = header.lowercased()
-        if isSimpleHeader(name) { continue }
         if !allowed.contains(name) && !allowed.contains("*") {
           return .deny("header \(header) not preflight-allowlisted")
         }
