@@ -23,3 +23,12 @@ This is an incremental integration into the existing Swift browser engine. `Sour
 This is **not** a completed P0–P2 browser engine or a comprehensive security boundary. The existing runtime still has no hardened renderer sandbox. Full HTTP caching requires request variant keys, authorization handling, conditional validation and persistent policy; the conservative cache above intentionally refuses many responses. HSTS must be enforced across all redirects, not just initial requests. Complete Fetch/CORS/CSP enforcement, web standards and production macOS GPU rendering remain independent projects.
 
 Do not merge into `main` until native CI passes and the final diff has been inspected. Do not use a green add-on-only test suite as evidence that the integrated browser works.
+
+
+## Native Apple Silicon validation and unchanged baseline
+
+The integration branch's native macOS 15 / Swift 6.2+ release build passes. The five targeted `NetworkHardeningIntegrationTests` tests and seven matching network tests pass. `enginebench` completes on the macOS runner. The combined suite runs 172 tests and currently reports 14 JavaScript-runtime issues.
+
+For comparison, the untouched `main` code on `verification/aether-baseline-20260919` (with only test-compilation repairs) ran 165 tests and reported 24 issues. The 14 remaining integration failures concern JavaScript parsing, promises, modules, and Fetch, not the network-hardening change; some original capture and disk-cache failures were corrected during the integration work. This is improvement against a broken baseline, **not a fully green suite or production web compatibility**.
+
+The live integrated modules are the original Aether runtime and its existing persistence, capture, scheduler, agent protocol and graphics modules. The remaining `Sources/EngineAdditions` sources are not silently active: do not imply that their mere presence constitutes integration.
