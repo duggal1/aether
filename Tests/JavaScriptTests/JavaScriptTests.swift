@@ -151,3 +151,15 @@ import Testing
   let runtime = JSRuntime()
   #expect(try runtime.evaluate("function f() { return 42; } f();").description == "42")
 }
+
+@Test func collectionLiteralRoundTrip() throws {
+  let runtime = JSRuntime()
+  let literal = try runtime.evaluate("[40, 1].length")
+  #expect(literal.description == "2")
+  let first = try runtime.evaluate("[40, 1][0]")
+  #expect(first.description == "40")
+  let set = try runtime.evaluate("const s = new Set([40, 1, 40]); s.size + 39;")
+  #expect(set.description == "42")
+  let typed = try runtime.evaluate("const t = new Uint8Array([40, 1]); t[0] + t[1];")
+  #expect(typed.description == "41")
+}
