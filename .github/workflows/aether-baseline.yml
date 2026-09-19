@@ -1,0 +1,26 @@
+name: Aether untouched baseline
+
+on:
+  push:
+    branches:
+      - verification/aether-baseline-20260919
+
+permissions:
+  contents: read
+
+jobs:
+  swift:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Swift 6.2 or newer
+        run: |
+          selected=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' -print | sort -V | tail -1)
+          if [ -z "$selected" ]; then exit 1; fi
+          sudo xcode-select -s "$selected/Contents/Developer"
+          swift --version
+      - name: Release build
+        run: swift build -c release
+      - name: Full baseline tests
+        run: swift test
