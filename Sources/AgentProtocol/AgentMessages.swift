@@ -114,7 +114,7 @@ public struct AgentResponse: Hashable, Sendable, Codable {
   public var result: JSONValue?
   public var error: AgentError?
 
-  public init(id: String, result: JSONValue) {
+  public init(id: String, result: JSONValue?) {
     self.id = id
     self.result = result
     error = nil
@@ -124,5 +124,25 @@ public struct AgentResponse: Hashable, Sendable, Codable {
     self.id = id
     result = nil
     self.error = error
+  }
+
+  private enum CodingKeys: String, CodingKey { case id, result, error }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    id = try container.decode(String.self, forKey: .id)
+    if container.contains(.result) {
+      result = try container.decode(JSONValue.self, forKey: .result)
+    } else {
+      result = nil
+    }
+    error = try container.decodeIfPresent(AgentError.self, forKey: .error)
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(id, forKey: .id)
+    if let result { try container.encode(result, forKey: .result) }
+    if let error { try container.encode(error, forKey: .error) }
   }
 }
