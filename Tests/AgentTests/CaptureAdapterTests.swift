@@ -49,10 +49,10 @@ private func captureFixturePage() async throws -> (NativeBrowserEngine, BrowserP
   let engine = NativeBrowserEngine()
   let adapter = BrowserCaptureEngine(runtime: engine.runtime)
   let baseline = await engine.runtime.listContexts().count
-  await #expect(throws: CaptureFailure.self) {
+  await await #expect(throws: CaptureFailure.self) {
     try await adapter.makeCaptureSession(viewport: CaptureViewport(width: 0, height: 600, scale: 1))
   }
-  await #expect(throws: CaptureFailure.self) {
+  await await #expect(throws: CaptureFailure.self) {
     try await adapter.makeCaptureSession(viewport: CaptureViewport(width: 800, height: 600, scale: 2))
   }
   #expect(await engine.runtime.listContexts().count == baseline)
@@ -129,14 +129,14 @@ private func captureFixturePage() async throws -> (NativeBrowserEngine, BrowserP
 @Test func captureEntryPointsRejectWithoutNetwork() async throws {
   let engine = NativeBrowserEngine()
   let pagesBefore = await engine.runtime.fleetStats().totalPages
-  await #expect(throws: CaptureFailure.self) {
+  await await #expect(throws: CaptureFailure.self) {
     try await engine.capturePage(
       url: URL(string: "ftp://example.test/file")!,
       into: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
   }
   var scaled = CaptureOptions()
   scaled.viewport.scale = 2
-  await #expect(throws: CaptureFailure.self) {
+  await await #expect(throws: CaptureFailure.self) {
     try await engine.capturePage(
       url: captureFixtureURL,
       into: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString),
