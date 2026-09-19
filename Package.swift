@@ -83,7 +83,7 @@ let package = Package(
     .testTarget(
       name: "PerformanceTests", dependencies: ["HTML", "CSS", "Style", "Layout", "Text", "DOM"]),
     .testTarget(name: "JavaScriptTests", dependencies: ["JavaScript", "HTML", "DOM", "Storage"]),
-    .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript"]),
+    .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript", "Networking"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage", "EngineCore"]),
     .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
     .testTarget(name: "SecurityTests", dependencies: ["WebSecurity"]),
