@@ -7,7 +7,7 @@ Classification: **wired** = implemented and exercised in the live root-package p
 | Area | Classification | Current state |
 | --- | --- | --- |
 | Engine core | wired (incomplete) | Identifiers, geometry, buffers, dirty regions; foundation exercised by every pipeline test |
-| HTTP networking | wired (incomplete) | Basic HTTP/HTTPS via URLSession with hardened cache freshness, cookies, HSTS-on-navigation; no conditional revalidation, variant keys, or full redirect-policy coverage |
+| HTTP networking | wired (incomplete) | Basic HTTP/HTTPS via URLSession with hardened cache freshness and origin-aware Fetch preflight/credential suppression; cookie script writes no longer overwrite HttpOnly; HSTS-on-navigation exists. Cross-origin redirects, full CORS/cookie semantics, conditional revalidation and variant cache keys remain incomplete |
 | HTML | wired (incomplete) | Streaming tokenizer/tree builder with raw text, implicit closes, foster parenting, templates; not WHATWG-complete, no adversarial conformance corpus |
 | DOM | wired (incomplete) | Mutable generational tree, selectors, snapshots, mutation journal; no shadow trees, no ranges |
 | CSS | wired (incomplete) | Tokenizer/parser/cascade/basic selectors and computed styles; no pseudo-elements, container queries, custom-property full resolution |
@@ -21,11 +21,12 @@ Classification: **wired** = implemented and exercised in the live root-package p
 | Forms | wired (incomplete) | Basic values, checkbox/radio behavior, GET/POST submission |
 | Navigation | wired (incomplete) | Load, reload, history back/forward, resizing, scheme/mixed-content/CORS guards; hostile-navigation hardening is partial |
 | Durable state | wired (incomplete) | Per-context SQLite profile (cookies, history, permissions, localStorage, cache metadata, checkpoints) with content-addressed disk blobs; recovery under corruption/real workloads unproven |
-| Agent runtime | wired (incomplete) | 76-method dispatcher over Unix socket, context/page lifecycle with active/background/suspended/frozen/discarded states, fleet sweep, inspect/query/snapshot/wait/mutations, hover/focus/blur/scroll/hit-testing/keyboard/select/fill/submit, history/console/network-log/frames, cookies/storage/permissions/dialogs/downloads/sessions, profile persistence. This pass fixed: null results now serialize as `"result": null` on the wire (they previously vanished), and responses round-trip losslessly through `browserctl`. `page.workers` returns an empty list by design until workers exist. No authenticated multi-owner IPC yet |
+| Agent runtime | wired (incomplete) | 76-method dispatcher over Unix socket, context/page lifecycle with active/background/suspended/frozen/discarded states, fleet sweep, inspect/query/snapshot/wait/mutations, hover/focus/blur/scroll/hit-testing/keyboard/select/fill/submit, history/console/network-log/frames, cookies/storage/permissions/dialogs/downloads/sessions, profile persistence. This pass fixed: null results now serialize as `"result": null` on the wire (they previously vanished), and responses round-trip losslessly through `browserctl`. `page.workers` returns an empty list by design until workers exist. Socket-facing browserd now requires opaque per-context capabilities for supported page/context methods; unscoped sensitive operations remain denied. This is bearer authorization, not macOS peer identity or a renderer sandbox |
 | Headless | wired (incomplete) | Same page/runtime model, loadHTML path, offscreen rendering |
 | Native capture | wired (incomplete) | Engine-native page capture (AetherCapture) over isolated contexts: scroll passes, scrolled-viewport software raster tiles, live-DOM/CSSOM snapshot, cache-only assets, privacy redaction, manifest warnings; WebP subject to ImageIO encoder availability with JPEG fallback. Real-site visual parity unproven |
 | `Sources/EngineAdditions` | source-only | Only `AetherNetworkHardening` is a live root-package target; the other addition modules deliberately remain uninstalled (see `Docs/ADDITIONS_INTEGRATION.md`) |
-| Process isolation | unsupported | Not implemented |
+| Socket context authority | wired (incomplete) | Per-context ephemeral bearer grants and cross-context denial on browserd dispatcher; peer-process identity, authorized grants to visible humans, and sensitive session/profile/capture grants still missing |
+| Process isolation | unsupported | JS/HTML still execute inside privileged browserd; no renderer child process or crash boundary |
 | Production sandbox | unsupported | Not implemented |
 | Canvas/WebAssembly/workers | unsupported | Not implemented |
 | WebGL/WebGPU | unsupported | Not implemented |
