@@ -36,6 +36,12 @@ private func command(
   let page = await command(
     dispatcher, .pageCreate, ["context": .number(bID)], capability: bSecret)
   let pageID = try #require(page.result?.object?["id"]?.number)
+  let loaded = await command(
+    dispatcher, .pageLoadHTML,
+    ["page": .number(pageID), "url": .string("https://fixture.test/"),
+      "html": .string("<html><head><title>Auth fixture</title></head><body>ok</body></html>")],
+    capability: bSecret)
+  #expect(loaded.error == nil)
   let crossPage = await command(
     dispatcher, .pageInspect, ["page": .number(pageID), "owner": .string("agent-b")],
     capability: aSecret)
