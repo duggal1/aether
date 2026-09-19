@@ -129,7 +129,11 @@ public struct DiskCache: Hashable, Sendable, Codable {
   }
 
   private func hash(for url: URL) -> String? {
-    let relative = url.path.replacingOccurrences(of: root.path + "/", with: "")
+    let canonicalRoot = root.standardizedFileURL.resolvingSymlinksInPath().path
+    let canonicalPath = url.standardizedFileURL.resolvingSymlinksInPath().path
+    let prefix = canonicalRoot + "/"
+    guard canonicalPath.hasPrefix(prefix) else { return nil }
+    let relative = String(canonicalPath.dropFirst(prefix.count))
     let parts = relative.split(separator: "/")
     guard parts.count == 3 else { return nil }
     let hash = parts.joined()
