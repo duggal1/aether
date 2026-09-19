@@ -15,7 +15,7 @@ struct BrowserDaemon {
       path = "/tmp/native-browser-engine.sock"
     }
     let engine = NativeBrowserEngine()
-    let dispatcher = AgentCommandDispatcher(engine: engine)
+    let dispatcher = AgentCommandDispatcher(engine: engine, requireCapabilities: true)
     let server = AgentSocketServer(path: path)
     FileHandle.standardError.write(Data("browserd listening on \(path)\n".utf8))
     do {
