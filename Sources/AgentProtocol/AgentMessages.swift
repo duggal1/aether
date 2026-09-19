@@ -17,6 +17,7 @@ public enum AgentMethod: String, Hashable, Sendable, Codable, CaseIterable {
   case pageInspect = "page.inspect"
   case pageQuery = "page.query"
   case pageQueryAll = "page.queryAll"
+  case pageFind = "page.find"
   case pageSnapshot = "page.snapshot"
   case pageWait = "page.wait"
   case pageMutations = "page.mutations"
