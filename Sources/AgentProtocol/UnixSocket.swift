@@ -71,6 +71,9 @@ public struct AgentSocketServer: Sendable {
         pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, addressLength) }
       }
       guard bindResult == 0 else { throw AgentTransportError.socket("bind() failed for \(path)") }
+      guard chmod(path, mode_t(0o600)) == 0 else {
+        throw AgentTransportError.socket("chmod() failed for \(path)")
+      }
       guard listen(fd, 128) == 0 else { throw AgentTransportError.socket("listen() failed") }
 
       while !Task.isCancelled {
