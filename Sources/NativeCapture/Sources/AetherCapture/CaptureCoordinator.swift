@@ -210,7 +210,8 @@ public actor CaptureCoordinator {
             }
         }
         var fullPage: String? = nil
-        if tilesForComposite.count == screenshots.count,
+        if !truncated, coveredCSSY >= maxY - 0.5,
+           tilesForComposite.count == screenshots.count,
            let composite = try FullPageAssembler.join(tilesForComposite, maximumPixels: options.fullPageMaximumPixels) {
             let encoded = try encoder.encode(composite, preferred: options.preferredFormat, quality: options.quality)
             let path = "full-page.\(encoded.format.fileExtension)"
