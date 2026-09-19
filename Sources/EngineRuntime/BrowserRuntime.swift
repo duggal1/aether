@@ -559,6 +559,11 @@ public actor BrowserRuntime {
     } else {
       let storage = context.storage.localStorage(for: originKey(loaded.url))
       runtime = JSRuntime(document: loaded.document, localStorage: storage)
+      // Restored/discarded pages must receive the same origin-aware Fetch host
+      // as a freshly navigated page, not the unrestricted standalone bridge.
+      configureRuntime(
+        runtime, page: &page, loaded: loaded, jar: context.network.cookieJar,
+        network: context.network)
     }
     wireScriptRuntime(runtime, network: context.network)
     let before = loaded.document.mutationVersion
