@@ -6,11 +6,12 @@ Base: `main@01f9ec1d9df377cf8377852e1400782a4366b7a0`. Branch: `agent3/engine-se
 
 - Typed URL versus search-query resolution through `page.navigateInput` and `browserctl page-navigate-input`, using `BrowserRuntime.navigate`. Provider endpoint/query-key configuration is per request; persistent per-profile provider preference is still missing.
 - Explicit handling of unsupported URL schemes and forbidden URL userinfo, with regression tests.
+- Live bounded `page.find` / `browserctl page-find` over visible DOM text nodes and snapshot mutation version; tests cover hidden nodes, case sensitivity, limits, and post-JS mutation. No fabricated selection or highlight support.
 - Extended real-daemon verification of a JavaScript DOM/style change in viewport pixels and the capture PNG, plus a typed address going through the live page.
 - File-to-runtime integration map at `Docs/AGENT3_INTEGRATION_MAP.md`.
 - Separate macOS Actions workflow running bounded Swift tests plus the real daemon/capture harness and uploading evidence.
 
-New dispatcher method changes the method count from the reported **76 to 77** on this branch; `Docs/AGENT_PROTOCOL.md` still describes the base contract and requires a coordinated update as other agents extend it. No versioned protocol or authenticated owner claim is made by this addition.
+Two new dispatcher methods change the method count from the reported **76 to 78** on this branch; `Docs/AGENT_PROTOCOL.md` documents both. Agent 1's future authenticated principal checks must cover all page-scoped methods when the branches integrate. No versioned protocol or authenticated owner claim is made by this addition.
 
 ## Engine-only exit conditions
 
