@@ -818,13 +818,17 @@ public final class JSParser {
         }
         try consumeSymbol(")", "Expected ')' after arguments")
       }
-      return .newExpr(callee, args)
+      return try callSuffix(.newExpr(callee, args))
     }
     return try call()
   }
 
   private func call() throws -> JSExpression {
-    var expression = try memberBase()
+    try callSuffix(try memberBase())
+  }
+
+  private func callSuffix(_ base: JSExpression) throws -> JSExpression {
+    var expression = base
     while true {
       if matchSymbol("(") {
         var args: [JSExpression] = []
