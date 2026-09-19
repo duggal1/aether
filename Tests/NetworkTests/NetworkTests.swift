@@ -57,3 +57,32 @@ import Testing
     topLevelHost: "a.example", method: "GET", isTopLevelNavigation: true)
   #expect(await jar.header(for: url, context: same) == "s=1")
 }
+
+
+@Test func cacheDoesNotStorePrivateOrCookieBearingResponses() async {
+  let cache = HTTPCache(maximumBytes: 1024)
+  let url = URL(string: "https://example.com/private")!
+  for headers in [
+    ["Cache-Control": "no-store, max-age=60"],
+    ["Cache-Control": "private, max-age=60"],
+    ["Cache-Control": "no-cache, max-age=60"],
+    ["Cache-Control": "max-age=60", "Set-Cookie": "session=secret"],
+    ["Cache-Control": "max-age=60", "Vary": "Cookie"],
+    ["Cache-Control": "max-age=60", "Vary": "*"],
+    [:]
+  ] {
+    await cache.store(HTTPResponse(
+      requestID: .init(rawValue: 1), url: url, statusCode: 200,
+      headers: headers, body: Data("private".utf8)))
+    #expect(await cache.response(for: url) == nil)
+  }
+}
+
+@Test func cacheHonorsExplicitFreshness() async {
+  let cache = HTTPCache(maximumBytes: 1024)
+  let url = URL(string: "https://example.com/public")!
+  await cache.store(HTTPResponse(
+    requestID: .init(rawValue: 1), url: url, statusCode: 200,
+    headers: ["Cache-Control": "public, max-age=60"], body: Data("ok".utf8)))
+  #expect(await cache.response(for: url)?.body == Data("ok".utf8))
+}
