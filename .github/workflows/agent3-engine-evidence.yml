@@ -18,7 +18,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     env:
-      AETHER_EVIDENCE: ${{ runner.temp }}/aether-agent3-${{ github.run_id }}-${{ github.run_attempt }}
+      AETHER_EVIDENCE: aether-agent3-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - name: Select Swift 6.2 or newer
