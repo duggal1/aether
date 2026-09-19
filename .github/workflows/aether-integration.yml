@@ -1,0 +1,29 @@
+name: Aether engine integration
+
+on:
+  push:
+    branches:
+      - integration/aether-additions-20260919
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  swift:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Release build
+        run: swift build -c release
+      - name: Tests
+        run: swift test
+      - name: Benchmark
+        run: swift run -c release enginebench
