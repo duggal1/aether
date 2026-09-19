@@ -850,13 +850,13 @@ public final class JSParser {
           try consumeSymbol("]", "Expected ']'")
           expression = .optionalComputed(expression, key)
         } else {
-          let name = try consumeIdentifier("Expected property name")
+          let name = try consumePropertyKey()
           expression = .optionalMember(expression, name)
         }
       } else if checkSymbol("${") {
         throw JSError.syntax("Unexpected template substitution")
       } else if matchSymbol(".") {
-        let name = try consumeIdentifier("Expected property name")
+        let name = try consumePropertyKey()
         expression = .member(expression, name)
       } else if checkSymbol("[") {
         let key = try self.expression()
@@ -882,7 +882,7 @@ public final class JSParser {
     var expression = try primary()
     while true {
       if matchSymbol(".") {
-        expression = .member(expression, try consumeIdentifier("Expected property name"))
+        expression = .member(expression, try consumePropertyKey())
       } else if matchSymbol("[") {
         let key = try self.expression()
         try consumeSymbol("]", "Expected ']'")
