@@ -99,7 +99,7 @@ import Testing
   #expect(
     try runtime.evaluate("const m = new Map(); m.set('a', 40); m.get('a') + 2;").description
       == "42")
-  #expect(try runtime.evaluate("const s = new Set([40, 1, 40]); s.size + 39;").description == "42")
+  #expect(try runtime.evaluate("const s = new Set([40, 1, 40]); s.size + 39;").description == "41")
 }
 
 @Test func jsonRoundTrips() throws {
@@ -118,7 +118,7 @@ import Testing
 
 @Test func typedArraysStoreAndRead() throws {
   let runtime = JSRuntime()
-  #expect(try runtime.evaluate("const t = new Uint8Array([40, 1]); t[0] + t[1];").description == "42")
+  #expect(try runtime.evaluate("const t = new Uint8Array([40, 1]); t[0] + t[1];").description == "41")
   #expect(try runtime.evaluate("const t = new Uint8Array(3); t.length;").description == "3")
   #expect(
     try runtime.evaluate("const t = new Uint8Array([1, 2, 3]); t[0] = 40; t[0] + t[2];")
@@ -159,7 +159,7 @@ import Testing
   let first = try runtime.evaluate("[40, 1][0]")
   #expect(first.description == "40")
   let set = try runtime.evaluate("const s = new Set([40, 1, 40]); s.size + 39;")
-  #expect(set.description == "42")
+  #expect(set.description == "41")
   let typed = try runtime.evaluate("const t = new Uint8Array([40, 1]); t[0] + t[1];")
   #expect(typed.description == "41")
 }
