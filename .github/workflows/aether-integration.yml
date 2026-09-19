@@ -38,4 +38,4 @@ jobs:
       - name: Benchmark
         run: swift run -c release enginebench
       - name: Full regression tests
-        run: swift test
+        run: python3 Scripts/test_macos.py --timeout 1200 --maximum-rss-mib 4096
