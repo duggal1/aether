@@ -1,0 +1,599 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1255]
+[Planning deferred tasks]
+[Starting]
+[2 / 148] EngineCore
+[7 / 156] EngineCore
+[8 / 163] AetherNetworkHardening
+[11 / 165] AetherCapture
+[15 / 175] AetherCapture
+[18 / 176] EngineCore
+[21 / 176] EngineCore
+[23 / 194] WebSecurity
+[24 / 194] Text
+[25 / 201] WebSecurity
+[25 / 205] WebSecurity
+[26 / 205] Text
+[32 / 207] Scheduler
+[33 / 210] Storage
+[34 / 214] Scheduler
+[40 / 216] Diagnostics
+[41 / 220] Persistence
+[42 / 223] Diagnostics
+[46 / 225] Persistence
+[49 / 232] DOM
+[49 / 239] DOM
+[50 / 239] CSS
+[56 / 241] WebSecurity
+[57 / 246] AgentProtocol
+[58 / 246] WebSecurity
+[61 / 246] WebSecurity
+[62 / 246] WebSecurity
+[63 / 246] WebSecurity
+[64 / 246] Text
+[67 / 246] Text
+[68 / 246] Storage
+[70 / 246] Storage
+[71 / 246] Scheduler
+[74 / 246] Scheduler
+[74 / 246] Persistence
+[75 / 246] Persistence
+[78 / 246] Persistence
+[79 / 246] EngineCore
+[82 / 246] EngineCore
+[84 / 246] Diagnostics
+[87 / 246] DOM
+[90 / 246] DOM
+[92 / 254] Text
+[95 / 254] HTML
+[96 / 263] JavaScript
+[96 / 269] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+[97 / 269] HTML
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBigInt.swift:163:9: warning: variable 'amount' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+161 |   static func shift(_ lhs: String, _ rhs: String, right: Bool) throws -> String {
+162 |     let value = normalize(lhs)
+163 |     var amount = normalize(rhs)
+    |         `- warning: variable 'amount' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+164 |     if amount.hasPrefix("-") {
+165 |       if right { return try shift(strip(value) == "0" ? "0" : value, negate(amount), right: false) }
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[104 / 271] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCollections.swift:297:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+295 |     let weakSetProto = JSObject(prototype: runtime.objectPrototype)
+296 |     weakMapProto.defineNative("set") { [weak runtime] thisArg, args in
+297 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+298 |       guard case .object(let table) = thisArg,
+299 |         case .object(let key) = args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:112:40: warning: variable 'runtime' was written to, but never read
+110 |       return try runtime.callValue(thisArg, thisValue: receiver, arguments: list)
+111 |     }
+112 |     proto.defineNative("bind") { [weak runtime] thisArg, args in
+    |                                        `- warning: variable 'runtime' was written to, but never read
+113 |       guard case .function(let function) = thisArg else {
+114 |         throw JSError.type("bind on incompatible receiver")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:143:49: warning: variable 'runtime' was written to, but never read
+141 |       return .bool(false)
+142 |     }
+143 |     proto.defineNative("isPrototypeOf") { [weak runtime] thisArg, args in
+    |                                                 `- warning: variable 'runtime' was written to, but never read
+144 |       guard case .object(let candidate) = thisArg else { return .bool(false) }
+145 |       guard case .object(let object) = args.first else { return .bool(false) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:343:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+341 |     }
+342 |     statics.defineNative("setPrototypeOf") { [weak runtime] _, args in
+343 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+344 |       guard args.count > 1, case .object(let object) = args[0] else {
+345 |         throw JSError.type("Target must be an object")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:377:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+375 |     }
+376 |     statics.defineNative("freeze") { [weak runtime] _, args in
+377 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+378 |       if case .object(let object) = args.first {
+379 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:390:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+388 |     }
+389 |     statics.defineNative("seal") { [weak runtime] _, args in
+390 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+391 |       if case .object(let object) = args.first {
+392 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:401:55: warning: variable 'runtime' was written to, but never read
+399 |       return args.first ?? .undefined
+400 |     }
+401 |     statics.defineNative("preventExtensions") { [weak runtime] _, args in
+    |                                                       `- warning: variable 'runtime' was written to, but never read
+402 |       if case .object(let object) = args.first { object.isExtensible = false }
+403 |       return args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsError.swift:194:16: warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+192 |           continue
+193 |         }
+194 |         if let space {
+    |                `- warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+195 |           parts.append("\(jsonQuoted(child)): \(text)")
+196 |         } else {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[106 / 271] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:808:9: warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 806 |     _ callee: JSValue, arguments: [JSValue], env: JSEnvironment? = nil
+ 807 |   ) throws -> JSValue {
+ 808 |     var target = callee
+     |         `- warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 809 |     if case .function(let bound) = target, let inner = bound.boundTarget {
+ 810 |       var combined = bound.boundArguments
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:1494:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1492 |     for (index, value) in values.enumerated() { object.properties[String(index)] = value }
+1493 |     object.properties["length"] = .number(Double(values.count))
+1494 |     weak var weakObject = object
+     |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1495 |     object.nativeSet = { key, value in
+1496 |       guard let target = weakObject else { return false }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:2694:9: warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2692 |       throw JSError.type("Right-hand side of instanceof is not callable")
+2693 |     }
+2694 |     let hasInstance = function.staticProperties.get("prototype")
+     |         `- warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2695 |     guard case .object(let prototype) = function.prototypeObject.map({ JSValue.object($0) })
+2696 |       ?? hasInstanceObject(function) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:3213:51: warning: variable 'self' was written to, but never read
+3211 | 
+3212 |   private func installEval() {
+3213 |     let evalFunction = JSFunction(native: { [weak self] _ in .undefined }, name: "eval")
+     |                                                   `- warning: variable 'self' was written to, but never read
+3214 |     _ = evalFunction
+3215 |     let direct = JSFunction(nativeMethod: { [weak self] _, args in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSTextCodec.swift:82:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 80 |     decoderProto.set("constructor", .function(decoderConstructor))
+ 81 |     decoderProto.defineNative("decode") { [weak runtime] thisArg, args in
+ 82 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 83 |       guard case .object(let decoder) = thisArg,
+ 84 |         case .string(let encoding) = decoder.get("encoding")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[107 / 271] JavaScript
+[108 / 271] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:202:11: warning: variable 'imported' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 200 |     while !checkSymbol("}") && !isAtEnd {
+ 201 |       let first = try contextualIdentifier("Expected import name")
+ 202 |       var imported = first
+     |           `- warning: variable 'imported' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 203 |       var local = first
+ 204 |       if matchKeyword("as") {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:799:9: warning: variable 'expression' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 797 | 
+ 798 |   private func postfix() throws -> JSExpression {
+ 799 |     var expression = try newExpression()
+     |         `- warning: variable 'expression' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 800 |     if (checkSymbol("++") || checkSymbol("--")) && !peek.lineTerminatorBefore {
+ 801 |       let op = peekSymbol()!
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[109 / 271] JavaScript
+[110 / 271] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:147:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+145 |     }
+146 |     proto.defineNative("substring") { [weak runtime] thisArg, args in
+147 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+148 |       let text = try primitiveString(thisArg)
+149 |       let units = Array(text.utf16)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:161:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+159 |     }
+160 |     proto.defineNative("substr") { [weak runtime] thisArg, args in
+161 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+162 |       let text = try primitiveString(thisArg)
+163 |       let units = Array(text.utf16)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[111 / 271] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMBindings.swift:56:9: warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 54 |   static func documentObject(context: JSDOMContext) -> JSObject {
+ 55 |     let document = context.document
+ 56 |     let events = context.events
+    |         `- warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 57 |     let object = JSObject(
+ 58 |       nativeGet: { [weak document] key in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:7:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  5 |   public static func locationFor(context: JSDOMContext) -> JSObject {
+  6 |     let object = JSObject()
+  7 |     weak var weakObject = object
+    |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  8 |     object.nativeGet = { [weak context] key in
+  9 |       guard let context, let object = weakObject else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:106:14: warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+104 |     object.set("state", .null)
+105 |     object.set("scrollRestoration", .string("auto"))
+106 |     weak var weakLocation = location
+    |              `- warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+107 |     object.defineNative("pushState") { args in
+108 |       if let first = args.first { object.set("__state", first) }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[112 / 271] HTML
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:199:60: warning: literal value is already handled by previous pattern; consider removing it
+138 |       insertNode(node)
+139 |       return
+140 |     case "link", "meta", "base", "col", "embed", "source", "track", "wbr", "img", "input", "area",
+    |                                  `- note: first occurrence of identical literal pattern is here
+141 |       "param":
+142 |       let node = makeElement(name: name, attributes: attributes)
+    :
+197 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+198 |       return
+199 |     case "caption", "colgroup", "tbody", "tfoot", "thead", "col":
+    |                                                            `- warning: literal value is already handled by previous pattern; consider removing it
+200 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+201 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:442:15: warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+440 |     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
+441 |   ) {
+442 |     guard let formattingPos, entryIndex != nil else {
+    |               `- warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+443 |       close(name)
+444 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:509:15: warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+507 | 
+508 |   private func popThrough(formattingID: NodeID) {
+509 |     while let last = openElements.last, openElements.count > 1 {
+    |               `- warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+510 |       let removed = openElements.removeLast()
+511 |       if removed == formattingID { break }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[115 / 271] HTML
+[116 / 271] HTML
+[118 / 274] JavaScript
+[122 / 274] DOM
+[123 / 274] CSS
+[125 / 276] Style
+[127 / 281] CSS
+[128 / 281] Style
+[129 / 281] Style
+[131 / 283] Style
+[134 / 283] Style
+[136 / 285] Layout
+[139 / 291] Layout
+[140 / 291] Layout
+[142 / 293] Layout
+[145 / 293] Layout
+[147 / 293] Layout
+[148 / 293] CSS
+[151 / 293] CSS
+[152 / 293] AgentProtocol
+[155 / 293] AgentProtocol
+[156 / 293] AgentProtocol
+[157 / 293] AetherNetworkHardening
+[160 / 293] AetherNetworkHardening
+[161 / 300] AetherNetworkHardening
+[164 / 301] Scheduler
+[169 / 307] Networking
+/Users/harshitduggal/workspace/Aether/Sources/Networking/CookieJar.swift:184:11: warning: result of call to 'withLock' is unused [#NoUsage]
+182 | 
+183 |   public func remove(name: String, domain: String, path: String = "/") {
+184 |     state.withLock { state in
+    |           `- warning: result of call to 'withLock' is unused [#NoUsage]
+185 |       state.cookies.removeValue(
+186 |         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[170 / 307] Networking
+[173 / 309] Networking
+[175 / 309] Networking
+[177 / 313] WebAPI
+[178 / 313] Images
+[179 / 319] WebAPI
+[180 / 323] Images
+[185 / 325] Images
+[190 / 329] WebAPI
+[191 / 329] WebAPI
+[192 / 329] Networking
+[195 / 331] Display
+[198 / 337] Display
+[199 / 337] Images
+[202 / 339] Display
+[205 / 339] Display
+[207 / 341] Graphics
+[208 / 341] Display
+[209 / 350] Graphics
+[210 / 350] Graphics
+[212 / 353] Graphics
+[216 / 353] Graphics
+[217 / 352] Graphics
+[219 / 352] Graphics
+[220 / 352] Graphics
+[221 / 352] Graphics
+[222 / 352] Display
+[225 / 354] Navigation
+[228 / 358] Navigation
+[229 / 358] Navigation
+[231 / 360] Navigation
+[234 / 360] Navigation
+[237 / 360] AetherCapture
+[239 / 360] AetherCapture
+[241 / 362] EngineRuntime
+[242 / 362] AetherCapture
+[243 / 367] EngineRuntime
+[244 / 367] EngineRuntime
+[246 / 369] EngineRuntime
+[249 / 369] EngineRuntime
+[251 / 371] BrowserEngine
+[254 / 374] BrowserEngine
+[255 / 374] BrowserEngine
+[257 / 377] BrowserEngine
+[263 / 380] enginebench-product
+[264 / 380] browserd-product
+[265 / 382] enginebench-product
+[267 / 384] browserctl-product
+[268 / 384] enginebench-product
+[269 / 386] browserctl-product
+[272 / 386] browserctl-product
+[275 / 384] browserctl-product
+/Users/harshitduggal/workspace/Aether/Package.swift: EngineCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherNetworkHardening: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCapture: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: WebSecurity: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[281 / 384] Text
+/Users/harshitduggal/workspace/Aether/Package.swift: Text: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Storage: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Scheduler: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Persistence: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Diagnostics: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: DOM: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[287 / 384] CSS
+/Users/harshitduggal/workspace/Aether/Package.swift: CSS: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentProtocol: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Networking: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[291 / 384] AetherCaptureTests-product
+[292 / 387] NetworkHardeningIntegrationTests-product
+[293 / 395] AetherCaptureTests-product
+[293 / 395] WebSecurity
+[296 / 395] StorageTests-product
+[297 / 395] SecurityTests-product
+[298 / 398] StorageTests-product
+[300 / 401] PersistenceTests-product
+[301 / 401] StorageTests-product
+[302 / 404] PersistenceTests-product
+[303 / 404] StorageTests-product
+[306 / 404] SecurityTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: StorageTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: StorageTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[308 / 404] SecurityTests-product
+[308 / 410] SecurityTests-product
+[314 / 408] PersistenceTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: SecurityTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: SecurityTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[316 / 408] PersistenceTests-product
+[316 / 414] PersistenceTests-product
+[318 / 412] NetworkHardeningIntegrationTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: PersistenceTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: PersistenceTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[324 / 422] PersistenceTests-product
+[328 / 418] NetworkHardeningIntegrationTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: NetworkHardeningIntegrationTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: NetworkHardeningIntegrationTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[331 / 418] DOM
+[332 / 418] AetherCaptureTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: JavaScript: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: HTML: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[335 / 418] JavaScript
+[338 / 421] DOMTests-product
+[339 / 421] DOMTests-product
+[340 / 421] AetherCaptureTests-product
+[342 / 426] AetherCaptureTests-product
+[344 / 424] DOMTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: DOMTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: DOMTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[348 / 424] AetherCaptureTests-product
+[349 / 424] AetherCaptureTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCaptureTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCaptureTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[354 / 431] AetherCaptureTests-product
+[365 / 432] Images
+/Users/harshitduggal/workspace/Aether/Package.swift: Images: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[366 / 435] NetworkTests-product
+[368 / 435] NetworkTests-product
+/Users/harshitduggal/workspace/Aether/Tests/NetworkTests/NetworkTests.swift:52:3: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+50 |   let jar = CookieJar()
+51 |   let url = URL(string: "https://a.example/")!
+52 |   await jar.absorb(setCookie: "s=1; SameSite=Strict", from: url)
+   |   `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+53 |   let cross = CookieRequestContext(
+54 |     topLevelHost: "b.example", method: "GET", isTopLevelNavigation: true)
+
+macro expansion #expect:1:22: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+`- /Users/harshitduggal/workspace/Aether/Tests/NetworkTests/NetworkTests.swift:55:61: note: expanded code originates here
+53 |   let cross = CookieRequestContext(
+54 |     topLevelHost: "b.example", method: "GET", isTopLevelNavigation: true)
+55 |   #expect(await jar.header(for: url, context: cross) == nil)
+   |   `- note: in expansion of macro 'expect' here
+   +--- macro expansion #expect ----------------------------------------
+   |1 | Testing.__checkValue(await jar.header(for: url, context: cross) == nil,expression: .__fromSyntaxNode("await jar.header(for: url, context: cross) == nil"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+   |  |                      `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+   +--------------------------------------------------------------------
+56 |   let same = CookieRequestContext(
+57 |     topLevelHost: "a.example", method: "GET", isTopLevelNavigation: true)
+
+macro expansion #expect:1:22: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+`- /Users/harshitduggal/workspace/Aether/Tests/NetworkTests/NetworkTests.swift:58:62: note: expanded code originates here
+56 |   let same = CookieRequestContext(
+57 |     topLevelHost: "a.example", method: "GET", isTopLevelNavigation: true)
+58 |   #expect(await jar.header(for: url, context: same) == "s=1")
+   |   `- note: in expansion of macro 'expect' here
+   +--- macro expansion #expect ----------------------------------------
+   |1 | Testing.__checkValue(await jar.header(for: url, context: same) == "s=1",expression: .__fromSyntaxNode(#"await jar.header(for: url, context: same) == "s=1""#),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+   |  |                      `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+   +--------------------------------------------------------------------
+59 | }
+60 | 
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[370 / 435] NetworkHardeningIntegrationTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: WebAPI: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: NetworkTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: NetworkTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[374 / 436] JavaScriptTests-product
+[374 / 442] JavaScriptTests-product
+[377 / 444] NetworkTests-product
+[380 / 447] HTMLTests-product
+[380 / 447] WebAPI
+[382 / 447] JavaScriptTests-product
+[385 / 447] JavaScriptTests-product
+[385 / 447] Images
+[386 / 447] HTMLTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: JavaScriptTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: JavaScriptTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[390 / 452] JavaScriptTests-product
+[394 / 452] HTMLTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: Style: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: HTMLTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: HTMLTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[399 / 453] Style
+[404 / 457] HTMLTests-product
+[406 / 460] WebAPITests-product
+[409 / 460] WebAPITests-product
+[411 / 461] WebAPITests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: WebAPITests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: WebAPITests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[416 / 461] Layout
+/Users/harshitduggal/workspace/Aether/Package.swift: Layout: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[417 / 461] WebAPITests-product
+[419 / 464] NetworkHardeningIntegrationTests-product
+[420 / 464] CSSTests-product
+[422 / 464] CSSTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: CSSTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: CSSTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[426 / 464] StorageTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: Display: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[434 / 471] LayoutTests-product
+[435 / 474] PerformanceTests-product
+[436 / 478] LayoutTests-product
+[440 / 479] PerformanceTests-product
+[443 / 479] NetworkHardeningIntegrationTests-product
+[444 / 479] LayoutTests-product
+[446 / 479] LayoutTests-product
+[448 / 479] LayoutTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: PerformanceTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: PerformanceTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[449 / 479] LayoutTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: LayoutTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: LayoutTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[455 / 482] LayoutTests-product
+[463 / 487] PerformanceTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: Graphics: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Navigation: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[467 / 488] browserctl-product
+[470 / 494] RenderingTests-product
+[471 / 494] RenderingTests-product
+[472 / 494] RenderingTests-product
+[473 / 494] RenderingTests-product
+[474 / 494] NetworkTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: RenderingTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: RenderingTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[478 / 496] RenderingTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: EngineRuntime: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: BrowserEngine: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[483 / 498] BrowserEngine
+/Users/harshitduggal/workspace/Aether/Package.swift: enginebench-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: enginebench-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[484 / 498] enginebench-product
+[485 / 498] browserd-product/Users/harshitduggal/workspace/Aether/Package.swift: browserd-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: browserd-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+
+/Users/harshitduggal/workspace/Aether/Package.swift: browserctl-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: browserctl-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[487 / 498] BrowserEngine-product
+[489 / 498] BrowserEngine-product
+[491 / 505] AgentTests-product
+[493 / 504] AgentTests-product
+[497 / 504] AgentTests-product
+[499 / 504] AgentTests-product
+[499 / 504]
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[503 / 505] enginebench-product
+[506 / 506] browserd-product
+Build complete! (79.88 sec)
+◇ Test run started.
+↳ Testing Library Version: 2078
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test textGlyphsAreUprightAndStayInsideTheirDocumentBounds() started.
+✔ Test textGlyphsAreUprightAndStayInsideTheirDocumentBounds() passed after 0.040 seconds.
+✔ Test run with 1 test in 0 suites passed after 0.041 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2078
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test fetchValidatesURLMethodAndBody() started.
+✔ Test fetchValidatesURLMethodAndBody() passed after 0.002 seconds.
+◇ Test promisesResolveAndChain() started.
+✘ Test promisesResolveAndChain() recorded an issue at JavaScriptTests.swift:60:2: Caught error: ReferenceError: out is not defined
+✘ Test promisesResolveAndChain() failed after 0.002 seconds with 1 issue.
+◇ Test asyncFunctionsAwaitValues() started.
+✘ Test asyncFunctionsAwaitValues() recorded an issue at JavaScriptTests.swift:70:2: Caught error: ReferenceError: out is not defined
+✘ Test asyncFunctionsAwaitValues() failed after 0.001 seconds with 1 issue.
+✘ Test run with 3 tests in 0 suites failed after 0.007 seconds with 2 issues.
+◇ Test run started.
+↳ Testing Library Version: 2078
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test invalidNumericAgentParametersReturnErrorsWithoutCrashing() started.
+✔ Test invalidNumericAgentParametersReturnErrorsWithoutCrashing() passed after 0.001 seconds.
+✔ Test run with 1 test in 0 suites passed after 0.001 seconds.
+Note: Some test targets reported failures:
+  - JavaScriptTests (Swift Testing)
+{"command": ["/Library/Developer/CommandLineTools/usr/bin/swift", "test", "-j", "1", "--no-parallel", "-Xswiftc", "-plugin-path", "-Xswiftc", "/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing", "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/Frameworks", "-Xlinker", "-rpath", "-Xlinker", "/Library/Developer/CommandLineTools/Library/Developer/usr/lib", "--filter", "textGlyphs|invalidNumeric|fetchValidates|promisesResolve|asyncFunctions"], "seconds": 83.604, "peakTreeRSSMiB": 1213.64, "exitCode": 1, "stopped": null}

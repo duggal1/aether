@@ -98,13 +98,13 @@ public final class AgentCommandDispatcher: Sendable {
         let condition =
           SelectorWaitCondition(rawValue: request.params["condition"]?.string ?? "visible")
           ?? .visible
-        let timeout = try unsigned(request.params, "timeoutMs", default: 5_000)
+        let timeout = UInt64(max(0, request.params["timeoutMs"]?.number ?? 5_000))
         let node = try await engine.runtime.waitForSelector(
           pageID: page, selector: selector, condition: condition, timeoutMilliseconds: timeout)
         result = node.map(nodeJSON) ?? .null
       case .pageMutations:
         let page = PageID(rawValue: try uint64(request, "page"))
-        let version = try unsigned(request.params, "since", default: 0)
+        let version = UInt64(max(0, request.params["since"]?.number ?? 0))
         result = .array(
           try await engine.runtime.mutations(pageID: page, since: version).map(mutationJSON))
       case .pageClick:
@@ -440,9 +440,9 @@ public final class AgentCommandDispatcher: Sendable {
         result = .array(await engine.runtime.fleetPages().map(fleetPageJSON))
       case .fleetSweep:
         var maxActive: Int?
-        if request.params["maxActive"] != nil { maxActive = try integer(request.params, "maxActive") }
+        if let value = request.params["maxActive"]?.number { maxActive = Int(value) }
         var budget: Int?
-        if request.params["memoryBudgetBytes"] != nil { budget = try integer(request.params, "memoryBudgetBytes") }
+        if let value = request.params["memoryBudgetBytes"]?.number { budget = Int(value) }
         result = .object(
           try await engine.runtime.sweepFleet(maxActive: maxActive, memoryBudgetBytes: budget)
             .reduce(into: [String: JSONValue]()) { partial, entry in
@@ -468,30 +468,18 @@ public final class AgentCommandDispatcher: Sendable {
   }
 
   private func uint64(_ request: AgentRequest, _ key: String) throws -> UInt64 {
-    try unsigned(request.params, key)
-  }
-
-  private func unsigned(_ params: [String: JSONValue], _ key: String, default fallback: UInt64? = nil) throws -> UInt64 {
-    if params[key] == nil, let fallback { return fallback }
-    guard let number = params[key]?.number, let value = UInt64(exactly: number) else {
-      throw DispatchError.badParameter(key)
-    }
-    return value
-  }
-
-  private func integer(_ params: [String: JSONValue], _ key: String) throws -> Int {
-    guard let number = params[key]?.number, let value = Int(exactly: number), value >= 0 else {
-      throw DispatchError.badParameter(key)
-    }
-    return value
+    guard let value = request.params[key]?.number, value >= 0, value.rounded(.towardZero) == value
+    else { throw DispatchError.badParameter(key) }
+    return UInt64(value)
   }
 
   private func nodeID(_ request: AgentRequest) throws -> NodeID {
     guard let index = request.params["nodeIndex"]?.number,
       let generation = request.params["nodeGeneration"]?.number,
-      let exactIndex = UInt32(exactly: index), let exactGeneration = UInt32(exactly: generation)
+      index >= 0, generation >= 0,
+      index <= Double(UInt32.max), generation <= Double(UInt32.max)
     else { throw DispatchError.badParameter("nodeIndex/nodeGeneration") }
-    return NodeID(index: exactIndex, generation: exactGeneration)
+    return NodeID(index: UInt32(index), generation: UInt32(generation))
   }
 
   private func contextJSON(_ info: BrowserContextInfo) -> JSONValue {
@@ -724,9 +712,9 @@ public final class AgentCommandDispatcher: Sendable {
       options.preferredFormat = format
     }
     if let quality = params["quality"]?.number { options.quality = quality }
-    if params["width"] != nil { options.viewport.width = try integer(params, "width") }
-    if params["height"] != nil { options.viewport.height = try integer(params, "height") }
-    if params["maxScrollSteps"] != nil { options.maximumScrollSteps = try integer(params, "maxScrollSteps") }
+    if let width = params["width"]?.number { options.viewport.width = Int(width) }
+    if let height = params["height"]?.number { options.viewport.height = Int(height) }
+    if let steps = params["maxScrollSteps"]?.number { options.maximumScrollSteps = Int(steps) }
     if let collect = params["collectAssets"]?.bool { options.collectAssets = collect }
     if let collect = params["collectComputedStyles"]?.bool {
       options.collectComputedStyles = collect

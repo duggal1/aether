@@ -50,3 +50,9 @@ import Testing
     #expect(refs.contains { $0.url == "https://fixture.test/fonts/a.woff2" && $0.kind == "font" })
     #expect(refs.contains { $0.url == "https://fixture.test/images/a.svg" && $0.kind == "svg" })
 }
+
+@Test func rasterWidthOverflowIsRejected() {
+    #expect(throws: CaptureFailure.self) {
+        try AetherRaster(rgba: Data(), width: Int.max, height: 1, bytesPerRow: 4)
+    }
+}

@@ -7,7 +7,7 @@ public enum ResourceCollector {
         var ordered = snapshot.resources
         for sheet in snapshot.stylesheets {
             if let src = sheet.sourceURL { ordered.append(.init(url: src, kind: "css")) }
-            let stylesheetBase = sheet.sourceURL.flatMap { URL(string: $0, relativeTo: baseURL)?.absoluteURL } ?? baseURL
+            let stylesheetBase = sheet.sourceURL.flatMap(URL.init(string:)) ?? baseURL
             for ref in CSSURLScanner.references(in: sheet.css) {
                 if let resolved = URL(string: ref, relativeTo: stylesheetBase)?.absoluteURL {
                     let ext = resolved.pathExtension.lowercased()

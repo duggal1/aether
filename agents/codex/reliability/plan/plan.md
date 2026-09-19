@@ -1,0 +1,1 @@
+Fix confirmed rendering orientation; enable complete serial test execution on CLT with explicit Testing plugin and framework rpath; resolve observed failures with regressions; run debug/release builds, local runtime/capture and public-site verification. Preserve all current other-agent work. No unsupported claims of universal web compatibility.

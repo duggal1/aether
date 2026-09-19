@@ -99,8 +99,10 @@ public struct SoftwareRenderer: OffscreenRendering {
           bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         )
       else { return }
+      context.translateBy(x: 0, y: CGFloat(buffer.height))
+      context.scaleBy(x: 1, y: -1)
       if let clip {
-        context.clip(to: CGRect(x: clip.minX, y: Double(buffer.height) - clip.maxY, width: clip.width, height: clip.height))
+        context.clip(to: CGRect(x: clip.minX, y: clip.minY, width: clip.width, height: clip.height))
       }
       let weight = CGFloat(min(1, max(-1, Double(command.fontWeight - 400) / 500)))
       let descriptor = CTFontDescriptorCreateWithAttributes(
@@ -121,7 +123,7 @@ public struct SoftwareRenderer: OffscreenRendering {
       let path = CGMutablePath()
       path.addRect(
         CGRect(
-          x: command.rect.minX, y: Double(buffer.height) - command.rect.maxY, width: command.rect.width,
+          x: command.rect.minX, y: command.rect.minY, width: command.rect.width,
           height: command.rect.height))
       let frame = CTFramesetterCreateFrame(
         framesetter, CFRange(location: 0, length: attributed.length), path, nil)

@@ -50,7 +50,7 @@ public struct AetherRaster: Sendable {
     public let height: Int
     public let bytesPerRow: Int
     public init(rgba: Data, width: Int, height: Int, bytesPerRow: Int) throws {
-        guard width > 0, width <= Int.max / 4, height > 0, bytesPerRow >= width * 4,
+        guard width > 0, height > 0, bytesPerRow >= width * 4,
               height <= Int.max / bytesPerRow,
               rgba.count == height * bytesPerRow else { throw CaptureFailure.invalidRaster }
         self.rgba = rgba; self.width = width; self.height = height; self.bytesPerRow = bytesPerRow
@@ -98,19 +98,5 @@ public struct AetherDocumentSnapshot: Sendable {
                 warnings: [CaptureWarning] = []) {
         self.html = html; self.stylesheets = stylesheets
         self.nodes = nodes; self.resources = resources; self.warnings = warnings
-    }
-}
-
-extension AetherPageState {
-    func validated() throws -> Self {
-        guard viewportCSSWidth.isFinite, viewportCSSHeight.isFinite,
-              viewportCSSWidth > 0, viewportCSSHeight > 0,
-              viewportCSSWidth <= 8192, viewportCSSHeight <= 8192,
-              documentCSSHeight.isFinite, documentCSSHeight > 0,
-              scrollY.isFinite, scrollY >= 0 else {
-            throw CaptureFailure.navigationFailed("Engine returned invalid layout dimensions")
-        }
-        if let blockedReason { throw CaptureFailure.navigationFailed(blockedReason) }
-        return self
     }
 }

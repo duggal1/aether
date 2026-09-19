@@ -53,8 +53,7 @@ public indirect enum JSValue: CustomStringConvertible, Equatable {
       if value.isNaN { return "NaN" }
       if value.isInfinite { return value > 0 ? "Infinity" : "-Infinity" }
       if value == 0 { return "0" }
-      if let integer = Int64(exactly: value) { return String(integer) }
-      if value.rounded() == value && abs(value) < 1e21 { return String(format: "%.0f", value) }
+      if value.rounded() == value && abs(value) < 1e21 { return String(Int64(value)) }
       return String(value)
     case .bigint(let text): return text
     case .string(let value): return value

@@ -35,7 +35,12 @@ public actor CaptureCoordinator {
     ) async throws -> CaptureResult {
         try Task.checkCancellation()
         try await session.navigate(to: source)
-        var page = try await session.state().validated()
+        var page = try await session.state()
+        if let blocked = page.blockedReason { throw CaptureFailure.navigationFailed(blocked) }
+        guard page.documentCSSHeight.isFinite, page.documentCSSHeight > 0,
+              page.viewportCSSHeight.isFinite, page.viewportCSSHeight > 0 else {
+            throw CaptureFailure.navigationFailed("Engine returned invalid layout dimensions")
+        }
         let output = CaptureFolder(destination: destination)
         try output.prepare()
         defer { output.discard() }
@@ -47,7 +52,7 @@ public actor CaptureCoordinator {
         let discoveredHeight = try await warmLazyContent(session, options: options)
         try await session.scrollTo(documentY: 0)
         try await session.waitForVisualStability(maxMilliseconds: options.settleMilliseconds)
-        page = try await session.state().validated()
+        page = try await session.state()
         let limit = options.maximumDocumentCSSHeight
         let measuredHeight = max(discoveredHeight, page.documentCSSHeight)
         let truncated = measuredHeight > limit
@@ -97,7 +102,7 @@ public actor CaptureCoordinator {
             let targetY = min(Double(iterations) * scrollStep, max(0, maxY - page.viewportCSSHeight))
             try await session.scrollTo(documentY: targetY)
             try await session.waitForVisualStability(maxMilliseconds: options.settleMilliseconds)
-            let observed = try await session.state().validated()
+            let observed = try await session.state()
             guard observed.scrollY.isFinite, observed.scrollY >= 0 else {
                 throw CaptureFailure.navigationFailed("Engine returned an invalid scroll position")
             }
@@ -123,9 +128,8 @@ public actor CaptureCoordinator {
                                            height: visibleBottom - visibleTop)
                 for index in sections.indices where sections[index].bounds.intersects(tileRect) {
                     let bounds = sections[index].bounds
-                    let pixelsPerCSSX = Double(trimmed.width) / observed.viewportCSSWidth
-                    let xStart = Int((min(observed.viewportCSSWidth, max(0, bounds.x)) * pixelsPerCSSX).rounded(.down))
-                    let xEnd = Int((min(observed.viewportCSSWidth, max(0, bounds.x + bounds.width)) * pixelsPerCSSX).rounded(.up))
+                    let xStart = max(0, Int((bounds.x * pixelsPerCSS).rounded(.down)))
+                    let xEnd = min(trimmed.width, Int(((bounds.x + bounds.width) * pixelsPerCSS).rounded(.up)))
                     let yStart = max(0, Int(((max(bounds.y, visibleTop) - visibleTop) * pixelsPerCSS).rounded(.down)))
                     let yEnd = min(trimmed.height, Int(((min(bounds.bottom, visibleBottom) - visibleTop) * pixelsPerCSS).rounded(.up)))
                     if xEnd > xStart && yEnd > yStart {
@@ -224,7 +228,6 @@ public actor CaptureCoordinator {
         )
         try output.writeJSON(manifest, relative: "manifest.json")
         try output.write(Data(DesignReference.render(manifest: manifest).utf8), relative: "design-reference.md")
-        try Task.checkCancellation()
         try output.finish()
         return CaptureResult(directory: destination, manifest: manifest)
     }
@@ -232,7 +235,7 @@ public actor CaptureCoordinator {
     private func warmLazyContent(
         _ session: any AetherCaptureSession, options: CaptureOptions
     ) async throws -> Double {
-        var state = try await session.state().validated()
+        var state = try await session.state()
         var maxHeight = state.documentCSSHeight
         var priorBottom = -1.0
         var stableBottomCount = 0
@@ -242,7 +245,7 @@ public actor CaptureCoordinator {
                             max(0, state.documentCSSHeight - state.viewportCSSHeight))
             try await session.scrollTo(documentY: nextY)
             try await session.waitForVisualStability(maxMilliseconds: options.settleMilliseconds)
-            state = try await session.state().validated()
+            state = try await session.state()
             maxHeight = max(maxHeight, state.documentCSSHeight)
             if state.scrollY + state.viewportCSSHeight >= state.documentCSSHeight - 1 {
                 stableBottomCount = abs(priorBottom - state.documentCSSHeight) <= 1 ? stableBottomCount + 1 : 0

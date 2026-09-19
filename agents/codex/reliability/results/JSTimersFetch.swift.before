@@ -520,9 +520,7 @@ extension JSRuntime {
           {
             resolvedURL = absolute.absoluteString
           }
-          guard let parsedURL = URL(string: resolvedURL),
-            let scheme = parsedURL.scheme?.lowercased(), ["http", "https"].contains(scheme),
-            let host = parsedURL.host, !host.isEmpty else {
+          guard URL(string: resolvedURL)?.scheme != nil else {
             throw JSError.type("fetch URL must be a valid absolute URL")
           }
           if Self.forbiddenMethods.contains(parts.method) {
