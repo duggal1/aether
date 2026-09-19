@@ -60,19 +60,22 @@ import Testing
 @Test func promisesResolveAndChain() throws {
   let runtime = JSRuntime()
   #expect(
-    try runtime.evaluate("let out = 0; Promise.resolve(21).then(v => { out = v * 2; }); out")
-      .description == "42")
+    try runtime.evaluate("out = 0; Promise.resolve(21).then(v => { out = v * 2; }); out")
+      .description == "0")
+  #expect(try runtime.evaluate("out").description == "42")
   #expect(
-    try runtime.evaluate("let seen = ''; Promise.reject('x').catch(e => { seen = e; }); seen")
-      .description == "x")
+    try runtime.evaluate("seen = ''; Promise.reject('x').catch(e => { seen = e; }); seen")
+      .description == "")
+  #expect(try runtime.evaluate("seen").description == "x")
 }
 
 @Test func asyncFunctionsAwaitValues() throws {
   let runtime = JSRuntime()
   #expect(
     try runtime.evaluate(
-      "async function f() { return 40 + 2; } let out = 0; f().then(v => { out = v; }); out"
-    ).description == "42")
+      "async function f() { return 40 + 2; } out = 0; f().then(v => { out = v; }); out"
+    ).description == "0")
+  #expect(try runtime.evaluate("out").description == "42")
 }
 
 @Test func bigIntArithmetic() throws {
