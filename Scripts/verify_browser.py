@@ -1,4 +1,5 @@
 import argparse
+import base64
 import concurrent.futures
 import hashlib
 import http.server
@@ -20,6 +21,7 @@ def png():
 
 
 IMAGE = png()
+PIXEL_HTML = b'''<html><head><style>body{margin:0}#paint{height:100px;background-color:#ff0000}</style></head><body><div id="paint">Before JavaScript</div><script>document.getElementById('paint').setAttribute('style','height:100px;background-color:#00ff00');document.getElementById('paint').textContent='After JavaScript';</script></body></html>'''
 CSS = b'body{margin:0;background:white;color:#202020}section{height:300px;padding:20px}header{height:100px;background:#eeeeee}footer{height:80px}img{width:16px;height:16px}'
 HTML = b'''<!DOCTYPE html><html><head><title>Capture integration</title><link rel="stylesheet" href="/main.css"></head><body><header><h1>Aether capture verification</h1></header><main><section id="one"><h2>First section</h2><img src="/image.png"><p id="live">Original</p><a id="next" href="/next">Next page</a><input id="name" value="alpha"></section><section id="two"><h2>Second section</h2><img src="/missing.png"><svg viewBox="0 0 20 20"><path d="M0 0L20 20"/></svg></section><section id="three"><h2>Third section</h2></section></main><footer>End of document</footer><script>document.getElementById('live').textContent='Updated by JavaScript';localStorage.setItem('loaded','yes');</script></body></html>'''
 
@@ -46,6 +48,8 @@ class FixtureServer(http.server.BaseHTTPRequestHandler):
             status, body = 404, b'missing'
         elif path == '/blocked':
             status, body = 403, b'<html><body>Denied</body></html>'
+        elif path == '/pixel':
+            body = PIXEL_HTML
         elif path == '/next':
             body = b'<html><head><title>Next</title></head><body><h1>Next page</h1></body></html>'
         elif path == '/download':
@@ -154,6 +158,20 @@ def main():
         check('scroll', lambda: (call('page.scroll', page=page, x=0, y=320), require(call('page.scrollOffset', page=page)['y'] == 320, 'offset incorrect')))
         check('render', lambda: call('page.render', page=page, path=str(output / 'viewport.png')))
         check('resize', lambda: require(call('page.resize', page=page, width=640, height=480)['width'] == 640, 'resize failed'))
+        def dynamic_pixels():
+            call('page.navigate', page=page, url=base + '/pixel')
+            node = call('page.query', page=page, selector='#paint')
+            require(node['name'] == 'After JavaScript', 'dynamic DOM text was not rendered')
+            rgb = ppm_pixel(call('page.render', page=page), 10, 10)
+            require(rgb == (0, 255, 0), f'expected JS-updated green pixel, got {rgb}')
+            return {'observedRGB': rgb, 'page': page}
+        check('dynamic DOM-to-raster pixels', dynamic_pixels)
+        def typed_input():
+            result = call('page.navigateInput', page=page, input=f'127.0.0.1:{server.server_port}/pixel')
+            require(result['kind'] == 'url', 'address interpreted as a search')
+            require(result['page']['url'] == base + '/pixel', 'typed input did not navigate the live page')
+            return {'kind': result['kind'], 'url': result['url']}
+        check('typed address uses live page', typed_input)
         def history():
             call('page.navigate', page=page, url=base + '/next')
             require(call('page.back', page=page)['title'] == 'Capture integration', 'back failed')
@@ -210,6 +228,17 @@ def main():
             capture('kit-timer', '/timer')
             require('Timer completed' in (output / 'kit-timer' / 'website.html').read_text(), 'timer never pumped during capture')
         check('delayed JavaScript capture', timer)
+        def dynamic_capture_pixels():
+            directory = output / 'kit-pixel'
+            manifest = capture('kit-pixel', '/pixel', format='png')
+            require('After JavaScript' in (directory / 'website.html').read_text(),
+                    'captured DOM omitted JavaScript mutation')
+            first = manifest['screenshots'][0]
+            require(first['format'] == 'png', 'PNG capture unsupported on this host')
+            rgb = png_pixel(directory / first['file'], 10, 10)
+            require(rgb == (0, 255, 0), f'captured pixel is not JS-updated green: {rgb}')
+            return {'observedRGB': rgb, 'screenshot': first['file']}
+        check('dynamic capture DOM and pixel', dynamic_capture_pixels)
         def refused(path):
             try:
                 call('page.capture', url=base + path, path=str(output / ('failed-' + path[1:])))
