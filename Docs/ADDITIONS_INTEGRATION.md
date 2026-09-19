@@ -22,7 +22,7 @@ This is an incremental integration into the existing Swift browser engine. `Sour
 
 This is **not** a completed P0–P2 browser engine or a comprehensive security boundary. The existing runtime still has no hardened renderer sandbox. Full HTTP caching requires request variant keys, authorization handling, conditional validation and persistent policy; the conservative cache above intentionally refuses many responses. HSTS must be enforced across all redirects, not just initial requests. Complete Fetch/CORS/CSP enforcement, web standards and production macOS GPU rendering remain independent projects.
 
-Do not merge into `main` until native CI passes and the final diff has been inspected. Do not use a green add-on-only test suite as evidence that the integrated browser works.
+Merge only with a reviewed diff, a successful native release build, successful targeted integration tests and benchmark, and an explicit comparison against the existing full-suite failure baseline. The 14 outstanding JavaScript failures must not be described as passing. Do not use a green add-on-only test suite as evidence that the integrated browser works.
 
 
 ## Native Apple Silicon validation and unchanged baseline
