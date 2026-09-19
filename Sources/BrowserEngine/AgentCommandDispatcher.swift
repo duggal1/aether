@@ -112,6 +112,34 @@ public final class AgentCommandDispatcher: Sendable {
         }
         result = .array(
           try await engine.runtime.queryAll(pageID: page, selector: selector).map(nodeJSON))
+      case .pageFind:
+        let page = PageID(rawValue: try uint64(request, "page"))
+        guard let query = request.params["query"]?.string, !query.isEmpty else {
+          throw DispatchError.badParameter("query")
+        }
+        let limit = request.params["limit"] == nil ? 100 : try integer(request.params, "limit")
+        guard limit > 0 && limit <= 1_000 else {
+          throw DispatchError.badParameter("limit")
+        }
+        let snapshot = try await engine.runtime.snapshot(pageID: page)
+        let matches = PageTextSearch.find(
+          in: snapshot, query: query,
+          caseSensitive: request.params["caseSensitive"]?.bool ?? false,
+          maximumMatches: limit)
+        result = .object([
+          "mutationVersion": .number(Double(snapshot.mutationVersion)),
+          "matches": .array(matches.map { match in
+            var item: [String: JSONValue] = [
+              "nodeIndex": .number(Double(match.node.index)),
+              "nodeGeneration": .number(Double(match.node.version)),
+              "characterOffset": .number(Double(match.characterOffset)),
+              "characterLength": .number(Double(match.characterLength)),
+              "text": .string(match.text),
+            ]
+            if let bounds = match.bounds { item["bounds"] = rectJSON(bounds) }
+            return .object(item)
+          }),
+        ])
       case .pageWait:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let selector = request.params["selector"]?.string else {
