@@ -86,3 +86,17 @@ import Testing
     headers: ["Cache-Control": "public, max-age=60"], body: Data("ok".utf8)))
   #expect(await cache.response(for: url)?.body == Data("ok".utf8))
 }
+
+
+@Test func scriptsCannotCreateOrOverwriteHttpOnlyCookies() {
+  let jar = CookieJar()
+  let url = URL(string: "https://app.example/private")!
+  jar.absorb(setCookie: "session=network; Path=/; HttpOnly; Secure", from: url)
+  #expect(jar.scriptVisibleHeader(for: url) == nil)
+  jar.setFromScript("session=stolen; Path=/", from: url)
+  jar.setFromScript("injected=1; Path=/; HttpOnly", from: url)
+  #expect(jar.header(for: url) == "session=network")
+  #expect(jar.scriptVisibleHeader(for: url) == nil)
+  jar.setFromScript("theme=dark; Path=/", from: url)
+  #expect(jar.scriptVisibleHeader(for: url) == "theme=dark")
+}
