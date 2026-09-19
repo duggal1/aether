@@ -43,6 +43,28 @@ public final class AgentCommandDispatcher: Sendable {
           throw DispatchError.badParameter("url")
         }
         result = pageJSON(try await engine.runtime.navigate(pageID: page, to: url))
+      case .pageNavigateInput:
+        let page = PageID(rawValue: try uint64(request, "page"))
+        guard let input = request.params["input"]?.string else {
+          throw DispatchError.badParameter("input")
+        }
+        let provider: SearchProvider
+        if let raw = request.params["providerURL"]?.string {
+          guard let endpoint = URL(string: raw) else {
+            throw DispatchError.badParameter("providerURL")
+          }
+          provider = SearchProvider(
+            endpoint: endpoint, queryParameter: request.params["queryParameter"]?.string ?? "q")
+        } else {
+          provider = .defaultProvider
+        }
+        let resolution = try NavigationInputResolver.resolve(input, provider: provider)
+        let navigated = try await engine.runtime.navigate(pageID: page, to: resolution.url)
+        result = .object([
+          "kind": .string(resolution.kind.rawValue),
+          "url": .string(resolution.url.absoluteString),
+          "page": pageJSON(navigated),
+        ])
       case .pageBack:
         result = pageJSON(
           try await engine.runtime.goBack(pageID: PageID(rawValue: try uint64(request, "page"))))
