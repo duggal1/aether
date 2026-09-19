@@ -508,6 +508,7 @@ public final class JSRuntime {
   public var symbolDescriptions: [Int: String] = [:]
   public var symbolForRegistry: [String: Int] = [:]
   private var activeModule: JSModuleRecord?
+  private var scriptScope: JSEnvironment?
 
   public func newSymbol(description: String?) -> JSValue {
     symbolCounter += 1
@@ -568,8 +569,13 @@ public final class JSRuntime {
 
   private func runStatements(_ program: [JSStatement], module: JSModuleRecord?) throws -> JSValue {
     stepsUsed = 0
-    microtasks.removeAll(keepingCapacity: true)
-    let scope = JSEnvironment(parent: globals, kind: .function)
+    let scope: JSEnvironment
+    if let module {
+      scope = JSEnvironment(parent: globals, kind: .function)
+    } else {
+      if scriptScope == nil { scriptScope = JSEnvironment(parent: globals, kind: .function) }
+      scope = scriptScope!
+    }
     let previous = activeModule
     activeModule = module
     defer { activeModule = previous }
@@ -1477,7 +1483,8 @@ public final class JSRuntime {
     case .number(let number):
       if number.isNaN { return "NaN" }
       if number.isInfinite { return number > 0 ? "Infinity" : "-Infinity" }
-      if number.rounded() == number && abs(number) < 1e21 { return String(Int64(number)) }
+      if number == 0 { return "0" }
+      if number.rounded() == number && abs(number) < 1e21 { return String(format: "%.0f", number) }
       return String(number)
     case .bigint(let text): return text
     case .bool(let flag): return flag ? "true" : "false"
@@ -1905,7 +1912,7 @@ public final class JSRuntime {
     case "!": return .bool(!value.truthy)
     case "-":
       if case .bigint(let text) = value { return .bigint(JSBigInt.negate(text)) }
-      return .number(try toNumber(value))
+      return .number(-(try toNumber(value)))
     case "+": return .number(try toNumber(value))
     case "~":
       if case .bigint(let text) = value {
@@ -2563,7 +2570,7 @@ public final class JSRuntime {
       if number.isNaN { return "NaN" }
       if number.isInfinite { return number > 0 ? "Infinity" : "-Infinity" }
       if number == 0 { return "0" }
-      if number.rounded() == number && abs(number) < 1e21 { return String(Int64(number)) }
+      if number.rounded() == number && abs(number) < 1e21 { return String(format: "%.0f", number) }
       return String(number)
     case .bigint(let text): return text
     case .bool(let flag): return flag ? "true" : "false"
@@ -2668,12 +2675,12 @@ public final class JSRuntime {
     if case .bigint(let text) = lhs, case .number(let number) = rhs {
       if number.isNaN || number.isInfinite { return false }
       if number.rounded() != number { return false }
-      return text == JSBigInt.normalize(String(Int64(number)))
+      return text == JSBigInt.normalize(JSBigInt.exactIntegerText(number))
     }
     if case .number(let number) = lhs, case .bigint(let text) = rhs {
       if number.isNaN || number.isInfinite { return false }
       if number.rounded() != number { return false }
-      return JSBigInt.normalize(String(Int64(number))) == text
+      return JSBigInt.normalize(JSBigInt.exactIntegerText(number)) == text
     }
     if case .bool = lhs { return try looseEqual(.number(try toNumber(lhs)), rhs) }
     if case .bool = rhs { return try looseEqual(lhs, .number(try toNumber(rhs))) }

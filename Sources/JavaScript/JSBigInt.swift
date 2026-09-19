@@ -15,6 +15,11 @@ enum JSBigInt {
     return negative ? "-\(work)" : work
   }
 
+  static func exactIntegerText(_ number: Double) -> String {
+    if number == 0 { return "0" }
+    return String(format: "%.0f", number)
+  }
+
   static func parse(_ value: JSValue) throws -> String {
     switch value {
     case .bigint(let text): return text
@@ -23,7 +28,7 @@ enum JSBigInt {
         throw JSError.range("Cannot convert \(value) to BigInt")
       }
       if number.rounded() != number { throw JSError.range("Cannot convert \(value) to BigInt") }
-      return normalize(String(Int64(number)))
+      return normalize(exactIntegerText(number))
     case .string(let text):
       let work = text.trimmingCharacters(in: .whitespacesAndNewlines)
       if work.isEmpty { return "0" }

@@ -118,10 +118,11 @@ import Testing
 
 @Test func typedArraysStoreAndRead() throws {
   let runtime = JSRuntime()
-  #expect(try runtime.evaluate("const t = new Uint8Array([40, 1]); t[0] + t[1];").description == "41")
-  #expect(try runtime.evaluate("const t = new Uint8Array(3); t.length;").description == "3")
   #expect(
-    try runtime.evaluate("const t = new Uint8Array([1, 2, 3]); t[0] = 40; t[0] + t[2];")
+    try runtime.evaluate("const t1 = new Uint8Array([40, 1]); t1[0] + t1[1];").description == "41")
+  #expect(try runtime.evaluate("const t2 = new Uint8Array(3); t2.length;").description == "3")
+  #expect(
+    try runtime.evaluate("const t3 = new Uint8Array([1, 2, 3]); t3[0] = 40; t3[0] + t3[2];")
       .description == "43")
   #expect(
     try runtime.evaluate(
