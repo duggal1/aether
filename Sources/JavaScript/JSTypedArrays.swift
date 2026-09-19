@@ -581,29 +581,29 @@ extension JSBuiltins {
     }
     element("Int8", 1, { bytes, at, _ in .number(Double(Int8(bitPattern: bytes[at]))) },
       { bytes, at, value, _, runtime in
-        bytes[at] = UInt8(bitPattern: Int8(try runtime.toNumber(value)))
+        bytes[at] = UInt8(truncatingIfNeeded: runtime.toInt32(try runtime.toNumber(value)))
       })
     element("Uint8", 1, { bytes, at, _ in .number(Double(bytes[at])) },
       { bytes, at, value, _, runtime in
-        bytes[at] = UInt8(clamping: Int(try runtime.toNumber(value)))
+        bytes[at] = UInt8(truncatingIfNeeded: runtime.toUint32(try runtime.toNumber(value)))
       })
     element("Int16", 2, { bytes, at, little in
       .number(Double(Int16(bitPattern: load16(bytes, at, little))))
     }, { bytes, at, value, little, runtime in
-      store16(&bytes, at, UInt16(bitPattern: Int16(try runtime.toNumber(value))), little)
+      store16(&bytes, at, UInt16(truncatingIfNeeded: runtime.toInt32(try runtime.toNumber(value))), little)
     })
     element("Uint16", 2, { bytes, at, little in .number(Double(load16(bytes, at, little))) },
       { bytes, at, value, little, runtime in
-        store16(&bytes, at, UInt16(try runtime.toNumber(value)), little)
+        store16(&bytes, at, UInt16(truncatingIfNeeded: runtime.toUint32(try runtime.toNumber(value))), little)
       })
     element("Int32", 4, { bytes, at, little in
       .number(Double(Int32(bitPattern: load32(bytes, at, little))))
     }, { bytes, at, value, little, runtime in
-      store32(&bytes, at, UInt32(bitPattern: Int32(try runtime.toNumber(value))), little)
+      store32(&bytes, at, runtime.toUint32(try runtime.toNumber(value)), little)
     })
     element("Uint32", 4, { bytes, at, little in .number(Double(load32(bytes, at, little))) },
       { bytes, at, value, little, runtime in
-        store32(&bytes, at, UInt32(try runtime.toNumber(value)), little)
+        store32(&bytes, at, runtime.toUint32(try runtime.toNumber(value)), little)
       })
     element("Float32", 4, { bytes, at, little in
       .number(Double(Float(bitPattern: load32(bytes, at, little))))
@@ -801,24 +801,24 @@ func writeTypedElement(runtime: JSRuntime, view: JSObject, index: Int, value: JS
   }
   switch kind {
   case "int8":
-    data[at] = UInt8(bitPattern: Int8(try runtime.toNumber(value)))
+    data[at] = UInt8(truncatingIfNeeded: runtime.toInt32(try runtime.toNumber(value)))
   case "uint8":
-    data[at] = UInt8(clamping: Int(try runtime.toNumber(value)))
+    data[at] = UInt8(truncatingIfNeeded: runtime.toUint32(try runtime.toNumber(value)))
   case "uint8clamped":
     let number = try runtime.toNumber(value)
     let clamped: Int
-    if number.isNaN { clamped = 0 } else {
-      clamped = min(255, max(0, Int(number.rounded(.toNearestOrEven))))
-    }
+    if number.isNaN || number <= 0 { clamped = 0 }
+    else if number >= 255 { clamped = 255 }
+    else { clamped = Int(number.rounded(.toNearestOrEven)) }
     data[at] = UInt8(clamped)
   case "int16":
-    storeLE(&data, at: at, value: UInt16(bitPattern: Int16(try runtime.toNumber(value))))
+    storeLE(&data, at: at, value: UInt16(truncatingIfNeeded: runtime.toInt32(try runtime.toNumber(value))))
   case "uint16":
-    storeLE(&data, at: at, value: UInt16(try runtime.toNumber(value)))
+    storeLE(&data, at: at, value: UInt16(truncatingIfNeeded: runtime.toUint32(try runtime.toNumber(value))))
   case "int32":
-    storeLE(&data, at: at, value: UInt32(bitPattern: Int32(try runtime.toNumber(value))))
+    storeLE(&data, at: at, value: runtime.toUint32(try runtime.toNumber(value)))
   case "uint32":
-    storeLE(&data, at: at, value: UInt32(try runtime.toNumber(value)))
+    storeLE(&data, at: at, value: runtime.toUint32(try runtime.toNumber(value)))
   case "float32":
     storeLE(&data, at: at, value: Float(try runtime.toNumber(value)).bitPattern)
   case "float64":

@@ -62,8 +62,8 @@ public final class JSPromiseCapability {
   }
 
   public func resolve(_ value: JSValue) {
-    if let runtime, case .object(let object) = value, object.promiseState != nil {
-      state.onSettled(
+    if let runtime, case .object(let object) = value, let inner = object.promiseState {
+      inner.onSettled(
         fulfill: { [weak runtime] inner in
           runtime?.settleCapability(self, fulfilled: inner)
         },

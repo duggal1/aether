@@ -18,6 +18,7 @@ public final class JSParser {
   private func declaration() throws -> JSStatement {
     if checkKeyword("async") && peekNextIsKeyword("function") && !peekNextHasLineBreak() {
       advance()
+      advance()
       return try functionDeclaration(isAsync: true)
     }
     if matchKeyword("function") { return try functionDeclaration(isAsync: false) }
@@ -60,7 +61,7 @@ public final class JSParser {
     }
     var declarators: [(JSPattern, JSExpression?)] = []
     repeat {
-      let pattern = try parsePattern()
+      let pattern = try parsePattern(allowDefault: false)
       var initializer: JSExpression?
       if matchSymbol("=") { initializer = try assignment() }
       declarators.append((pattern, initializer))
@@ -475,7 +476,7 @@ public final class JSParser {
     return statements
   }
 
-  private func parsePattern() throws -> JSPattern {
+  private func parsePattern(allowDefault: Bool = true) throws -> JSPattern {
     if matchSymbol("{") {
       var entries: [(key: String, pattern: JSPattern)] = []
       var rest: String?
@@ -535,7 +536,7 @@ public final class JSParser {
     }
     let name = try consumeIdentifier("Expected binding name")
     var fallback: JSExpression?
-    if matchSymbol("=") { fallback = try assignment() }
+    if allowDefault && matchSymbol("=") { fallback = try assignment() }
     return .identifier(name, fallback)
   }
 
@@ -814,44 +815,48 @@ public final class JSParser {
       if matchSymbol("(") {
         if !checkSymbol(")") {
           repeat { args.append(try assignmentAsArgument()) } while matchSymbol(",")
-          try consumeSymbol(")", "Expected ')' after arguments")
         }
+        try consumeSymbol(")", "Expected ')' after arguments")
       }
-      return .newExpr(callee, args)
+      return try callSuffix(.newExpr(callee, args))
     }
     return try call()
   }
 
   private func call() throws -> JSExpression {
-    var expression = try memberBase()
+    try callSuffix(try memberBase())
+  }
+
+  private func callSuffix(_ base: JSExpression) throws -> JSExpression {
+    var expression = base
     while true {
       if matchSymbol("(") {
         var args: [JSExpression] = []
         if !checkSymbol(")") {
           repeat { args.append(try assignmentAsArgument()) } while matchSymbol(",")
-          try consumeSymbol(")", "Expected ')' after arguments")
         }
+        try consumeSymbol(")", "Expected ')' after arguments")
         expression = .call(expression, args)
       } else if matchSymbol("?.") {
         if matchSymbol("(") {
           var args: [JSExpression] = []
           if !checkSymbol(")") {
             repeat { args.append(try assignmentAsArgument()) } while matchSymbol(",")
-            try consumeSymbol(")", "Expected ')' after arguments")
           }
+          try consumeSymbol(")", "Expected ')' after arguments")
           expression = .optionalCall(expression, args)
         } else if checkSymbol("[") {
           let key = try self.expression()
           try consumeSymbol("]", "Expected ']'")
           expression = .optionalComputed(expression, key)
         } else {
-          let name = try consumeIdentifier("Expected property name")
+          let name = try consumePropertyKey()
           expression = .optionalMember(expression, name)
         }
       } else if checkSymbol("${") {
         throw JSError.syntax("Unexpected template substitution")
       } else if matchSymbol(".") {
-        let name = try consumeIdentifier("Expected property name")
+        let name = try consumePropertyKey()
         expression = .member(expression, name)
       } else if checkSymbol("[") {
         let key = try self.expression()
@@ -877,7 +882,7 @@ public final class JSParser {
     var expression = try primary()
     while true {
       if matchSymbol(".") {
-        expression = .member(expression, try consumeIdentifier("Expected property name"))
+        expression = .member(expression, try consumePropertyKey())
       } else if matchSymbol("[") {
         let key = try self.expression()
         try consumeSymbol("]", "Expected ']'")

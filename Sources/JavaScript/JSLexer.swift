@@ -13,7 +13,7 @@ public enum JSLexer {
   ]
   private static let twoCharacterSymbols: Set<String> = [
     "==", "!=", "<=", ">=", "&&", "||", "=>", "+=", "-=", "*=", "/=", "%=", "**", "++",
-    "--", "<<", ">>", "??", "&=", "|=", "^=",
+    "--", "<<", ">>", "??", "?.", "&=", "|=", "^=",
   ]
   private static let regexAllowedSymbols: Set<String> = [
     "(", ",", "=", ":", "[", "!", "?", "{", "}", ";", "+", "-", "*", "%", "&", "|", "^",
