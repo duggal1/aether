@@ -31,6 +31,8 @@ jobs:
           swift --version
       - name: Release build
         run: swift build -c release
+      - name: Real daemon capability isolation smoke
+        run: python3 Scripts/verify_authority.py --bin .build/release
       - name: Hardened network regression tests
         run: swift test --filter NetworkHardeningIntegrationTests
       - name: Existing network regression tests
