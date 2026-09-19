@@ -6,6 +6,10 @@ on:
       - integration/aether-additions-20260919
   pull_request:
 
+concurrency:
+  group: aether-integration-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
