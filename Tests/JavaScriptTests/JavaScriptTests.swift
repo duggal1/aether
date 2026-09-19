@@ -144,3 +144,10 @@ import Testing
   #expect(try runtime.evaluate("const o = null; o?.x ?? 42;").description == "42")
   #expect(try runtime.evaluate("const t = `4${2}`; t;").description == "42")
 }
+
+@Test func parserConsumesEmptyArgumentLists() throws {
+  let source = "function f() { return 42; } new Map(); new Set(); f(); f?.();"
+  #expect(try JSParser(source: source).parseProgram().count == 5)
+  let runtime = JSRuntime()
+  #expect(try runtime.evaluate("function f() { return 42; } f();").description == "42")
+}
