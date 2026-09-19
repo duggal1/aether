@@ -1,4 +1,5 @@
 import Foundation
+import HTML
 import JavaScript
 import Storage
 import Testing
