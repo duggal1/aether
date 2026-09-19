@@ -82,10 +82,10 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   #expect(
     try await engine.runtime.query(pageID: loaded.id, selector: "option[selected]")?.name
       == "Green")
-  await #expect(throws: BrowserRuntimeError.self) {
+  await await #expect(throws: BrowserRuntimeError.self) {
     try await engine.runtime.selectOption(pageID: loaded.id, selectNodeID: select.id, value: "zzz")
   }
-  await #expect(throws: BrowserRuntimeError.self) {
+  await await #expect(throws: BrowserRuntimeError.self) {
     try await engine.runtime.submitForm(pageID: loaded.id, formNodeID: input.id)
   }
 }
@@ -97,7 +97,7 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   #expect(try await engine.runtime.mainFrame(pageID: loaded.id).title == "Fleet")
   #expect(try await engine.runtime.listWorkers(pageID: loaded.id).isEmpty)
   #expect(try await engine.runtime.pendingDialogs(pageID: loaded.id).isEmpty)
-  await #expect(throws: BrowserRuntimeError.self) {
+  await await #expect(throws: BrowserRuntimeError.self) {
     try await engine.runtime.resolveDialog(id: DialogID(rawValue: 999), accept: true)
   }
 }
@@ -157,7 +157,7 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   _ = try await engine.runtime.setLifecycle(pageID: loaded.id, state: .frozen)
   #expect(try await engine.runtime.query(pageID: loaded.id, selector: "#name") != nil)
   _ = try await engine.runtime.setLifecycle(pageID: loaded.id, state: .discarded)
-  await #expect(throws: BrowserRuntimeError.self) {
+  await await #expect(throws: BrowserRuntimeError.self) {
     try await engine.runtime.query(pageID: loaded.id, selector: "#name")
   }
   _ = try await engine.runtime.restorePage(pageID: loaded.id)
@@ -195,13 +195,13 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   #expect(try await engine.runtime.sessionPages(session.id).count == 1)
   try await engine.runtime.deleteSession(session.id)
   #expect(await engine.runtime.listSessions().isEmpty)
-  await #expect(throws: BrowserRuntimeError.self) { try await engine.runtime.deleteSession(session.id) }
+  await await #expect(throws: BrowserRuntimeError.self) { try await engine.runtime.deleteSession(session.id) }
 }
 
 @Test func downloadsRejectDisallowedSchemes() async throws {
   let engine = NativeBrowserEngine()
   let context = await engine.runtime.createContext(name: "dl")
-  await #expect(throws: BrowserRuntimeError.self) {
+  await await #expect(throws: BrowserRuntimeError.self) {
     try await engine.runtime.startDownload(
       contextID: context.id, url: "ftp://example.test/file.bin", path: nil)
   }
