@@ -2,7 +2,7 @@
 
 Agents are first-class clients of the engine. Structured state is the default control surface; screenshots and raw coordinate interaction are fallbacks for genuinely visual tasks.
 
-`AgentMessage.swift` is authoritative for the method set. This document describes the wire contract and every method as of the current tree (76 methods).
+`Sources/AgentProtocol/AgentMessages.swift` is authoritative for the method set. This document describes the wire contract and every method as of the current tree (78 methods).
 
 `browserd` accepts newline-delimited JSON over a local Unix-domain socket (default `/tmp/native-browser-engine.sock`). Every request contains an `id`, `method`, and optional `params`. Every response repeats the request `id` and contains either `result` or a structured `error`:
 
@@ -13,7 +13,7 @@ Agents are first-class clients of the engine. Structured state is the default co
 
 A missing result is a JSON `null`, not an absent key: `{"id": "3", "result": null}`. The response encoder always emits a present `result` key when the outcome is a result, so clients can distinguish "no match" from "no answer". Error codes are stable strings (`method_not_found`, `bad_parameter`, `engine_error`, …).
 
-## Methods (76)
+## Methods (78)
 
 ### Session and transport
 
@@ -27,17 +27,18 @@ ping
 context.create    context.destroy    context.list
 ```
 
-### Page lifecycle and navigation (8)
+### Page lifecycle and navigation (9)
 
 ```text
-page.create       page.navigate      page.back         page.forward
-page.reload       page.resize        page.close        page.list
+page.create       page.navigate      page.navigateInput page.back
+page.forward      page.reload        page.resize        page.close
+page.list
 ```
 
-### Inspection and observation (6)
+### Inspection and observation (7)
 
 ```text
-page.inspect      page.query         page.queryAll
+page.inspect      page.query         page.queryAll     page.find
 page.snapshot     page.wait          page.mutations
 ```
 
@@ -159,3 +160,11 @@ Interactive inspection exposes semantic role, accessible name, current value, hr
 - `page.frame` exposes the primary frame only; cross-origin frames are not yet addressable.
 - Evaluation shares the page's global lexical environment across `page.evaluate` calls (standard script semantics), and pending promise callbacks run before the result is returned.
 - The protocol is intentionally local and deterministic. It contains no model provider, chatbot, cloud dependency, prompt format, or autonomous decision layer. External agents decide what to do; the browser engine exposes reliable primitives for doing it.
+
+## Engine-native address/search and find-in-page (Agent 3 additions)
+
+`page.navigateInput` takes `page` and `input`, optionally `providerURL` (HTTP(S) endpoint) and `queryParameter` (default `q`). It resolves explicit HTTP(S) URLs, bare domains and loopback addresses; other input becomes URL-component-encoded search terms. Unsupported URL schemes and embedded URL credentials fail. The method navigates the existing `PageID`, not a copy, and returns `{"kind":"url"|"search","url":"...","page":{...}}`. The provider is per-call; persisted profile search settings are not yet implemented.
+
+`page.find` takes `page`, `query`, optional `caseSensitive` (default false), and optional `limit` (1–1000; default 100). It searches visible text nodes in the live DOM snapshot, skips head/script/style/template/noscript and hidden ancestors, and returns a `mutationVersion` plus ordered `matches` with generational node identity, character offset/length, matched text, and available bounds. Offsets count Swift `Character` values, not UTF-16 code units. Search is a bounded snapshot operation, not a browser selection/highlight API; verify the mutation version before acting on stale matches. `browserctl --socket ... page-navigate-input` and `page-find` forward to these existing dispatcher methods.
+
+**Authorization dependency:** the base protocol has no authenticated multi-principal socket; Agent 1's capability guard must authorize these new `page.*` methods against the owning context on integration. Do not expose them through a privileged socket without that guard. The `page.find` result does not grant access to a different page or profile.
