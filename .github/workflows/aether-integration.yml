@@ -11,16 +11,20 @@ permissions:
 
 jobs:
   swift:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, macos-15]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    runs-on: macos-15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Toolchain
-        run: swift --version
+      - name: Select Swift 6.2 or newer
+        run: |
+          find /Applications -maxdepth 1 -name 'Xcode_26*.app' -print
+          selected=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' -print | sort -V | tail -1)
+          if [ -z "$selected" ]; then
+            echo "This macOS image does not contain Xcode 26 / Swift 6.2+" >&2
+            exit 1
+          fi
+          sudo xcode-select -s "$selected/Contents/Developer"
+          swift --version
       - name: Release build
         run: swift build -c release
       - name: Tests
