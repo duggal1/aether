@@ -98,7 +98,10 @@ func compositorLayer(
   let first = cache.coverage(for: viewport)
   #expect(first.missing.count == 4)
   #expect(first.resident.isEmpty)
-  for request in first.missing { #expect(cache.store(request)) }
+  for request in first.missing {
+    let stored = cache.store(request)
+    #expect(stored)
+  }
   let second = cache.coverage(for: viewport)
   #expect(second.missing.isEmpty)
   #expect(second.resident.count == 4)
@@ -112,12 +115,15 @@ func compositorLayer(
   var ledger = ResourceLedger(
     budget: ResourceBudget(
       maxImageBytes: 100, maxTextureBytes: 100, maxRasterBytes: 100, maxGlyphBytes: 100))
-  #expect(ledger.allocate(80, category: .images))
+  let allocatedImages = ledger.allocate(80, category: .images)
+  #expect(allocatedImages)
   #expect(ledger.pressure(for: .images) == .elevated)
-  #expect(!ledger.allocate(30, category: .images))
+  let rejectedImages = ledger.allocate(30, category: .images)
+  #expect(!rejectedImages)
   ledger.release(80, category: .images)
   #expect(ledger.pressure(for: .images) == .nominal)
-  #expect(ledger.allocate(100, category: .glyphs))
+  let allocatedGlyphs = ledger.allocate(100, category: .glyphs)
+  #expect(allocatedGlyphs)
   #expect(ledger.overallPressure == .critical)
 }
 
