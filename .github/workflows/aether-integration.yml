@@ -31,7 +31,11 @@ jobs:
           swift --version
       - name: Release build
         run: swift build -c release
-      - name: Tests
-        run: swift test
+      - name: Hardened network regression tests
+        run: swift test --filter NetworkHardeningIntegrationTests
+      - name: Existing network regression tests
+        run: swift test --filter NetworkTests
       - name: Benchmark
         run: swift run -c release enginebench
+      - name: Full regression tests
+        run: swift test
