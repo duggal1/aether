@@ -62,6 +62,7 @@ public struct CaptureOptions: Sendable {
               overlapCSSPixels == 0,
               settleMilliseconds >= 0, settleMilliseconds <= 10_000,
               maximumScrollSteps > 0, maximumScrollSteps <= 10_000,
+              maximumDocumentCSSHeight.isFinite,
               maximumDocumentCSSHeight >= Double(viewport.height),
               maximumResources >= 0, maximumAssetBytes >= 0,
               maximumSingleAssetBytes >= 0, fullPageMaximumPixels >= 0 else {
