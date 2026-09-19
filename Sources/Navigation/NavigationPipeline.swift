@@ -1,3 +1,4 @@
+import AetherNetworkHardening
 import CSS
 import DOM
 import Diagnostics
@@ -175,6 +176,8 @@ public struct NavigationPipeline: Sendable {
         }
         do {
           let response = try await network.fetch(url)
+          try ResponseContentGuard.validate(
+            status: response.statusCode, headers: response.headers, destination: .script)
           if let source = response.text {
             sources.append(source)
           } else {
@@ -231,6 +234,9 @@ public struct NavigationPipeline: Sendable {
       guard let result = results[String(index)], case .success(let response) = result else {
         return nil
       }
+      guard (try? ResponseContentGuard.validate(
+        status: response.statusCode, headers: response.headers, destination: .stylesheet)) != nil
+      else { return nil }
       return response.text
     }
   }
