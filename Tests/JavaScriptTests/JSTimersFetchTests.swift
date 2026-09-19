@@ -70,13 +70,13 @@ private func makeTimedRuntime() -> (JSRuntime, StubTimers) {
   return (runtime, timers)
 }
 
-private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
+private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) async {
   let deadline = Date().timeIntervalSince1970 + timeout
   while Date().timeIntervalSince1970 < deadline {
     runtime.drainCompletions()
     runtime.drainMicrotasks()
     if !runtime.hasPendingMicrotasks && runtime.pendingFetchCount == 0 { break }
-    Thread.sleep(forTimeInterval: 0.005)
+    try? await Task.sleep(for: .milliseconds(5))
   }
   runtime.drainCompletions()
   runtime.drainMicrotasks()
@@ -154,7 +154,7 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
   }
 }
 
-@Test func fetchResolvesResponseFields() throws {
+@Test func fetchResolvesResponseFields() async throws {
   let runtime = JSRuntime()
   runtime.asyncFetch = { url, method, _, _ in
     (201, ["Content-Type": "application/json", "X-Multi": "a"], Data("{\"a\":1}".utf8))
@@ -162,11 +162,11 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
   _ = try runtime.evaluate(
     "result = ''; fetch('https://example.com/items').then(function(r) { result = r.status + ':' + r.ok + ':' + r.url; });"
   )
-  settle(runtime)
+  await settle(runtime)
   #expect(try runtime.evaluate("result").description == "201:true:https://example.com/items")
 }
 
-@Test func fetchTextAndJsonBodies() throws {
+@Test func fetchTextAndJsonBodies() async throws {
   let runtime = JSRuntime()
   runtime.asyncFetch = { _, _, _, _ in (200, [:], Data("{\"n\":7}".utf8)) }
   _ = try runtime.evaluate(
@@ -175,19 +175,19 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
   _ = try runtime.evaluate(
     "fetch('https://example.com/x').then(function(r) { return r.json(); }).then(function(j) { num = j.n; });"
   )
-  settle(runtime)
+  await settle(runtime)
   #expect(try runtime.evaluate("text").description == "{\"n\":7}")
   #expect(try runtime.evaluate("num").description == "7")
 }
 
-@Test func fetchRejectsNetworkFailuresAsTypeError() throws {
+@Test func fetchRejectsNetworkFailuresAsTypeError() async throws {
   struct Boom: Error {}
   let runtime = JSRuntime()
   runtime.asyncFetch = { _, _, _, _ in throw Boom() }
   _ = try runtime.evaluate(
     "verdict = ''; fetch('https://example.com/x').then(function() { verdict = 'ok'; }, function(e) { verdict = (e instanceof TypeError) + ':' + e.message; });"
   )
-  settle(runtime)
+  await settle(runtime)
   #expect(try runtime.evaluate("verdict").description.hasPrefix("true:fetch failed:"))
 }
 
@@ -218,7 +218,7 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
   }
 }
 
-@Test func fetchResolvesRelativeURLAgainstPage() throws {
+@Test func fetchResolvesRelativeURLAgainstPage() async throws {
   let runtime = JSRuntime()
   runtime.hostHooks.currentURL = { "https://example.com/dir/page" }
   let seen = SeenBox()
@@ -227,11 +227,11 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
     return (200, [:], Data())
   }
   _ = try runtime.evaluate("fetch('/api/v1');")
-  settle(runtime)
+  await settle(runtime)
   #expect(seen.value == "https://example.com/api/v1")
 }
 
-@Test func headersRequestResponseRoundTrip() throws {
+@Test func headersRequestResponseRoundTrip() async throws {
   let runtime = JSRuntime()
   runtime.asyncFetch = { url, method, headers, body in
     let echo = "\(method) \(url) \(headers["x-a"] ?? "-") \(body ?? "-")"
@@ -250,7 +250,7 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
   _ = try runtime.evaluate(
     "echo = ''; fetch(req).then(function(r) { return r.text(); }).then(function(t) { echo = t; });"
   )
-  settle(runtime)
+  await settle(runtime)
   #expect(try runtime.evaluate("echo").description == "POST https://example.com/submit 1, 2 hi")
   _ = try runtime.evaluate("res = new Response('hi', { status: 201 });")
   #expect(try runtime.evaluate("res.status").description == "201")
@@ -263,13 +263,13 @@ private func settle(_ runtime: JSRuntime, timeout: Double = 5.0) {
   }
 }
 
-@Test func responseBodySingleUse() throws {
+@Test func responseBodySingleUse() async throws {
   let runtime = JSRuntime()
   runtime.asyncFetch = { _, _, _, _ in (200, [:], Data("abc".utf8)) }
   _ = try runtime.evaluate(
     "second = ''; fetch('https://example.com/').then(function(r) { return r.text().then(function() { return r.text(); }); }).then(function() {}, function(e) { second = e.message; });"
   )
-  settle(runtime)
+  await settle(runtime)
   #expect(try runtime.evaluate("second").description == "Response body has already been used")
 }
 
