@@ -60,7 +60,7 @@ public final class JSParser {
     }
     var declarators: [(JSPattern, JSExpression?)] = []
     repeat {
-      let pattern = try parsePattern()
+      let pattern = try parsePattern(allowDefault: false)
       var initializer: JSExpression?
       if matchSymbol("=") { initializer = try assignment() }
       declarators.append((pattern, initializer))
@@ -475,7 +475,7 @@ public final class JSParser {
     return statements
   }
 
-  private func parsePattern() throws -> JSPattern {
+  private func parsePattern(allowDefault: Bool = true) throws -> JSPattern {
     if matchSymbol("{") {
       var entries: [(key: String, pattern: JSPattern)] = []
       var rest: String?
@@ -535,7 +535,7 @@ public final class JSParser {
     }
     let name = try consumeIdentifier("Expected binding name")
     var fallback: JSExpression?
-    if matchSymbol("=") { fallback = try assignment() }
+    if allowDefault && matchSymbol("=") { fallback = try assignment() }
     return .identifier(name, fallback)
   }
 
