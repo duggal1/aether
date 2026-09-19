@@ -34,7 +34,7 @@ public actor NetworkSession {
 
     if request.method == .get, request.cachePolicy != .reloadIgnoringCache,
       !request.headers.keys.contains(where: { $0.lowercased() == "authorization" || $0.lowercased() == "cookie" }),
-      cookieJar.header(for: request.url) == nil,
+      (!request.sendsCookies || cookieJar.header(for: request.url) == nil),
       let cached = await cache.response(for: request.url)
     {
       return cached
@@ -47,7 +47,7 @@ public actor NetworkSession {
     if urlRequest.value(forHTTPHeaderField: "User-Agent") == nil {
       urlRequest.setValue("NativeBrowserEngine/0.1", forHTTPHeaderField: "User-Agent")
     }
-    if let cookie = cookieJar.header(for: request.url),
+    if request.sendsCookies, let cookie = cookieJar.header(for: request.url),
       urlRequest.value(forHTTPHeaderField: "Cookie") == nil
     {
       urlRequest.setValue(cookie, forHTTPHeaderField: "Cookie")
@@ -65,7 +65,7 @@ public actor NetworkSession {
       for (key, value) in http.allHeaderFields {
         headers[String(describing: key)] = String(describing: value)
       }
-      if let setCookie = http.value(forHTTPHeaderField: "Set-Cookie") {
+      if request.sendsCookies, let setCookie = http.value(forHTTPHeaderField: "Set-Cookie") {
         cookieJar.absorb(setCookie: setCookie, from: http.url ?? request.url)
       }
       let result = HTTPResponse(
@@ -79,7 +79,7 @@ public actor NetworkSession {
       )
       if request.method == .get && !request.headers.keys.contains(where: {
         $0.lowercased() == "authorization" || $0.lowercased() == "cookie"
-      }) && cookieJar.header(for: request.url) == nil {
+      }) && (!request.sendsCookies || cookieJar.header(for: request.url) == nil) {
         await cache.store(result)
       }
       return result
