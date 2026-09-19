@@ -1635,7 +1635,7 @@ public actor BrowserRuntime {
     let pageURL = loaded.url
     let pageOrigin = Origin(url: pageURL) ?? .opaque
     runtime.hostHooks.cookieString = { jar.scriptVisibleHeader(for: pageURL) ?? "" }
-    runtime.hostHooks.setCookieString = { jar.absorb(setCookie: $0, from: pageURL) }
+    runtime.hostHooks.setCookieString = { jar.setFromScript($0, from: pageURL) }
     runtime.hostHooks.viewportSize = { [viewportBox] in
       let size = viewportBox.size
       return (size.width, size.height)
