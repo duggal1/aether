@@ -107,6 +107,66 @@ def validate_kit(directory):
     return manifest
 
 
+def ppm_pixel(result, x, y):
+    assert result['format'] == 'ppm', 'unexpected raster transport'
+    raw = base64.b64decode(result['data'], validate=True)
+    header, pixels = raw.split(b'\n255\n', 1)
+    tokens = header.split()
+    assert tokens[0] == b'P6', 'unexpected image encoding'
+    width, height = map(int, tokens[1:3])
+    assert len(pixels) == width * height * 3, 'truncated raster'
+    offset = (y * width + x) * 3
+    return tuple(pixels[offset:offset + 3])
+
+
+def png_pixel(path, x, y):
+    data = path.read_bytes()
+    assert data.startswith(b'\x89PNG\r\n\x1a\n'), 'capture is not PNG'
+    cursor, compressed, width, height, channels = 8, bytearray(), 0, 0, 0
+    while cursor < len(data):
+        size = struct.unpack_from('>I', data, cursor)[0]
+        kind = data[cursor + 4:cursor + 8]
+        payload = data[cursor + 8:cursor + 8 + size]
+        cursor += 12 + size
+        if kind == b'IHDR':
+            width, height, depth, color, _, _, interlace = struct.unpack('>IIBBBBB', payload)
+            assert depth == 8 and color in (2, 6) and interlace == 0, 'unsupported PNG pixel layout'
+            channels = 3 if color == 2 else 4
+        elif kind == b'IDAT':
+            compressed.extend(payload)
+        elif kind == b'IEND':
+            break
+    assert 0 <= x < width and 0 <= y < height, 'pixel outside image'
+    stride = width * channels
+    raw = zlib.decompress(compressed)
+    previous = bytearray(stride)
+    cursor = 0
+    for row in range(y + 1):
+        filtering = raw[cursor]
+        current = bytearray(raw[cursor + 1:cursor + 1 + stride])
+        cursor += stride + 1
+        for i in range(stride):
+            left = current[i - channels] if i >= channels else 0
+            above = previous[i]
+            upper_left = previous[i - channels] if i >= channels else 0
+            if filtering == 1:
+                prediction = left
+            elif filtering == 2:
+                prediction = above
+            elif filtering == 3:
+                prediction = (left + above) // 2
+            elif filtering == 4:
+                candidate = left + above - upper_left
+                distances = (abs(candidate - left), abs(candidate - above), abs(candidate - upper_left))
+                prediction = (left, above, upper_left)[distances.index(min(distances))]
+            else:
+                assert filtering == 0, 'unknown PNG row filter'
+                prediction = 0
+            current[i] = (current[i] + prediction) & 255
+        previous = current
+    return tuple(previous[x * channels:x * channels + 3])
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bin', default='.build/out/Products/Debug')
