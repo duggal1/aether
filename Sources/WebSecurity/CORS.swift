@@ -69,6 +69,20 @@ public enum CORSPolicy {
     ["accept", "accept-language", "content-language", "content-type"].contains(name.lowercased())
   }
 
+  public static func isSafelistedRequestHeader(name: String, value: String) -> Bool {
+    let name = name.lowercased()
+    guard isSimpleHeader(name), value.utf8.count <= 128 else { return false }
+    if name == "content-type" {
+      let mime = value.split(separator: ";", maxSplits: 1).first?
+        .trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+      return ["application/x-www-form-urlencoded", "multipart/form-data",
+        "text/plain"].contains(mime)
+    }
+    return !value.unicodeScalars.contains { scalar in
+      scalar.value < 0x20 && scalar.value != 0x09 || scalar.value == 0x7F
+    }
+  }
+
   static func lowercased(_ headers: [String: String]) -> [String: String] {
     var result: [String: String] = [:]
     result.reserveCapacity(headers.count)
