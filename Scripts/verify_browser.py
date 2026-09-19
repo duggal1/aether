@@ -233,6 +233,7 @@ def main():
             return {'kind': result['kind'], 'url': result['url']}
         check('typed address uses live page', typed_input)
         def history():
+            call('page.navigate', page=page, url=base)
             call('page.navigate', page=page, url=base + '/next')
             require(call('page.back', page=page)['title'] == 'Capture integration', 'back failed')
             require(call('page.forward', page=page)['title'] == 'Next', 'forward failed')
