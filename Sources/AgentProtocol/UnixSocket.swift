@@ -58,7 +58,12 @@ public struct AgentSocketServer: Sendable {
 
   public func run(handler: @escaping @Sendable (AgentRequest) async -> AgentResponse) async throws {
     #if canImport(Darwin) || canImport(Glibc)
-      _ = path.withCString { unlink($0) }
+      // Refuse to replace another listener (or a symlink) at the requested path.
+      // A stale socket requires deliberate cleanup rather than silent takeover.
+      guard !FileManager.default.fileExists(atPath: path) else {
+        throw AgentTransportError.socket("Socket path already exists: \(path)")
+      }
+      _ = umask(0o077)
       let fd = socket(AF_UNIX, engineSocketStreamType, 0)
       guard fd >= 0 else { throw AgentTransportError.socket("socket() failed") }
       defer {
