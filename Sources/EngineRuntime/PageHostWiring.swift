@@ -120,7 +120,7 @@ enum PageHostWiring {
           throw FetchHostError.blocked("CORS preflight origin denied: \(reason)")
         }
         switch CORSPolicy.checkPreflight(
-          method: method, headers: Array(headerMap.keys),
+          method: method, headers: Array(unsafeHeaders.keys),
           responseHeaders: preflight.headers)
         {
         case .allow: break
