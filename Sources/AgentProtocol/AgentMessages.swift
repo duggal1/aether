@@ -7,6 +7,7 @@ public enum AgentMethod: String, Hashable, Sendable, Codable, CaseIterable {
   case contextList = "context.list"
   case pageCreate = "page.create"
   case pageNavigate = "page.navigate"
+  case pageNavigateInput = "page.navigateInput"
   case pageBack = "page.back"
   case pageForward = "page.forward"
   case pageReload = "page.reload"
