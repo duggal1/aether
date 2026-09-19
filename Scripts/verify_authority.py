@@ -61,6 +61,9 @@ def main():
             assert [x["id"] for x in a_list] == [a["id"]], a_list
             page = require_ok(rpc(path, "page.create",
                 context=b["id"], capability=token_b))
+            require_ok(rpc(path, "page.loadHTML", page=page["id"],
+                capability=token_b, url="https://fixture.test/",
+                html="<html><head><title>Auth fixture</title></head><body>ok</body></html>"))
             require_denied(rpc(path, "page.inspect", page=page["id"],
                 capability=token_a, owner="principal-b"))
             require_ok(rpc(path, "page.inspect", page=page["id"],
