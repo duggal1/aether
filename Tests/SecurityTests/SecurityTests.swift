@@ -77,3 +77,27 @@ import Testing
   #expect(!PermissionBoundary.allows(.camera, origin: secure, isTopLevel: false))
   #expect(!PermissionBoundary.allows(.camera, origin: plain, isTopLevel: true))
 }
+
+
+@Test func corsPreflightRequiresOriginAndUnsafeContentTypeAllowlist() {
+  #expect(CORSPolicy.isSafelistedRequestHeader(name: "Content-Type", value: "text/plain"))
+  #expect(!CORSPolicy.isSafelistedRequestHeader(
+    name: "Content-Type", value: "application/json"))
+  #expect(!CORSPolicy.isSafelistedRequestHeader(
+    name: "X-API-Key", value: "private"))
+  let origin = Origin(url: URL(string: "https://app.example")!)!
+  let response = [
+    "Access-Control-Allow-Origin": "https://other.example",
+    "Access-Control-Allow-Methods": "POST",
+    "Access-Control-Allow-Headers": "content-type",
+  ]
+  #expect(CORSPolicy.checkResponse(
+    requestOrigin: origin, responseHeaders: response,
+    allowsCredentials: false) != .allow)
+  #expect(CORSPolicy.checkPreflight(
+    method: "POST", headers: ["content-type"],
+    responseHeaders: response) == .allow)
+  #expect(CORSPolicy.checkPreflight(
+    method: "POST", headers: ["x-api-key"],
+    responseHeaders: response) != .allow)
+}
