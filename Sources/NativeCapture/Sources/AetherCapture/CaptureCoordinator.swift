@@ -109,6 +109,7 @@ public actor CaptureCoordinator {
             if observed.scrollY <= lastScrollY + 0.5 { noProgress += 1 } else { noProgress = 0 }
             if noProgress >= 3 { break }
             lastScrollY = observed.scrollY
+            if observed.scrollY > coveredCSSY + 0.5 { break }
             let visibleTop = max(coveredCSSY, observed.scrollY)
             let visibleBottom = min(maxY, observed.scrollY + observed.viewportCSSHeight)
             guard visibleBottom > visibleTop else { iterations += 1; continue }
@@ -199,7 +200,10 @@ public actor CaptureCoordinator {
                         assets.append(.init(sourceURL: ref.url, file: nil, kind: ref.kind,
                                             byteCount: nil, status: "uncached-or-oversize"))
                     }
+                } catch is CancellationError {
+                    throw CancellationError()
                 } catch {
+                    try Task.checkCancellation()
                     assets.append(.init(sourceURL: ref.url, file: nil, kind: ref.kind,
                                         byteCount: nil, status: "unavailable"))
                 }
