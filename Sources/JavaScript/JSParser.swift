@@ -814,8 +814,8 @@ public final class JSParser {
       if matchSymbol("(") {
         if !checkSymbol(")") {
           repeat { args.append(try assignmentAsArgument()) } while matchSymbol(",")
-          try consumeSymbol(")", "Expected ')' after arguments")
         }
+        try consumeSymbol(")", "Expected ')' after arguments")
       }
       return .newExpr(callee, args)
     }
@@ -829,16 +829,16 @@ public final class JSParser {
         var args: [JSExpression] = []
         if !checkSymbol(")") {
           repeat { args.append(try assignmentAsArgument()) } while matchSymbol(",")
-          try consumeSymbol(")", "Expected ')' after arguments")
         }
+        try consumeSymbol(")", "Expected ')' after arguments")
         expression = .call(expression, args)
       } else if matchSymbol("?.") {
         if matchSymbol("(") {
           var args: [JSExpression] = []
           if !checkSymbol(")") {
             repeat { args.append(try assignmentAsArgument()) } while matchSymbol(",")
-            try consumeSymbol(")", "Expected ')' after arguments")
           }
+          try consumeSymbol(")", "Expected ')' after arguments")
           expression = .optionalCall(expression, args)
         } else if checkSymbol("[") {
           let key = try self.expression()
