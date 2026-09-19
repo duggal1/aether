@@ -22,7 +22,7 @@ let package = Package(
       name: "Display", dependencies: ["EngineCore", "DOM", "Layout", "Style", "CSS", "Images"]),
     .target(name: "Graphics", dependencies: ["EngineCore", "Display", "Images"]),
     .target(name: "AetherNetworkHardening", path: "Sources/EngineAdditions/Sources/AetherNetworkHardening"),
-    .target(name: "Networking", dependencies: ["EngineCore"]),
+    .target(name: "Networking", dependencies: ["EngineCore", "AetherNetworkHardening"]),
     .target(name: "Images", dependencies: ["EngineCore", "Networking"]),
     .target(name: "JavaScript", dependencies: ["EngineCore", "DOM", "Storage"]),
     .target(
