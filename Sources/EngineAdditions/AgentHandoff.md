@@ -1,5 +1,7 @@
 # AgentHandoff: truthful implementation report for the next coding agent
 
+> **Updated after the integration:** Read `Docs/ADDITIONS_INTEGRATION.md` first. The original handoff below documents the ZIP as initially generated; the repository has since integrated network hardening into the real SwiftPM graph, corrected capture and disk-cache defects and validated a native macOS release build, targeted network tests and benchmark. The full suite still has 14 existing JavaScript-runtime issues. No production renderer sandbox or complete P0–P2 browser engine has been built.
+
 I created a source-only add-on package that compiles independently under Swift 6.2, with targeted tests and explicit connection instructions. I did NOT finish the entire P0–P2 browser-engine plan, did NOT integrate into the unretrieved four-agent working tree, and did NOT verify macOS Metal or sandbox/process isolation. Do not tell the user otherwise.
 
 ## Implemented in this add-on

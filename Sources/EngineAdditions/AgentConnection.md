@@ -1,5 +1,7 @@
 # AgentConnection: connect the additions to the CURRENT Aether repository
 
+> **Current repository status (September 19, 2026):** This document describes the original add-on integration candidates. The real, reviewed implementation and macOS verification results are now in `Docs/ADDITIONS_INTEGRATION.md` at the repository root. Existing runtime, persistence, capture, fleet and graphics owners remain authoritative. Only non-duplicative network hardening was adopted as an active new module; do not install remaining add-on modules just to inflate integration statistics.
+
 ## First: read this accurately
 
 This ZIP is an additive Swift source drop, not a patched copy of the current Aether repository. The only repository archive available during generation was the older Engine 0 ZIP; the later four-agent source changes were described in messages but were not supplied as files. There are no edits to your current `EngineRuntime`, `NavigationPipeline`, `Package.swift`, `CookieJar`, JavaScript runtime, or coworker-owned modules here. Do not blindly overwrite those files. Build and test the current Aether repo first, then integrate one small boundary at a time.
