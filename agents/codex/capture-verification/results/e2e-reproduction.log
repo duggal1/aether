@@ -1,0 +1,20 @@
+{"name": "daemon ping", "passed": true, "seconds": 0.001190333000067767, "detail": {"engine": "NativeBrowserEngine", "ok": true}}
+{"name": "navigation and redirect", "passed": true, "seconds": 0.03350775000035355, "detail": null}
+{"name": "script executed", "passed": true, "seconds": 0.0009556250001878652, "detail": null}
+{"name": "local storage", "passed": true, "seconds": 0.00025191699978677207, "detail": null}
+{"name": "fill input", "passed": true, "seconds": 0.00426170800028558, "detail": [{"ok": true}, null]}
+{"name": "scroll", "passed": true, "seconds": 0.00016079200031526852, "detail": [{"x": 0, "y": 320}, null]}
+{"name": "render", "passed": true, "seconds": 0.05833187500002168, "detail": {"height": 300, "path": "/Users/harshitduggal/workspace/Aether/agents/codex/capture-verification/results/e2e-reproduction/viewport.png", "width": 400}}
+{"name": "resize", "passed": true, "seconds": 0.0013772500001323351, "detail": null}
+{"name": "history and reload", "passed": true, "seconds": 0.01272679200019411, "detail": null}
+{"name": "download bytes", "passed": true, "seconds": 0.002724499999658292, "detail": {"bytes": 17, "id": 1, "path": "/Users/harshitduggal/workspace/Aether/agents/codex/capture-verification/results/e2e-reproduction/download.bin", "state": "completed", "url": "http://127.0.0.1:49810/download"}}
+{"name": "profile checkpoint and reopen", "passed": true, "seconds": 0.014026499999999942, "detail": null}
+{"name": "tabs isolation lifecycle cleanup", "passed": true, "seconds": 0.03439808400025868, "detail": null}
+{"name": "capture webp", "passed": false, "seconds": 0.00017016700030580978, "error": "{'code': 'method_not_found', 'message': 'page.capture'}"}
+{"name": "capture jpeg", "passed": false, "seconds": 0.00010895800005528145, "error": "{'code': 'method_not_found', 'message': 'page.capture'}"}
+{"name": "capture png", "passed": false, "seconds": 0.00010758400003396673, "error": "{'code': 'method_not_found', 'message': 'page.capture'}"}
+{"name": "large page bounded capture", "passed": false, "seconds": 0.00010037499987447518, "error": "{'code': 'method_not_found', 'message': 'page.capture'}"}
+{"name": "delayed JavaScript capture", "passed": false, "seconds": 8.804200024314923e-05, "error": "{'code': 'method_not_found', 'message': 'page.capture'}"}
+{"name": "blocked navigation cleanup", "passed": true, "seconds": 0.00017899999966175528, "detail": null}
+{"name": "parallel captures", "passed": false, "seconds": 0.00583195799981695, "error": "{'code': 'method_not_found', 'message': 'page.capture'}"}
+{"name": "final fleet", "passed": true, "seconds": 0.00019483300002320902, "detail": {"active": 0, "background": 0, "contexts": 0, "discarded": 0, "estimatedBytes": 0, "frozen": 0, "pages": 0, "suspended": 0}}

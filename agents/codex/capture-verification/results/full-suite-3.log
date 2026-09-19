@@ -1,0 +1,423 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 192] Graphics
+[3 / 199] AetherCapture
+[4 / 207] EngineCore
+[5 / 216] AetherCapture
+[8 / 218] EngineCore
+[13 / 240] WebSecurity
+[14 / 240] Text
+[15 / 247] WebSecurity
+[16 / 251] Text
+[24 / 255] Scheduler
+[25 / 258] Storage
+[26 / 262] Scheduler
+[33 / 265] Scheduler
+[35 / 269] Networking
+[37 / 277] Diagnostics
+[41 / 280] Diagnostics
+[49 / 284] CSS
+[50 / 291] DOM
+[51 / 298] CSS
+[58 / 302] AgentProtocol
+[61 / 309] AgentProtocol
+[62 / 309] WebSecurity
+[64 / 311] WebSecurity
+[68 / 311] WebSecurity
+[69 / 311] WebSecurity
+[70 / 311] Text
+[73 / 311] Text
+[75 / 311] Text
+[76 / 313] Storage
+[77 / 313] Scheduler
+[80 / 313] Scheduler
+[81 / 311] Persistence
+[83 / 311] Persistence
+[85 / 311] Networking
+[88 / 311] Networking
+/Users/harshitduggal/workspace/Aether/Sources/Networking/CookieJar.swift:184:11: [1;33mwarning: [1;39mresult of call to 'withLock' is unused[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m182 |[0;0m 
+[0;36m183 |[0;0m   public func remove(name: String, domain: String, path: String = "/") {
+[0;36m184 |[0;0m     state.withLock [4;39m{ state in[0;0m
+    [0;36m|[0;0m           `- [1;33mwarning: [1;39mresult of call to 'withLock' is unused[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m185 |[0;0m       state.cookies.removeValue(
+[0;36m186 |[0;0m         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[90 / 315] Images
+[91 / 315] Networking
+[92 / 319] Images
+[95 / 321] Images
+[98 / 321] Images
+[100 / 321] EngineCore
+[103 / 321] EngineCore
+[104 / 321] EngineCore
+[106 / 321] Diagnostics
+[109 / 321] DOM
+[111 / 321] DOM
+[113 / 327] JavaScript
+[114 / 327] HTML
+[115 / 336] JavaScript
+[116 / 342] HTML
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: [1;33mwarning: [1;39massociated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'[0;0m
+   [0;36m9 |[0;0m   case range(String)
+  [0;36m10 |[0;0m   case runtime(String)
+  [0;36m11 |[0;0m   case thrown(JSValue)
+     [0;36m|[0;0m        `- [1;33mwarning: [1;39massociated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'[0;0m
+  [0;36m12 |[0;0m 
+  [0;36m13 |[0;0m   public var description: String {
+     [0;36m:[0;0m
+  [0;36m23 |[0;0m }
+  [0;36m24 |[0;0m 
+  [0;36m25 |[0;0m public indirect enum JSValue: CustomStringConvertible, Equatable {
+     [0;36m|[0;0m                      `- [1;39mnote: [1;39mconsider making enum 'JSValue' conform to the 'Sendable' protocol[0;0m
+  [0;36m26 |[0;0m   case number(Double)
+  [0;36m27 |[0;0m   case bigint(String)
+[120 / 346] JavaScript
+[123 / 346] HTML
+[124 / 346] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCollections.swift:297:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m295 |[0;0m     let weakSetProto = JSObject(prototype: runtime.objectPrototype)
+[0;36m296 |[0;0m     weakMapProto.defineNative("set") { [weak runtime] thisArg, args in
+[0;36m297 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m298 |[0;0m       guard case .object(let table) = thisArg,
+[0;36m299 |[0;0m         case .object(let key) = args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:112:40: [1;33mwarning: [1;39mvariable 'runtime' was written to, but never read[0;0m
+[0;36m110 |[0;0m       return try runtime.callValue(thisArg, thisValue: receiver, arguments: list)
+[0;36m111 |[0;0m     }
+[0;36m112 |[0;0m     proto.defineNative("bind") { [weak runtime] thisArg, args in
+    [0;36m|[0;0m                                        `- [1;33mwarning: [1;39mvariable 'runtime' was written to, but never read[0;0m
+[0;36m113 |[0;0m       guard case .function(let function) = thisArg else {
+[0;36m114 |[0;0m         throw JSError.type("bind on incompatible receiver")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:143:49: [1;33mwarning: [1;39mvariable 'runtime' was written to, but never read[0;0m
+[0;36m141 |[0;0m       return .bool(false)
+[0;36m142 |[0;0m     }
+[0;36m143 |[0;0m     proto.defineNative("isPrototypeOf") { [weak runtime] thisArg, args in
+    [0;36m|[0;0m                                                 `- [1;33mwarning: [1;39mvariable 'runtime' was written to, but never read[0;0m
+[0;36m144 |[0;0m       guard case .object(let candidate) = thisArg else { return .bool(false) }
+[0;36m145 |[0;0m       guard case .object(let object) = args.first else { return .bool(false) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:343:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m341 |[0;0m     }
+[0;36m342 |[0;0m     statics.defineNative("setPrototypeOf") { [weak runtime] _, args in
+[0;36m343 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m344 |[0;0m       guard args.count > 1, case .object(let object) = args[0] else {
+[0;36m345 |[0;0m         throw JSError.type("Target must be an object")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:377:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m375 |[0;0m     }
+[0;36m376 |[0;0m     statics.defineNative("freeze") { [weak runtime] _, args in
+[0;36m377 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m378 |[0;0m       if case .object(let object) = args.first {
+[0;36m379 |[0;0m         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:390:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m388 |[0;0m     }
+[0;36m389 |[0;0m     statics.defineNative("seal") { [weak runtime] _, args in
+[0;36m390 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m391 |[0;0m       if case .object(let object) = args.first {
+[0;36m392 |[0;0m         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:401:55: [1;33mwarning: [1;39mvariable 'runtime' was written to, but never read[0;0m
+[0;36m399 |[0;0m       return args.first ?? .undefined
+[0;36m400 |[0;0m     }
+[0;36m401 |[0;0m     statics.defineNative("preventExtensions") { [weak runtime] _, args in
+    [0;36m|[0;0m                                                       `- [1;33mwarning: [1;39mvariable 'runtime' was written to, but never read[0;0m
+[0;36m402 |[0;0m       if case .object(let object) = args.first { object.isExtensible = false }
+[0;36m403 |[0;0m       return args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsError.swift:194:16: [1;33mwarning: [1;39mvalue 'space' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m192 |[0;0m           continue
+[0;36m193 |[0;0m         }
+[0;36m194 |[0;0m         if let space {
+    [0;36m|[0;0m                `- [1;33mwarning: [1;39mvalue 'space' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m195 |[0;0m           parts.append("\(jsonQuoted(child)): \(text)")
+[0;36m196 |[0;0m         } else {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[126 / 348] WebAPI
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:147:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m145 |[0;0m     }
+[0;36m146 |[0;0m     proto.defineNative("substring") { [weak runtime] thisArg, args in
+[0;36m147 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m148 |[0;0m       let text = try primitiveString(thisArg)
+[0;36m149 |[0;0m       let units = Array(text.utf16)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:161:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m159 |[0;0m     }
+[0;36m160 |[0;0m     proto.defineNative("substr") { [weak runtime] thisArg, args in
+[0;36m161 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m162 |[0;0m       let text = try primitiveString(thisArg)
+[0;36m163 |[0;0m       let units = Array(text.utf16)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[127 / 348] JavaScript
+[127 / 354] JavaScript
+[129 / 354] WebAPI
+[130 / 354] WebAPI
+[132 / 356] WebAPI
+[134 / 356] WebAPI
+[136 / 354] WebAPI
+[137 / 354] JavaScript
+[138 / 354] WebAPI
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:201:11: [1;33mwarning: [1;39mvariable 'imported' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+ [0;36m199 |[0;0m     while !checkSymbol("}") && !isAtEnd {
+ [0;36m200 |[0;0m       let first = try contextualIdentifier("Expected import name")
+ [0;36m201 |[0;0m       var imported = first
+     [0;36m|[0;0m           `- [1;33mwarning: [1;39mvariable 'imported' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+ [0;36m202 |[0;0m       var local = first
+ [0;36m203 |[0;0m       if matchKeyword("as") {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:798:9: [1;33mwarning: [1;39mvariable 'expression' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+ [0;36m796 |[0;0m 
+ [0;36m797 |[0;0m   private func postfix() throws -> JSExpression {
+ [0;36m798 |[0;0m     var expression = try newExpression()
+     [0;36m|[0;0m         `- [1;33mwarning: [1;39mvariable 'expression' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+ [0;36m799 |[0;0m     if (checkSymbol("++") || checkSymbol("--")) && !peek.lineTerminatorBefore {
+ [0;36m800 |[0;0m       let op = peekSymbol()!
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBigInt.swift:163:9: [1;33mwarning: [1;39mvariable 'amount' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+[0;36m161 |[0;0m   static func shift(_ lhs: String, _ rhs: String, right: Bool) throws -> String {
+[0;36m162 |[0;0m     let value = normalize(lhs)
+[0;36m163 |[0;0m     var amount = normalize(rhs)
+    [0;36m|[0;0m         `- [1;33mwarning: [1;39mvariable 'amount' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+[0;36m164 |[0;0m     if amount.hasPrefix("-") {
+[0;36m165 |[0;0m       if right { return try shift(strip(value) == "0" ? "0" : value, negate(amount), right: false) }
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[140 / 354] JavaScript
+[141 / 354] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMBindings.swift:56:9: [1;33mwarning: [1;39minitialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+ [0;36m54 |[0;0m   static func documentObject(context: JSDOMContext) -> JSObject {
+ [0;36m55 |[0;0m     let document = context.document
+ [0;36m56 |[0;0m     let events = context.events
+    [0;36m|[0;0m         `- [1;33mwarning: [1;39minitialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+ [0;36m57 |[0;0m     let object = JSObject(
+ [0;36m58 |[0;0m       nativeGet: { [weak document] key in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:7:14: [1;33mwarning: [1;39mweak variable 'weakObject' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\::]8;;https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability\WeakMutability]8;;\]
+  [0;36m5 |[0;0m   public static func locationFor(context: JSDOMContext) -> JSObject {
+  [0;36m6 |[0;0m     let object = JSObject()
+  [0;36m7 |[0;0m     weak var weakObject = object
+    [0;36m|[0;0m              `- [1;33mwarning: [1;39mweak variable 'weakObject' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\::]8;;https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability\WeakMutability]8;;\]
+  [0;36m8 |[0;0m     object.nativeGet = { [weak context] key in
+  [0;36m9 |[0;0m       guard let context, let object = weakObject else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:106:14: [1;33mwarning: [1;39mweak variable 'weakLocation' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\::]8;;https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability\WeakMutability]8;;\]
+[0;36m104 |[0;0m     object.set("state", .null)
+[0;36m105 |[0;0m     object.set("scrollRestoration", .string("auto"))
+[0;36m106 |[0;0m     weak var weakLocation = location
+    [0;36m|[0;0m              `- [1;33mwarning: [1;39mweak variable 'weakLocation' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\::]8;;https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability\WeakMutability]8;;\]
+[0;36m107 |[0;0m     object.defineNative("pushState") { args in
+[0;36m108 |[0;0m       if let first = args.first { object.set("__state", first) }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: [1;33mwarning: [1;39massociated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'[0;0m
+   [0;36m9 |[0;0m   case range(String)
+  [0;36m10 |[0;0m   case runtime(String)
+  [0;36m11 |[0;0m   case thrown(JSValue)
+     [0;36m|[0;0m        `- [1;33mwarning: [1;39massociated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'[0;0m
+  [0;36m12 |[0;0m 
+  [0;36m13 |[0;0m   public var description: String {
+     [0;36m:[0;0m
+  [0;36m23 |[0;0m }
+  [0;36m24 |[0;0m 
+  [0;36m25 |[0;0m public indirect enum JSValue: CustomStringConvertible, Equatable {
+     [0;36m|[0;0m                      `- [1;39mnote: [1;39mconsider making enum 'JSValue' conform to the 'Sendable' protocol[0;0m
+  [0;36m26 |[0;0m   case number(Double)
+  [0;36m27 |[0;0m   case bigint(String)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:808:9: [1;33mwarning: [1;39mvariable 'target' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+ [0;36m806 |[0;0m     _ callee: JSValue, arguments: [JSValue], env: JSEnvironment? = nil
+ [0;36m807 |[0;0m   ) throws -> JSValue {
+ [0;36m808 |[0;0m     var target = callee
+     [0;36m|[0;0m         `- [1;33mwarning: [1;39mvariable 'target' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\]
+ [0;36m809 |[0;0m     if case .function(let bound) = target, let inner = bound.boundTarget {
+ [0;36m810 |[0;0m       var combined = bound.boundArguments
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:1494:14: [1;33mwarning: [1;39mweak variable 'weakObject' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\::]8;;https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability\WeakMutability]8;;\]
+[0;36m1492 |[0;0m     for (index, value) in values.enumerated() { object.properties[String(index)] = value }
+[0;36m1493 |[0;0m     object.properties["length"] = .number(Double(values.count))
+[0;36m1494 |[0;0m     weak var weakObject = object
+     [0;36m|[0;0m              `- [1;33mwarning: [1;39mweak variable 'weakObject' was never mutated; consider changing to 'let' constant[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated\VariableNeverMutated]8;;\::]8;;https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability\WeakMutability]8;;\]
+[0;36m1495 |[0;0m     object.nativeSet = { key, value in
+[0;36m1496 |[0;0m       guard let target = weakObject else { return false }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:2694:9: [1;33mwarning: [1;39minitialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m2692 |[0;0m       throw JSError.type("Right-hand side of instanceof is not callable")
+[0;36m2693 |[0;0m     }
+[0;36m2694 |[0;0m     let hasInstance = function.staticProperties.get("prototype")
+     [0;36m|[0;0m         `- [1;33mwarning: [1;39minitialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m2695 |[0;0m     guard case .object(let prototype) = function.prototypeObject.map({ JSValue.object($0) })
+[0;36m2696 |[0;0m       ?? hasInstanceObject(function) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:3213:51: [1;33mwarning: [1;39mvariable 'self' was written to, but never read[0;0m
+[0;36m3211 |[0;0m 
+[0;36m3212 |[0;0m   private func installEval() {
+[0;36m3213 |[0;0m     let evalFunction = JSFunction(native: { [weak self] _ in .undefined }, name: "eval")
+     [0;36m|[0;0m                                                   `- [1;33mwarning: [1;39mvariable 'self' was written to, but never read[0;0m
+[0;36m3214 |[0;0m     _ = evalFunction
+[0;36m3215 |[0;0m     let direct = JSFunction(nativeMethod: { [weak self] _, args in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSTextCodec.swift:82:17: [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+ [0;36m80 |[0;0m     decoderProto.set("constructor", .function(decoderConstructor))
+ [0;36m81 |[0;0m     decoderProto.defineNative("decode") { [weak runtime] thisArg, args in
+ [0;36m82 |[0;0m       guard let runtime else { return .undefined }
+    [0;36m|[0;0m                 `- [1;33mwarning: [1;39mvalue 'runtime' was defined but never used; consider replacing with boolean test[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+ [0;36m83 |[0;0m       guard case .object(let decoder) = thisArg,
+ [0;36m84 |[0;0m         case .string(let encoding) = decoder.get("encoding")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[142 / 354] HTML
+[145 / 354] HTML
+[146 / 354] HTML
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:199:60: [1;33mwarning: [1;39mliteral value is already handled by previous pattern; consider removing it[0;0m
+[0;36m138 |[0;0m       insertNode(node)
+[0;36m139 |[0;0m       return
+[0;36m140 |[0;0m     case "link", "meta", "base", [4;39m"col"[0;0m, "embed", "source", "track", "wbr", "img", "input", "area",
+    [0;36m|[0;0m                                  `- [1;39mnote: [1;39mfirst occurrence of identical literal pattern is here[0;0m
+[0;36m141 |[0;0m       "param":
+[0;36m142 |[0;0m       let node = makeElement(name: name, attributes: attributes)
+    [0;36m:[0;0m
+[0;36m197 |[0;0m       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+[0;36m198 |[0;0m       return
+[0;36m199 |[0;0m     case "caption", "colgroup", "tbody", "tfoot", "thead", [4;39m"col"[0;0m:
+    [0;36m|[0;0m                                                            `- [1;33mwarning: [1;39mliteral value is already handled by previous pattern; consider removing it[0;0m
+[0;36m200 |[0;0m       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+[0;36m201 |[0;0m       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:442:15: [1;33mwarning: [1;39mimmutable value 'formattingPos' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m440 |[0;0m     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
+[0;36m441 |[0;0m   ) {
+[0;36m442 |[0;0m     guard let formattingPos, entryIndex != nil else {
+    [0;36m|[0;0m               `- [1;33mwarning: [1;39mimmutable value 'formattingPos' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m443 |[0;0m       close(name)
+[0;36m444 |[0;0m       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:509:15: [1;33mwarning: [1;39mimmutable value 'last' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m507 |[0;0m 
+[0;36m508 |[0;0m   private func popThrough(formattingID: NodeID) {
+[0;36m509 |[0;0m     while let last = openElements.last, openElements.count > 1 {
+    [0;36m|[0;0m               `- [1;33mwarning: [1;39mimmutable value 'last' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m510 |[0;0m       let removed = openElements.removeLast()
+[0;36m511 |[0;0m       if removed == formattingID { break }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[148 / 354] DOM
+[150 / 354] DOM
+[152 / 354] CSS
+[154 / 354] CSS
+[156 / 356] Style
+[157 / 356] CSS
+[158 / 361] Style
+[159 / 361] Style
+[160 / 361] Style
+[161 / 363] Style
+[164 / 363] Style
+[165 / 367] Style
+[166 / 367] Layout
+[169 / 373] Layout
+[171 / 373] Layout
+[173 / 375] Layout
+[176 / 375] Layout
+[178 / 377] Display
+[179 / 377] Layout
+[181 / 383] Display
+[182 / 383] Display
+[183 / 383] Display
+[184 / 385] Display
+[187 / 385] Display
+[189 / 387] Graphics
+[190 / 387] Display
+[191 / 396] Graphics
+[192 / 396] Graphics
+[193 / 396] Graphics
+[194 / 398] Graphics
+[198 / 398] Graphics
+[200 / 398] Navigation
+[202 / 402] Navigation
+[203 / 402] Navigation
+[205 / 404] Navigation
+[208 / 404] Navigation
+[210 / 404] Navigation
+[211 / 404] Graphics
+[215 / 404] AgentProtocol
+[216 / 404] AgentProtocol
+[217 / 404] AgentProtocol
+[218 / 404] AgentProtocol
+[219 / 404] AetherCapture
+[221 / 404] AetherCapture
+[223 / 404] EngineRuntime
+[224 / 404] AetherCapture
+[225 / 409] EngineRuntime
+[226 / 409] EngineRuntime
+[228 / 411] EngineRuntime
+[231 / 411] EngineRuntime
+[233 / 413] BrowserEngine
+[234 / 413] EngineRuntime
+[235 / 416] AetherCapture
+[237 / 416] BrowserEngine
+[239 / 418] BrowserEngine
+[244 / 422] enginebench-product
+[245 / 422] browserd-product
+[246 / 424] enginebench-product
+[247 / 424] browserd-product
+[249 / 424] browserctl-product
+[251 / 425] browserctl-product
+[257 / 425] AetherCapture
+[260 / 425] AetherCapture
+/Users/harshitduggal/workspace/Aether/Package.swift: EngineCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCapture: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: WebSecurity: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Text: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[262 / 425] Text
+/Users/harshitduggal/workspace/Aether/Package.swift: Storage: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Scheduler: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Persistence: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[266 / 425] Networking
+/Users/harshitduggal/workspace/Aether/Package.swift: Networking: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Diagnostics: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: DOM: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: CSS: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentProtocol: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[271 / 425] AetherCaptureTests-product
+[271 / 425] WebSecurity
+[273 / 433] AetherCaptureTests-product
+[274 / 433] AetherCaptureTests-product
+[276 / 432] AetherCaptureTests-product
+error: SwiftCompile normal arm64 /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureGeometryTests.swift failed with a nonzero exit code. Command line:     cd /Users/harshitduggal/workspace
+    builtin-SwiftPerFileCompile CaptureGeometryTests.swift
+[280 / 432] AetherCaptureTests-productmacro expansion #require:2:3: [1;31merror: [1;39mcall can throw, but it is not marked with 'try' and the error is not handled[0;0m
+`- /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureGeometryTests.swift:22:90: [1;39mnote: [1;39mexpanded code originates here[0;0m
+[0;36m20 |[0;0m     let emptyJoin = try FullPageAssembler.join([], maximumPixels: 100)
+[0;36m21 |[0;0m     #expect(emptyJoin == nil)
+[0;36m22 |[0;0m     let joined = try [4;39m#require(FullPageAssembler.join([raster, raster], maximumPixels: 4))[0;0m
+   [0;36m|[0;0m                      `- [1;39mnote: [1;39min expansion of macro 'require' here[0;0m
+[0;36m   +--- [0;0mmacro expansion #require [0;36m---------------------------------------[0;0m
+[0;36m   |[0;0m[0;36m1 |[0;0m Testing.__checkFunctionCall(FullPageAssembler.self,calling: {
+[0;36m   |[0;0m[0;36m2 |[0;0m   $0.join($1,maximumPixels: $2)
+[0;36m   |[0;0m  [0;36m|[0;0m   `- [1;31merror: [1;39mcall can throw, but it is not marked with 'try' and the error is not handled[0;0m
+[0;36m   |[0;0m[0;36m3 |[0;0m },[raster, raster],4,expression: .__fromFunctionCall(.__fromSyntaxNode("FullPageAssembler"),"join",(nil,.__fromSyntaxNode("[raster, raster]")),("maximumPixels",.__fromSyntaxNode("4"))),comments: [],isRequired: true,sourceLocation: Testing.SourceLocation.__here()).__required()
+[0;36m   +-----------------------------[0;0m[0;36m---------------------------------------[0;0m
+[0;36m23 |[0;0m     #expect(joined.bytesPerRow == 4)
+[0;36m24 |[0;0m     #expect(joined.rgba == Data([1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8]))
+Failed frontend command:
+/Library/Developer/CommandLineTools/usr/bin/swift-frontend -frontend -c /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources/test_entry_point.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureCoordinatorTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureFolderTests.swift -primary-file /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureGeometryTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureTestSupport.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/NativeImageEncoderTests.swift -emit-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureGeometryTests.d -emit-const-values-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureGeometryTests.swiftconstvalues -emit-reference-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureGeometryTests.swiftdeps -serialize-diagnostics-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureGeometryTests.dia -target arm64-apple-macos15.0 -module-can-import-version Testing 2078 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/AetherCaptureTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk -I /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -Isystem /Library/Developer/CommandLineTools/Developer/usr/lib -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/PackageFrameworks -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -F /Library/Developer/CommandLineTools/Library/Developer/Frameworks -F /Library/Developer/CommandLineTools/Developer/Library/Frameworks -module-cache-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -color-diagnostics -Xcc -fcolor-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/harshitduggal/workspace/Aether/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/harshitduggal/workspace -enable-anonymous-context-mangled-names -file-compilation-dir /Users/harshitduggal/workspace -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/harshitduggal/workspace/Aether/.build/out/SDKStatCaches.noindex/macosx27.0-26A5419a-a0facfad118c1a7a18f0aad9463f6549ffd68ff603bdaacc80b00cb8898de72d.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/include -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name AetherCaptureTests -package-name aether -const-gather-protocols-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/AetherCaptureTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Library/Developer/CommandLineTools/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureGeometryTests.o -debug-module-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/AetherCaptureTests.swiftmodule -index-unit-output-path /NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureGeometryTests.o -index-store-path /Users/harshitduggal/workspace/Aether/.build/out -index-system-modules
+
+error: Build failed
+error: fatalError
+TEST_EXIT=1

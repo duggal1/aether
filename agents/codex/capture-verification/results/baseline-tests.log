@@ -1,0 +1,419 @@
+Building for debugging...
+[Computing dependencies]
+[Provisioning 1 / 42]
+[Pre-planning 1 / 1197]
+[Planning 987 / 1197]
+[Planning deferred tasks]
+[Constructing 642 / 2728]
+[1 / 240] LayoutTests-product
+[11 / 214]
+[12 / 270] AetherCapture
+[14 / 285]
+[15 / 285]
+[17 / 285]
+[18 / 285]
+[20 / 285]
+[21 / 285]
+[23 / 285]
+[25 / 285]
+[27 / 285]
+[29 / 285]
+[30 / 285]
+[32 / 285]
+[34 / 285]
+[35 / 285]
+[37 / 285]
+[38 / 285]
+[39 / 285]
+[40 / 285]
+[41 / 285]
+[43 / 285]
+[44 / 285]
+[46 / 285]
+[47 / 285]
+[48 / 285]
+[50 / 285]
+[51 / 285]
+[52 / 285]
+[54 / 285]
+[55 / 285]
+[56 / 285]
+[57 / 285]
+[59 / 285]
+[60 / 285]
+[61 / 285]
+[63 / 285]
+[64 / 285]
+[66 / 285]
+[67 / 285]
+[68 / 285]
+[69 / 285] EngineCore
+[70 / 285]
+[72 / 283]
+[76 / 283]
+[78 / 283]
+[78 / 283] EngineCore
+[79 / 307] EngineCore
+[89 / 360]
+[91 / 360] EngineCore
+[92 / 360]
+[94 / 360]
+[96 / 361] WebSecurity
+[98 / 359] WebSecurity
+[105 / 358] AetherCapture
+[106 / 356]
+/Users/harshitduggal/workspace/Aether/Package.swift: EngineCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[109 / 365] Text
+[110 / 365] Storage
+[111 / 368] Scheduler
+[112 / 369] Storage
+[113 / 370] Scheduler
+[114 / 370] Storage
+[121 / 364] Networking
+[122 / 372] Diagnostics
+[123 / 375] Networking
+[123 / 376] Networking
+[124 / 376] Diagnostics
+[133 / 371] CSS
+[134 / 373] DOM
+[135 / 374] CSS
+[138 / 368] AgentProtocol
+[143 / 369] AgentProtocol
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCapture: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[147 / 367] AgentProtocol
+[151 / 367]
+[153 / 367]
+[154 / 367] Text
+[155 / 367]
+[157 / 364]
+[161 / 364]
+[163 / 364] Text
+[167 / 367] Networking
+[171 / 372] Networking
+/Users/harshitduggal/workspace/Aether/Sources/Networking/CookieJar.swift:184:11: warning: result of call to 'withLock' is unused [#NoUsage]
+182 | 
+183 |   public func remove(name: String, domain: String, path: String = "/") {
+184 |     state.withLock { state in
+    |           `- warning: result of call to 'withLock' is unused [#NoUsage]
+185 |       state.cookies.removeValue(
+186 |         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[172 / 372] EngineCore
+[175 / 382] DOM
+[180 / 393] Style
+[182 / 404] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+[183 / 406] Images
+[184 / 406] JavaScript
+[192 / 401] JavaScript
+[193 / 404] HTML
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:808:9: warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 806 |     _ callee: JSValue, arguments: [JSValue], env: JSEnvironment? = nil
+ 807 |   ) throws -> JSValue {
+ 808 |     var target = callee
+     |         `- warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 809 |     if case .function(let bound) = target, let inner = bound.boundTarget {
+ 810 |       var combined = bound.boundArguments
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:1494:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1492 |     for (index, value) in values.enumerated() { object.properties[String(index)] = value }
+1493 |     object.properties["length"] = .number(Double(values.count))
+1494 |     weak var weakObject = object
+     |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1495 |     object.nativeSet = { key, value in
+1496 |       guard let target = weakObject else { return false }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:2694:9: warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2692 |       throw JSError.type("Right-hand side of instanceof is not callable")
+2693 |     }
+2694 |     let hasInstance = function.staticProperties.get("prototype")
+     |         `- warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2695 |     guard case .object(let prototype) = function.prototypeObject.map({ JSValue.object($0) })
+2696 |       ?? hasInstanceObject(function) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:3213:51: warning: variable 'self' was written to, but never read
+3211 | 
+3212 |   private func installEval() {
+3213 |     let evalFunction = JSFunction(native: { [weak self] _ in .undefined }, name: "eval")
+     |                                                   `- warning: variable 'self' was written to, but never read
+3214 |     _ = evalFunction
+3215 |     let direct = JSFunction(nativeMethod: { [weak self] _, args in
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[194 / 412] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMBindings.swift:56:9: warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 54 |   static func documentObject(context: JSDOMContext) -> JSObject {
+ 55 |     let document = context.document
+ 56 |     let events = context.events
+    |         `- warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 57 |     let object = JSObject(
+ 58 |       nativeGet: { [weak document] key in
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[196 / 410] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:112:40: warning: variable 'runtime' was written to, but never read
+110 |       return try runtime.callValue(thisArg, thisValue: receiver, arguments: list)
+111 |     }
+112 |     proto.defineNative("bind") { [weak runtime] thisArg, args in
+    |                                        `- warning: variable 'runtime' was written to, but never read
+113 |       guard case .function(let function) = thisArg else {
+114 |         throw JSError.type("bind on incompatible receiver")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:143:49: warning: variable 'runtime' was written to, but never read
+141 |       return .bool(false)
+142 |     }
+143 |     proto.defineNative("isPrototypeOf") { [weak runtime] thisArg, args in
+    |                                                 `- warning: variable 'runtime' was written to, but never read
+144 |       guard case .object(let candidate) = thisArg else { return .bool(false) }
+145 |       guard case .object(let object) = args.first else { return .bool(false) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:343:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+341 |     }
+342 |     statics.defineNative("setPrototypeOf") { [weak runtime] _, args in
+343 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+344 |       guard args.count > 1, case .object(let object) = args[0] else {
+345 |         throw JSError.type("Target must be an object")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:377:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+375 |     }
+376 |     statics.defineNative("freeze") { [weak runtime] _, args in
+377 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+378 |       if case .object(let object) = args.first {
+379 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:390:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+388 |     }
+389 |     statics.defineNative("seal") { [weak runtime] _, args in
+390 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+391 |       if case .object(let object) = args.first {
+392 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:401:55: warning: variable 'runtime' was written to, but never read
+399 |       return args.first ?? .undefined
+400 |     }
+401 |     statics.defineNative("preventExtensions") { [weak runtime] _, args in
+    |                                                       `- warning: variable 'runtime' was written to, but never read
+402 |       if case .object(let object) = args.first { object.isExtensible = false }
+403 |       return args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsError.swift:194:16: warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+192 |           continue
+193 |         }
+194 |         if let space {
+    |                `- warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+195 |           parts.append("\(jsonQuoted(child)): \(text)")
+196 |         } else {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[200 / 410] JavaScript
+[201 / 410] JavaScript
+[202 / 410] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:147:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+145 |     }
+146 |     proto.defineNative("substring") { [weak runtime] thisArg, args in
+147 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+148 |       let text = try primitiveString(thisArg)
+149 |       let units = Array(text.utf16)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:161:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+159 |     }
+160 |     proto.defineNative("substr") { [weak runtime] thisArg, args in
+161 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+162 |       let text = try primitiveString(thisArg)
+163 |       let units = Array(text.utf16)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[203 / 410] WebAPI
+[205 / 410] JavaScript
+[206 / 410] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSTextCodec.swift:82:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 80 |     decoderProto.set("constructor", .function(decoderConstructor))
+ 81 |     decoderProto.defineNative("decode") { [weak runtime] thisArg, args in
+ 82 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 83 |       guard case .object(let decoder) = thisArg,
+ 84 |         case .string(let encoding) = decoder.get("encoding")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[207 / 410] JavaScript
+[208 / 410] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:7:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  5 |   public static func locationFor(context: JSDOMContext) -> JSObject {
+  6 |     let object = JSObject()
+  7 |     weak var weakObject = object
+    |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  8 |     object.nativeGet = { [weak context] key in
+  9 |       guard let context, let object = weakObject else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:106:14: warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+104 |     object.set("state", .null)
+105 |     object.set("scrollRestoration", .string("auto"))
+106 |     weak var weakLocation = location
+    |              `- warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+107 |     object.defineNative("pushState") { args in
+108 |       if let first = args.first { object.set("__state", first) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCollections.swift:297:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+295 |     let weakSetProto = JSObject(prototype: runtime.objectPrototype)
+296 |     weakMapProto.defineNative("set") { [weak runtime] thisArg, args in
+297 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+298 |       guard case .object(let table) = thisArg,
+299 |         case .object(let key) = args.first ?? .undefined
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[209 / 410] Images
+[212 / 410] HTML
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:199:60: warning: literal value is already handled by previous pattern; consider removing it
+138 |       insertNode(node)
+139 |       return
+140 |     case "link", "meta", "base", "col", "embed", "source", "track", "wbr", "img", "input", "area",
+    |                                  `- note: first occurrence of identical literal pattern is here
+141 |       "param":
+142 |       let node = makeElement(name: name, attributes: attributes)
+    :
+197 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+198 |       return
+199 |     case "caption", "colgroup", "tbody", "tfoot", "thead", "col":
+    |                                                            `- warning: literal value is already handled by previous pattern; consider removing it
+200 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+201 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:442:15: warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+440 |     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
+441 |   ) {
+442 |     guard let formattingPos, entryIndex != nil else {
+    |               `- warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+443 |       close(name)
+444 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:509:15: warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+507 | 
+508 |   private func popThrough(formattingID: NodeID) {
+509 |     while let last = openElements.last, openElements.count > 1 {
+    |               `- warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+510 |       let removed = openElements.removeLast()
+511 |       if removed == formattingID { break }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[213 / 412] JavaScriptTests-product
+[215 / 413] WebAPI
+[217 / 418] WebAPI
+[218 / 419] Style
+[227 / 414] WebAPI
+[228 / 414] WebAPITests-product
+[229 / 414] WebAPI
+/Users/harshitduggal/workspace/Aether/Package.swift: WebSecurity: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[234 / 426] WebSecurity
+/Users/harshitduggal/workspace/Aether/Package.swift: Text: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Storage: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Scheduler: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[237 / 426] Scheduler
+/Users/harshitduggal/workspace/Aether/Package.swift: Networking: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[239 / 426] Layout
+/Users/harshitduggal/workspace/Aether/Package.swift: Diagnostics: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[241 / 431] Layout
+/Users/harshitduggal/workspace/Aether/Package.swift: DOM: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: CSS: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[245 / 428] Layout
+[249 / 428] Layout
+[250 / 428] Layout
+[251 / 436] LayoutTests-product
+[252 / 434] LayoutTests-product
+[253 / 434] AgentProtocol
+/Users/harshitduggal/workspace/Aether/Package.swift: Persistence: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[258 / 435] Display
+[259 / 435] AgentProtocol
+[260 / 440] Display
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentProtocol: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[260 / 440] WebSecurity
+[262 / 437] Display
+[264 / 437] SecurityTests-product
+[265 / 441] Display
+[267 / 445]
+error: SwiftCompile normal arm64 failed with a nonzero exit code. Command line:     cd /Users/harshitduggal/workspace
+    
+/Users/harshitduggal/workspace/Aether/Tests/StorageTests/StorageTests.swift:5:12: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 3 | import Testing
+ 4 | 
+ 5 | @Test func localStorageIsPartitionedByOrigin() {
+   |            `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+ 6 |   let partition = StoragePartition(contextID: ContextID(rawValue: 1))
+ 7 |   partition.localStorage(for: "https://a.example").set("token", value: "a")
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+
+/Users/harshitduggal/workspace/Aether/Tests/StorageTests/StorageTests.swift:14:12: error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+12 | }
+13 | 
+14 | @Test func storagePartitionSnapshotsRestore() {
+   |            `- error: external macro implementation type 'TestingMacros.TestDeclarationMacro' could not be found for macro 'Test'; plugin for module 'TestingMacros' not found
+15 |   let partition = StoragePartition(contextID: ContextID(rawValue: 1))
+16 |   partition.localStorage(for: "https://a.example").set("token", value: "a")
+
+Testing.Test:1:30: note: 'Test' declared here
+1 | @attached(peer) public macro Test(_ traits: any Testing.TestTrait...) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
+  |                              `- note: 'Test' declared here
+Failed frontend command:
+/Library/Developer/CommandLineTools/usr/bin/swift-frontend -frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/DerivedSources/test_entry_point.swift /Users/harshitduggal/workspace/Aether/Tests/StorageTests/StorageTests.swift -target arm64-apple-macos15.0 -module-can-import-version Testing 2078 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk -I /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -Isystem /Library/Developer/CommandLineTools/Developer/usr/lib -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/PackageFrameworks -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -F /Library/Developer/CommandLineTools/Library/Developer/Frameworks -F /Library/Developer/CommandLineTools/Developer/Library/Frameworks -module-cache-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/harshitduggal/workspace/Aether/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/harshitduggal/workspace -enable-anonymous-context-mangled-names -file-compilation-dir /Users/harshitduggal/workspace -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/harshitduggal/workspace/Aether/.build/out/SDKStatCaches.noindex/macosx27.0-26A5419a-a0facfad118c1a7a18f0aad9463f6549ffd68ff603bdaacc80b00cb8898de72d.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/include -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/DerivedSources/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name StorageTests -package-name aether -const-gather-protocols-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Library/Developer/CommandLineTools/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -emit-module-doc-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests.swiftdoc -emit-module-source-info-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests.swiftsourceinfo -serialize-diagnostics-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests-primary-emit-module.dia -emit-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests-primary-emit-module.d -parse-as-library -o /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests.swiftmodule -emit-abi-descriptor-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/StorageTests-p.build/Objects-normal/arm64/StorageTests.abi.json
+[269 / 446] StorageTests-product
+error: Build failed
+error: fatalError
+      101.31 real        79.09 user        12.46 sys
+           958513152  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1353398  page reclaims
+               49366  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   3  messages sent
+                  10  messages received
+                   0  signals received
+               18241  voluntary context switches
+              280550  involuntary context switches
+        130372276918  instructions retired
+         53933478061  cycles elapsed
+           342066328  peak memory footprint

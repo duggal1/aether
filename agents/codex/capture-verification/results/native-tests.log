@@ -1,0 +1,71 @@
+[0/1] Planning build
+Building for debugging...
+[0/57] /Users/harshitduggal/workspace/Aether/.build/arm64-apple-macosx/debug/NativeBrowserEnginePackageTests.derived/runner.swift
+[1/57] Write swift-version--1AB21518FC5DEDBE.txt
+[2/57] Write sources
+[3/57] Write enginebench-entitlement.plist
+[4/57] Write sources
+[5/57] Write browserd-entitlement.plist
+[6/57] Write sources
+[7/57] Write browserctl-entitlement.plist
+[8/57] Write sources
+[37/58] Emitting module EngineCore
+[38/65] Compiling EngineCore Atom.swift
+[39/65] Compiling EngineCore AtomicCounter.swift
+[40/65] Compiling EngineCore ByteBuffer.swift
+[41/65] Compiling EngineCore Color.swift
+[42/65] Compiling EngineCore DirtyRegion.swift
+[43/65] Compiling EngineCore Geometry.swift
+[44/65] Compiling EngineCore Identifiers.swift
+[44/65] Write sources
+[46/66] Emitting module WebSecurity
+[47/72] Compiling WebSecurity CORS.swift
+[48/72] Compiling WebSecurity ContentSecurityPolicy.swift
+[49/72] Compiling WebSecurity Origin.swift
+[50/72] Compiling WebSecurity PermissionPolicy.swift
+[51/72] Compiling WebSecurity Policy.swift
+[52/72] Compiling WebSecurity SandboxPolicy.swift
+[53/73] Emitting module Text
+[54/76] Compiling Text SystemTextMeasurer.swift
+[55/76] Compiling Text TextMetrics.swift
+[56/76] Compiling Text TextRunCache.swift
+[57/77] Emitting module Storage
+[58/79] Compiling Storage LocalStorage.swift
+[59/79] Compiling Storage PersistentStore.swift
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[60/80] Emitting module SecurityTests
+/Users/harshitduggal/workspace/Aether/Tests/SecurityTests/SecurityTests.swift:3:8: error: no such module 'Testing'
+ 1 | import Foundation
+ 2 | import WebSecurity
+ 3 | import Testing
+   |        `- error: no such module 'Testing'
+ 4 | 
+ 5 | @Test func originComparisonUsesEffectivePorts() {
+[61/81] Compiling SecurityTests SecurityTests.swift
+/Users/harshitduggal/workspace/Aether/Tests/SecurityTests/SecurityTests.swift:3:8: error: no such module 'Testing'
+ 1 | import Foundation
+ 2 | import WebSecurity
+ 3 | import Testing
+   |        `- error: no such module 'Testing'
+ 4 | 
+ 5 | @Test func originComparisonUsesEffectivePorts() {
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+error: fatalError
+       32.23 real        27.90 user         2.86 sys
+          1067974656  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              337424  page reclaims
+               13513  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                4650  voluntary context switches
+                6970  involuntary context switches
+          4335820180  instructions retired
+          1309865305  cycles elapsed
+            21267128  peak memory footprint

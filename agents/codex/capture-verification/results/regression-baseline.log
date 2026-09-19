@@ -1,0 +1,466 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1197]
+[Planning deferred tasks]
+[Constructing 2489 / 2728]
+[8 / 230] EngineCore
+[11 / 291]
+[11 / 312]
+[14 / 312]
+[17 / 312]
+[18 / 312]
+[19 / 312]
+[21 / 312]
+[23 / 312]
+[24 / 312]
+[25 / 312]
+[28 / 312]
+[30 / 312]
+[33 / 312]
+[34 / 312]
+[36 / 312]
+[37 / 312]
+[38 / 312]
+[40 / 312]
+[41 / 312]
+[43 / 312]
+[45 / 312]
+[46 / 312]
+[48 / 312]
+[50 / 312]
+[52 / 312]
+[53 / 312]
+[54 / 312]
+[55 / 312]
+[56 / 312]
+[58 / 312]
+[60 / 312]
+[62 / 312]
+[63 / 312]
+[64 / 312]
+[66 / 312]
+[67 / 312]
+[68 / 312]
+[69 / 312] EngineCore
+[70 / 312]
+[73 / 314] EngineCore
+[76 / 314]
+[77 / 314]
+[78 / 314] EngineCore
+[80 / 314] EngineCore
+[82 / 314] EngineCore
+[83 / 314] AetherCapture
+[84 / 314] EngineCore
+[87 / 333] WebSecurity
+[88 / 333] Text
+[89 / 340] WebSecurity
+[89 / 346] WebSecurity
+[90 / 346] Storage
+[92 / 351] Scheduler
+[95 / 355] Storage
+[96 / 355] Scheduler
+[99 / 357] Storage
+[102 / 365] Networking
+[106 / 371] Networking
+[107 / 374] Diagnostics
+[110 / 373] DOM
+[116 / 380] DOM
+[117 / 387] CSS
+[120 / 391] AgentProtocol
+[128 / 396]
+[130 / 398]
+[134 / 398]
+[135 / 398]
+[136 / 398]
+[137 / 398]
+[138 / 398]
+[139 / 398] Text
+[141 / 398] Text
+[142 / 400] Persistence
+[146 / 402] WebSecurity
+[149 / 402] WebSecurity
+[150 / 402] WebSecurity
+[152 / 404] WebSecurity
+[153 / 404] WebSecurity
+[154 / 404] Text
+[156 / 404] Text
+[157 / 404] Storage
+[158 / 406] Storage
+[161 / 406] Scheduler
+[164 / 406] Scheduler
+[165 / 406] Persistence
+[168 / 406] Persistence
+[169 / 404] Networking
+[172 / 408] Images
+[173 / 408] Networking
+[174 / 412] Images
+[175 / 412] Networking
+/Users/harshitduggal/workspace/Aether/Sources/Networking/CookieJar.swift:184:11: warning: result of call to 'withLock' is unused [#NoUsage]
+182 | 
+183 |   public func remove(name: String, domain: String, path: String = "/") {
+184 |     state.withLock { state in
+    |           `- warning: result of call to 'withLock' is unused [#NoUsage]
+185 |       state.cookies.removeValue(
+186 |         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[177 / 414] Networking
+[181 / 414] Images
+[183 / 414] Images
+[184 / 414] EngineCore
+[186 / 414] Diagnostics
+[187 / 414] Diagnostics
+[190 / 414] DOM
+[192 / 414] DOM
+[193 / 414] DOM
+[194 / 420] DOM
+[196 / 420] HTML
+[197 / 429] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+[198 / 435] HTML
+[199 / 435] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCollections.swift:297:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+295 |     let weakSetProto = JSObject(prototype: runtime.objectPrototype)
+296 |     weakMapProto.defineNative("set") { [weak runtime] thisArg, args in
+297 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+298 |       guard case .object(let table) = thisArg,
+299 |         case .object(let key) = args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:112:40: warning: variable 'runtime' was written to, but never read
+110 |       return try runtime.callValue(thisArg, thisValue: receiver, arguments: list)
+111 |     }
+112 |     proto.defineNative("bind") { [weak runtime] thisArg, args in
+    |                                        `- warning: variable 'runtime' was written to, but never read
+113 |       guard case .function(let function) = thisArg else {
+114 |         throw JSError.type("bind on incompatible receiver")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:143:49: warning: variable 'runtime' was written to, but never read
+141 |       return .bool(false)
+142 |     }
+143 |     proto.defineNative("isPrototypeOf") { [weak runtime] thisArg, args in
+    |                                                 `- warning: variable 'runtime' was written to, but never read
+144 |       guard case .object(let candidate) = thisArg else { return .bool(false) }
+145 |       guard case .object(let object) = args.first else { return .bool(false) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:343:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+341 |     }
+342 |     statics.defineNative("setPrototypeOf") { [weak runtime] _, args in
+343 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+344 |       guard args.count > 1, case .object(let object) = args[0] else {
+345 |         throw JSError.type("Target must be an object")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:377:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+375 |     }
+376 |     statics.defineNative("freeze") { [weak runtime] _, args in
+377 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+378 |       if case .object(let object) = args.first {
+379 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:390:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+388 |     }
+389 |     statics.defineNative("seal") { [weak runtime] _, args in
+390 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+391 |       if case .object(let object) = args.first {
+392 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:401:55: warning: variable 'runtime' was written to, but never read
+399 |       return args.first ?? .undefined
+400 |     }
+401 |     statics.defineNative("preventExtensions") { [weak runtime] _, args in
+    |                                                       `- warning: variable 'runtime' was written to, but never read
+402 |       if case .object(let object) = args.first { object.isExtensible = false }
+403 |       return args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsError.swift:194:16: warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+192 |           continue
+193 |         }
+194 |         if let space {
+    |                `- warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+195 |           parts.append("\(jsonQuoted(child)): \(text)")
+196 |         } else {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[205 / 439] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBigInt.swift:163:9: warning: variable 'amount' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+161 |   static func shift(_ lhs: String, _ rhs: String, right: Bool) throws -> String {
+162 |     let value = normalize(lhs)
+163 |     var amount = normalize(rhs)
+    |         `- warning: variable 'amount' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+164 |     if amount.hasPrefix("-") {
+165 |       if right { return try shift(strip(value) == "0" ? "0" : value, negate(amount), right: false) }
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[206 / 439] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:808:9: warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 806 |     _ callee: JSValue, arguments: [JSValue], env: JSEnvironment? = nil
+ 807 |   ) throws -> JSValue {
+ 808 |     var target = callee
+     |         `- warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 809 |     if case .function(let bound) = target, let inner = bound.boundTarget {
+ 810 |       var combined = bound.boundArguments
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:1494:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1492 |     for (index, value) in values.enumerated() { object.properties[String(index)] = value }
+1493 |     object.properties["length"] = .number(Double(values.count))
+1494 |     weak var weakObject = object
+     |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1495 |     object.nativeSet = { key, value in
+1496 |       guard let target = weakObject else { return false }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:2694:9: warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2692 |       throw JSError.type("Right-hand side of instanceof is not callable")
+2693 |     }
+2694 |     let hasInstance = function.staticProperties.get("prototype")
+     |         `- warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2695 |     guard case .object(let prototype) = function.prototypeObject.map({ JSValue.object($0) })
+2696 |       ?? hasInstanceObject(function) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:3213:51: warning: variable 'self' was written to, but never read
+3211 | 
+3212 |   private func installEval() {
+3213 |     let evalFunction = JSFunction(native: { [weak self] _ in .undefined }, name: "eval")
+     |                                                   `- warning: variable 'self' was written to, but never read
+3214 |     _ = evalFunction
+3215 |     let direct = JSFunction(nativeMethod: { [weak self] _, args in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSTextCodec.swift:82:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 80 |     decoderProto.set("constructor", .function(decoderConstructor))
+ 81 |     decoderProto.defineNative("decode") { [weak runtime] thisArg, args in
+ 82 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 83 |       guard case .object(let decoder) = thisArg,
+ 84 |         case .string(let encoding) = decoder.get("encoding")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[208 / 440] WebAPI
+[209 / 440] JavaScript
+[210 / 446] WebAPI
+[211 / 446] WebAPI
+[213 / 443] WebAPI
+[216 / 443] WebAPI
+[218 / 441] WebAPI
+[219 / 441] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMBindings.swift:56:9: warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 54 |   static func documentObject(context: JSDOMContext) -> JSObject {
+ 55 |     let document = context.document
+ 56 |     let events = context.events
+    |         `- warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 57 |     let object = JSObject(
+ 58 |       nativeGet: { [weak document] key in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:7:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  5 |   public static func locationFor(context: JSDOMContext) -> JSObject {
+  6 |     let object = JSObject()
+  7 |     weak var weakObject = object
+    |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  8 |     object.nativeGet = { [weak context] key in
+  9 |       guard let context, let object = weakObject else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:106:14: warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+104 |     object.set("state", .null)
+105 |     object.set("scrollRestoration", .string("auto"))
+106 |     weak var weakLocation = location
+    |              `- warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+107 |     object.defineNative("pushState") { args in
+108 |       if let first = args.first { object.set("__state", first) }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[221 / 441] JavaScript/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:147:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+145 |     }
+146 |     proto.defineNative("substring") { [weak runtime] thisArg, args in
+147 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+148 |       let text = try primitiveString(thisArg)
+149 |       let units = Array(text.utf16)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:161:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+159 |     }
+160 |     proto.defineNative("substr") { [weak runtime] thisArg, args in
+161 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+162 |       let text = try primitiveString(thisArg)
+163 |       let units = Array(text.utf16)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:201:11: warning: variable 'imported' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 199 |     while !checkSymbol("}") && !isAtEnd {
+ 200 |       let first = try contextualIdentifier("Expected import name")
+ 201 |       var imported = first
+     |           `- warning: variable 'imported' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 202 |       var local = first
+ 203 |       if matchKeyword("as") {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:798:9: warning: variable 'expression' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 796 | 
+ 797 |   private func postfix() throws -> JSExpression {
+ 798 |     var expression = try newExpression()
+     |         `- warning: variable 'expression' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 799 |     if (checkSymbol("++") || checkSymbol("--")) && !peek.lineTerminatorBefore {
+ 800 |       let op = peekSymbol()!
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[223 / 441] JavaScript
+[224 / 441] HTML
+[226 / 441] HTML
+[228 / 441] HTML
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:199:60: warning: literal value is already handled by previous pattern; consider removing it
+138 |       insertNode(node)
+139 |       return
+140 |     case "link", "meta", "base", "col", "embed", "source", "track", "wbr", "img", "input", "area",
+    |                                  `- note: first occurrence of identical literal pattern is here
+141 |       "param":
+142 |       let node = makeElement(name: name, attributes: attributes)
+    :
+197 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+198 |       return
+199 |     case "caption", "colgroup", "tbody", "tfoot", "thead", "col":
+    |                                                            `- warning: literal value is already handled by previous pattern; consider removing it
+200 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+201 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:442:15: warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+440 |     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
+441 |   ) {
+442 |     guard let formattingPos, entryIndex != nil else {
+    |               `- warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+443 |       close(name)
+444 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:509:15: warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+507 | 
+508 |   private func popThrough(formattingID: NodeID) {
+509 |     while let last = openElements.last, openElements.count > 1 {
+    |               `- warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+510 |       let removed = openElements.removeLast()
+511 |       if removed == formattingID { break }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[229 / 441] HTML
+[230 / 441] DOM
+[233 / 441] CSS
+[236 / 441] CSS
+[238 / 443] Style
+[239 / 443] CSS
+[240 / 448] Style
+[241 / 448] Style
+[243 / 450] Style
+[246 / 450] Style
+[248 / 454] Layout
+[251 / 460] Layout
+[252 / 460] Layout
+[254 / 462] Layout
+[257 / 462] Layout
+[259 / 464] Display
+[260 / 464] Layout
+[261 / 470] Display
+[264 / 472] Display
+[268 / 472] Display
+[270 / 479] Graphics
+[271 / 479] Display
+[272 / 488] Graphics
+[273 / 488] Graphics
+[275 / 486] Graphics
+[280 / 486] Graphics
+[281 / 492] Graphics
+[282 / 490] RenderingTests-product
+[284 / 490] Graphics
+[289 / 490] AgentProtocol
+[290 / 490] AgentProtocol
+[292 / 490] AetherCapture
+[294 / 488] AetherCapture
+[295 / 488] AetherCapture
+[296 / 488] AetherCapture
+[298 / 488] AetherCapture
+[299 / 488] AetherCapture
+[300 / 488] AetherCapture
+/Users/harshitduggal/workspace/Aether/Package.swift: EngineCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[303 / 489] Navigation
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCapture: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[306 / 493] Navigation
+[309 / 490] Navigation
+[311 / 490] Navigation
+/Users/harshitduggal/workspace/Aether/Package.swift: WebSecurity: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Text: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Storage: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[315 / 491] Storage
+/Users/harshitduggal/workspace/Aether/Package.swift: Scheduler: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Persistence: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Networking: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[319 / 491] EngineRuntime
+[320 / 491] Diagnostics
+/Users/harshitduggal/workspace/Aether/Package.swift: Diagnostics: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[321 / 496] EngineRuntime
+/Users/harshitduggal/workspace/Aether/Package.swift: DOM: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: CSS: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentProtocol: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[328 / 494] WebSecurity
+[329 / 494] EngineRuntime
+[331 / 494] EngineRuntime
+error: SwiftCompile normal arm64 /Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/PageHostWiring.swift failed with a nonzero exit code. Command line:     cd /Users/harshitduggal/workspace
+    builtin-SwiftPerFileCompile PageHostWiring.swift
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/PageHostWiring.swift:116:32: error: actor-isolated property 'cookieJar' cannot be accessed from outside of the actor
+114 |         let context = CookieRequestContext(topLevelHost: pageOrigin.host, method: method)
+115 |         if headers["Cookie"] == nil,
+116 |           let cookie = network.cookieJar.header(for: url, context: context)
+    |                                `- error: actor-isolated property 'cookieJar' cannot be accessed from outside of the actor
+117 |         {
+118 |           headers["Cookie"] = cookie
+Failed frontend command:
+/Library/Developer/CommandLineTools/usr/bin/swift-frontend -frontend -c /Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift /Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/CaptureSessionAdapter.swift -primary-file /Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/PageHostWiring.swift /Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/RuntimeTypes.swift -emit-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/PageHostWiring.d -emit-const-values-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/PageHostWiring.swiftconstvalues -emit-reference-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/PageHostWiring.swiftdeps -serialize-diagnostics-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/PageHostWiring.dia -target arm64-apple-macos15.0 -disable-cross-import-overlay-search -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/EngineRuntime-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk -I /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -Isystem /Library/Developer/CommandLineTools/Developer/usr/lib -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/PackageFrameworks -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -F /Library/Developer/CommandLineTools/Library/Developer/Frameworks -F /Library/Developer/CommandLineTools/Developer/Library/Frameworks -module-cache-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/harshitduggal/workspace/Aether/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/harshitduggal/workspace -enable-anonymous-context-mangled-names -file-compilation-dir /Users/harshitduggal/workspace -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/harshitduggal/workspace/Aether/.build/out/SDKStatCaches.noindex/macosx27.0-26A5419a-1aa54e4a50e311dbd51de5aafe7eca3dffd68ff603bdaacc80b00cb8898de72d.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/include -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/DerivedSources-normal/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/DerivedSources/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name EngineRuntime -package-name aether -const-gather-protocols-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/EngineRuntime_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Library/Developer/CommandLineTools/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/PageHostWiring.o -debug-module-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/EngineRuntime.swiftmodule -index-unit-output-path /NativeBrowserEngine.build/Debug/EngineRuntime-t.build/Objects-normal/arm64/PageHostWiring.o -index-store-path /Users/harshitduggal/workspace/Aether/.build/out -index-system-modules
+error: Build failed
+error: fatalError
+       81.45 real        67.22 user         8.61 sys
+           881377280  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1958023  page reclaims
+               50062  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   3  messages sent
+                 149  messages received
+                   0  signals received
+               11325  voluntary context switches
+              113959  involuntary context switches
+         97337987626  instructions retired
+         35535082894  cycles elapsed
+           308331648  peak memory footprint

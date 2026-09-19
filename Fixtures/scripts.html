@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Scripts Fixture</title>
+</head>
+<body>
+  <button id="counter">0</button>
+  <script>
+    const button = document.querySelector("#counter")
+    let count = 0
+    button.addEventListener("click", () => {
+      count = count + 1
+      button.textContent = String(count)
+      localStorage.setItem("count", String(count))
+    })
+  </script>
+</body>
+</html>

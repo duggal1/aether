@@ -1,0 +1,65 @@
+Building for debugging...
+[Computing dependencies]
+[Provisioning 11 / 42]
+[Using on-disk description]
+[1 / 186] AetherCapture
+[2 / 155]
+[3 / 161] WebSecurity
+[6 / 159] StorageTests-product
+[7 / 159] SecurityTests-product
+[8 / 162] StorageTests-product
+[9 / 165] SecurityTests-product
+[16 / 165] StorageTests-product
+[19 / 166] SecurityTests-product
+[20 / 166] StorageTests-product
+[21 / 166] SecurityTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: StorageTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: StorageTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[22 / 166] StorageTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: SecurityTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/usr/lib' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: SecurityTests-product: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[25 / 166] PersistenceTests-product
+[26 / 166] NetworkTests-product
+[27 / 169] PersistenceTests-product
+[28 / 172] NetworkTests-product
+/Users/harshitduggal/workspace/Aether/Package.swift: Images: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[41 / 174] PersistenceTests-product
+error: SwiftCompile normal arm64 /Users/harshitduggal/workspace/Aether/Tests/PersistenceTests/PersistenceTests.swift failed with a nonzero exit code. Command line:     cd /Users/harshitduggal/workspace
+    builtin-SwiftPerFileCompile PersistenceTests.swift
+[42 / 174] NetworkTests-product
+/Users/harshitduggal/workspace/Aether/Tests/PersistenceTests/PersistenceTests.swift:116:11: [1;31merror: [1;39mcall can throw but is not marked with 'try'[0;0m
+[0;36m114 |[0;0m @Test func diskCacheEnforcesByteBound() throws {
+[0;36m115 |[0;0m   let cache = DiskCache(
+[0;36m116 |[0;0m     root: [4;39mfreshDirectory()[0;0m, maxBytes: 20)
+    [0;36m|[0;0m           |- [1;31merror: [1;39mcall can throw but is not marked with 'try'[0;0m
+    [0;36m|[0;0m           |- [1;39mnote: [1;39mdid you mean to use 'try'?[0;0m
+    [0;36m|[0;0m           |- [1;39mnote: [1;39mdid you mean to handle error as optional value?[0;0m
+    [0;36m|[0;0m           `- [1;39mnote: [1;39mdid you mean to disable error propagation?[0;0m
+[0;36m117 |[0;0m   let first = Data(repeating: 1, count: 10)
+[0;36m118 |[0;0m   let second = Data(repeating: 2, count: 10)
+
+/Users/harshitduggal/workspace/Aether/Tests/PersistenceTests/PersistenceTests.swift:130:7: [1;33mwarning: [1;39minitialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m128 |[0;0m 
+[0;36m129 |[0;0m @Test func invalidBlobHashIsRejected() throws {
+[0;36m130 |[0;0m   let cache = DiskCache(root: freshDirectory())
+    [0;36m|[0;0m       `- [1;33mwarning: [1;39minitialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m131 |[0;0m   #expect(!DiskCache.isValidHash("../escape"))
+[0;36m132 |[0;0m   #expect(!DiskCache.isValidHash(""))
+
+/Users/harshitduggal/workspace/Aether/Tests/PersistenceTests/PersistenceTests.swift:130:31: [1;31merror: [1;39mcall can throw but is not marked with 'try'[0;0m
+[0;36m128 |[0;0m 
+[0;36m129 |[0;0m @Test func invalidBlobHashIsRejected() throws {
+[0;36m130 |[0;0m   let cache = DiskCache(root: [4;39mfreshDirectory()[0;0m)
+    [0;36m|[0;0m                               |- [1;31merror: [1;39mcall can throw but is not marked with 'try'[0;0m
+    [0;36m|[0;0m                               |- [1;39mnote: [1;39mdid you mean to use 'try'?[0;0m
+    [0;36m|[0;0m                               |- [1;39mnote: [1;39mdid you mean to handle error as optional value?[0;0m
+    [0;36m|[0;0m                               `- [1;39mnote: [1;39mdid you mean to disable error propagation?[0;0m
+[0;36m131 |[0;0m   #expect(!DiskCache.isValidHash("../escape"))
+[0;36m132 |[0;0m   #expect(!DiskCache.isValidHash(""))
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+Failed frontend command:
+/Library/Developer/CommandLineTools/usr/bin/swift-frontend -frontend -c /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/DerivedSources/test_entry_point.swift -primary-file /Users/harshitduggal/workspace/Aether/Tests/PersistenceTests/PersistenceTests.swift -emit-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.d -emit-const-values-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.swiftconstvalues -emit-reference-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.swiftdeps -serialize-diagnostics-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.dia -target arm64-apple-macos15.0 -module-can-import-version Testing 2078 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk -I /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -Isystem /Library/Developer/CommandLineTools/Developer/usr/lib -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/PackageFrameworks -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -F /Library/Developer/CommandLineTools/Library/Developer/Frameworks -F /Library/Developer/CommandLineTools/Developer/Library/Frameworks -module-cache-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -color-diagnostics -Xcc -fcolor-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/harshitduggal/workspace/Aether/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/harshitduggal/workspace -enable-anonymous-context-mangled-names -file-compilation-dir /Users/harshitduggal/workspace -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/harshitduggal/workspace/Aether/.build/out/SDKStatCaches.noindex/macosx27.0-26A5419a-a0facfad118c1a7a18f0aad9463f6549ffd68ff603bdaacc80b00cb8898de72d.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/include -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/DerivedSources/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name PersistenceTests -package-name aether -const-gather-protocols-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Library/Developer/CommandLineTools/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.o -debug-module-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.swiftmodule -index-unit-output-path /NativeBrowserEngine.build/Debug/PersistenceTests-p.build/Objects-normal/arm64/PersistenceTests.o -index-store-path /Users/harshitduggal/workspace/Aether/.build/out -index-system-modules
+error: Build failed
+error: fatalError
+TEST_EXIT=1

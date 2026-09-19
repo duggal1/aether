@@ -1,0 +1,20 @@
+{"name": "daemon ping", "passed": true, "seconds": 0.0007259169997269055, "detail": {"engine": "NativeBrowserEngine", "ok": true}}
+{"name": "navigation and redirect", "passed": true, "seconds": 0.07453666700030226, "detail": null}
+{"name": "script executed", "passed": true, "seconds": 0.0004845829998885165, "detail": null}
+{"name": "local storage", "passed": true, "seconds": 0.00027112499992654193, "detail": null}
+{"name": "fill input", "passed": true, "seconds": 0.004172792000190384, "detail": [{"ok": true}, null]}
+{"name": "scroll", "passed": true, "seconds": 0.00019574999987526098, "detail": [{"x": 0, "y": 320}, null]}
+{"name": "render", "passed": false, "seconds": 4.7792000259505585e-05, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "resize", "passed": true, "seconds": 0.0010923329996330722, "detail": null}
+{"name": "history and reload", "passed": true, "seconds": 0.01780858399979479, "detail": null}
+{"name": "download bytes", "passed": false, "seconds": 5.833300019730814e-05, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "profile checkpoint and reopen", "passed": true, "seconds": 0.017224916000031953, "detail": null}
+{"name": "tabs isolation lifecycle cleanup", "passed": false, "seconds": 0.009594291000212252, "error": "{'code': 'engine_error', 'message': 'Invalid or missing parameter: lifecycle'}"}
+{"name": "capture webp", "passed": false, "seconds": 2.6417000299261417e-05, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "capture jpeg", "passed": false, "seconds": 9.124999905907316e-06, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "capture png", "passed": false, "seconds": 6.540999947901582e-06, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "large page bounded capture", "passed": false, "seconds": 5.875000169908162e-06, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "delayed JavaScript capture", "passed": false, "seconds": 5.542000053537777e-06, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "blocked navigation cleanup", "passed": false, "seconds": 9.875000159809133e-06, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "parallel captures", "passed": false, "seconds": 0.018154124999909982, "error": "rpc() got multiple values for argument 'path'"}
+{"name": "final fleet", "passed": true, "seconds": 0.00026591699997879914, "detail": {"active": 1, "background": 0, "contexts": 2, "discarded": 0, "estimatedBytes": 11447, "frozen": 0, "pages": 1, "suspended": 0}}

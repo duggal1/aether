@@ -1,0 +1,223 @@
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 1197]
+[Planning deferred tasks]
+[3 / 188] AetherCapture
+[4 / 196] EngineCore
+[5 / 205] AetherCapture
+[8 / 207] EngineCore
+[12 / 208] EngineCore
+[14 / 208] EngineCore
+[16 / 229] WebSecurity
+[17 / 229] Text
+[18 / 236] WebSecurity
+[18 / 240] WebSecurity
+[19 / 240] Text
+[27 / 244] Scheduler
+[28 / 247] Storage
+[29 / 251] Scheduler
+[36 / 254] Scheduler
+[38 / 258] Persistence
+[39 / 264] Networking
+[47 / 268] DOM
+[48 / 271] Diagnostics
+[49 / 278] DOM
+[57 / 282] AgentProtocol
+[58 / 289] CSS
+[59 / 294] AgentProtocol
+[67 / 300] WebSecurity
+[68 / 300] WebSecurity
+[69 / 300] WebSecurity
+[71 / 300] WebSecurity
+[72 / 300] Text
+[75 / 300] Text
+[76 / 300] Storage
+[79 / 302] Scheduler
+[81 / 302] Scheduler
+[83 / 302] Persistence
+[85 / 302] Persistence
+[87 / 300] Networking
+[89 / 300] Networking
+/Users/harshitduggal/workspace/Aether/Sources/Networking/CookieJar.swift:184:11: [1;33mwarning: [1;39mresult of call to 'withLock' is unused[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m182 |[0;0m 
+[0;36m183 |[0;0m   public func remove(name: String, domain: String, path: String = "/") {
+[0;36m184 |[0;0m     state.withLock [4;39m{ state in[0;0m
+    [0;36m|[0;0m           `- [1;33mwarning: [1;39mresult of call to 'withLock' is unused[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m185 |[0;0m       state.cookies.removeValue(
+[0;36m186 |[0;0m         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[91 / 305] Images
+[92 / 305] Networking
+[93 / 309] Images
+[94 / 309] Networking
+[96 / 311] Images
+[101 / 311] Images
+[102 / 311] EngineCore
+[105 / 311] EngineCore
+[106 / 311] Diagnostics
+[108 / 311] Diagnostics
+[110 / 311] Diagnostics
+[112 / 318] JavaScript
+[113 / 318] HTML
+[114 / 319] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: [1;33mwarning: [1;39massociated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'[0;0m
+   [0;36m9 |[0;0m   case range(String)
+  [0;36m10 |[0;0m   case runtime(String)
+  [0;36m11 |[0;0m   case thrown(JSValue)
+     [0;36m|[0;0m        `- [1;33mwarning: [1;39massociated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'[0;0m
+  [0;36m12 |[0;0m 
+  [0;36m13 |[0;0m   public var description: String {
+     [0;36m:[0;0m
+  [0;36m23 |[0;0m }
+  [0;36m24 |[0;0m 
+  [0;36m25 |[0;0m public indirect enum JSValue: CustomStringConvertible, Equatable {
+     [0;36m|[0;0m                      `- [1;39mnote: [1;39mconsider making enum 'JSValue' conform to the 'Sendable' protocol[0;0m
+  [0;36m26 |[0;0m   case number(Double)
+  [0;36m27 |[0;0m   case bigint(String)
+[115 / 325] HTML
+[123 / 332] WebAPI
+[123 / 332] HTML
+[125 / 338] WebAPI
+[126 / 338] WebAPI
+[127 / 338] WebAPI
+[129 / 340] WebAPI
+[131 / 340] WebAPI
+[132 / 338] WebAPI
+[133 / 338] WebAPI
+[134 / 338] HTML
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:199:60: [1;33mwarning: [1;39mliteral value is already handled by previous pattern; consider removing it[0;0m
+[0;36m138 |[0;0m       insertNode(node)
+[0;36m139 |[0;0m       return
+[0;36m140 |[0;0m     case "link", "meta", "base", [4;39m"col"[0;0m, "embed", "source", "track", "wbr", "img", "input", "area",
+    [0;36m|[0;0m                                  `- [1;39mnote: [1;39mfirst occurrence of identical literal pattern is here[0;0m
+[0;36m141 |[0;0m       "param":
+[0;36m142 |[0;0m       let node = makeElement(name: name, attributes: attributes)
+    [0;36m:[0;0m
+[0;36m197 |[0;0m       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+[0;36m198 |[0;0m       return
+[0;36m199 |[0;0m     case "caption", "colgroup", "tbody", "tfoot", "thead", [4;39m"col"[0;0m:
+    [0;36m|[0;0m                                                            `- [1;33mwarning: [1;39mliteral value is already handled by previous pattern; consider removing it[0;0m
+[0;36m200 |[0;0m       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+[0;36m201 |[0;0m       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:442:15: [1;33mwarning: [1;39mimmutable value 'formattingPos' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m440 |[0;0m     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
+[0;36m441 |[0;0m   ) {
+[0;36m442 |[0;0m     guard let formattingPos, entryIndex != nil else {
+    [0;36m|[0;0m               `- [1;33mwarning: [1;39mimmutable value 'formattingPos' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m443 |[0;0m       close(name)
+[0;36m444 |[0;0m       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:509:15: [1;33mwarning: [1;39mimmutable value 'last' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m507 |[0;0m 
+[0;36m508 |[0;0m   private func popThrough(formattingID: NodeID) {
+[0;36m509 |[0;0m     while let last = openElements.last, openElements.count > 1 {
+    [0;36m|[0;0m               `- [1;33mwarning: [1;39mimmutable value 'last' was never used; consider replacing with '_' or removing it[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/no-usage\NoUsage]8;;\]
+[0;36m510 |[0;0m       let removed = openElements.removeLast()
+[0;36m511 |[0;0m       if removed == formattingID { break }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[137 / 338] HTML
+[138 / 338] DOM
+[141 / 338] DOM
+[142 / 338] DOM
+[143 / 338] CSS
+[145 / 338] CSS
+[146 / 338] CSS
+[148 / 340] Style
+[150 / 341] Style
+[151 / 341] CSS
+[153 / 343] AgentProtocol
+[158 / 348] Layout
+[159 / 348] AgentProtocol
+[160 / 354] Layout
+[161 / 354] Layout
+[163 / 356] Layout
+[166 / 356] Layout
+[168 / 358] Display
+[169 / 358] Layout
+[170 / 359] Display
+[173 / 361] AgentProtocol
+[178 / 363] Graphics
+[178 / 363] AetherCapture
+[180 / 362] Graphics
+[181 / 362] AetherCapture
+[183 / 364] AetherCapture
+[186 / 364] Graphics
+[188 / 364] Navigation
+[189 / 364] AetherCapture
+[190 / 365] Navigation
+[191 / 365] AetherCapture
+/Users/harshitduggal/workspace/Aether/Package.swift: EngineCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: AetherCapture: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[198 / 372] Style
+[199 / 372] Style
+[200 / 372] Style
+[201 / 372] Style
+[201 / 372] Navigation
+[203 / 374] EngineCore
+/Users/harshitduggal/workspace/Aether/Package.swift: WebSecurity: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Text: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Storage: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[207 / 375] Storage
+/Users/harshitduggal/workspace/Aether/Package.swift: Scheduler: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: Persistence: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[211 / 375] EngineRuntime
+/Users/harshitduggal/workspace/Aether/Package.swift: Networking: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[212 / 375] Diagnostics
+/Users/harshitduggal/workspace/Aether/Package.swift: Diagnostics: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: DOM: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+/Users/harshitduggal/workspace/Aether/Package.swift: CSS: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[217 / 377] CSS
+/Users/harshitduggal/workspace/Aether/Package.swift: AgentProtocol: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found
+[219 / 377] WebSecurity
+[221 / 387] BrowserEngine
+[223 / 388] BrowserEngine
+error: SwiftCompile normal arm64 /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureCoordinatorTests.swift failed with a nonzero exit code. Command line:     cd /Users/harshitduggal/workspace
+    builtin-SwiftPerFileCompile CaptureCoordinatorTests.swift
+macro expansion #expect:1:22: [1;31merror: [1;39merrors thrown from here are not handled[0;0m
+`- /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureCoordinatorTests.swift:172:94: [1;39mnote: [1;39mexpanded code originates here[0;0m
+[0;36m170 |[0;0m             let closed = await session.closed
+[0;36m171 |[0;0m             #expect(closed)
+[0;36m172 |[0;0m             [4;39m#expect(try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty)[0;0m
+    [0;36m|[0;0m             `- [1;39mnote: [1;39min expansion of macro 'expect' here[0;0m
+[0;36m    +--- [0;0mmacro expansion #expect [0;36m---------------------------------------[0;0m
+[0;36m    |[0;0m[0;36m1 |[0;0m Testing.__checkValue(try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty,expression: .__fromSyntaxNode("try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+[0;36m    |[0;0m  [0;36m|[0;0m                      `- [1;31merror: [1;39merrors thrown from here are not handled[0;0m
+[0;36m    +----------------------------[0;0m[0;36m---------------------------------------[0;0m
+[0;36m173 |[0;0m         }
+[0;36m174 |[0;0m     }
+
+macro expansion #expect:1:22: [1;31merror: [1;39merrors thrown from here are not handled[0;0m
+`- /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureCoordinatorTests.swift:187:90: [1;39mnote: [1;39mexpanded code originates here[0;0m
+[0;36m185 |[0;0m         let closed = await session.closed
+[0;36m186 |[0;0m         #expect(closed)
+[0;36m187 |[0;0m         [4;39m#expect(try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty)[0;0m
+    [0;36m|[0;0m         `- [1;39mnote: [1;39min expansion of macro 'expect' here[0;0m
+[0;36m    +--- [0;0mmacro expansion #expect [0;36m---------------------------------------[0;0m
+[0;36m    |[0;0m[0;36m1 |[0;0m Testing.__checkValue(try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty,expression: .__fromSyntaxNode("try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+[0;36m    |[0;0m  [0;36m|[0;0m                      `- [1;31merror: [1;39merrors thrown from here are not handled[0;0m
+[0;36m    +----------------------------[0;0m[0;36m---------------------------------------[0;0m
+[0;36m188 |[0;0m     }
+[0;36m189 |[0;0m }
+
+macro expansion #expect:1:22: [1;31merror: [1;39merrors thrown from here are not handled[0;0m
+`- /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureCoordinatorTests.swift:199:90: [1;39mnote: [1;39mexpanded code originates here[0;0m
+[0;36m197 |[0;0m         let closed = await session.closed
+[0;36m198 |[0;0m         #expect(closed)
+[0;36m199 |[0;0m         [4;39m#expect(try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty)[0;0m
+    [0;36m|[0;0m         `- [1;39mnote: [1;39min expansion of macro 'expect' here[0;0m
+[0;36m    +--- [0;0mmacro expansion #expect [0;36m---------------------------------------[0;0m
+[0;36m    |[0;0m[0;36m1 |[0;0m Testing.__checkValue(try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty,expression: .__fromSyntaxNode("try FileManager.default.contentsOfDirectory(atPath: parent.path).isEmpty"),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+[0;36m    |[0;0m  [0;36m|[0;0m                      `- [1;31merror: [1;39merrors thrown from here are not handled[0;0m
+[0;36m    +----------------------------[0;0m[0;36m---------------------------------------[0;0m
+[0;36m200 |[0;0m     }
+[0;36m201 |[0;0m }
+Failed frontend command:
+/Library/Developer/CommandLineTools/usr/bin/swift-frontend -frontend -c /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources/test_entry_point.swift -primary-file /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureCoordinatorTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureFolderTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureGeometryTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureTestSupport.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/CaptureTests.swift /Users/harshitduggal/workspace/Aether/Sources/NativeCapture/Tests/AetherCaptureTests/NativeImageEncoderTests.swift -emit-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureCoordinatorTests.d -emit-const-values-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureCoordinatorTests.swiftconstvalues -emit-reference-dependencies-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureCoordinatorTests.swiftdeps -serialize-diagnostics-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureCoordinatorTests.dia -target arm64-apple-macos15.0 -module-can-import-version Testing 2078 0 -disable-cross-import-overlay-search -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreGraphics.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreImage.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/CoreTransferable.swiftoverlay -swift-module-cross-import Testing /Library/Developer/CommandLineTools/Library/Developer/Frameworks/Testing.framework/Modules/Testing.swiftcrossimport/Foundation.swiftoverlay -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libObservationMacros.dylib\#\#ObservationMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#\#SwiftMacros -load-resolved-plugin /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing/libTestingMacros.dylib\#\#TestingMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/AetherCaptureTests-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk -I /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -Isystem /Library/Developer/CommandLineTools/Developer/usr/lib -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/PackageFrameworks -F /Users/harshitduggal/workspace/Aether/.build/out/Products/Debug -F /Library/Developer/CommandLineTools/Library/Developer/Frameworks -F /Library/Developer/CommandLineTools/Developer/Library/Frameworks -module-cache-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -color-diagnostics -Xcc -fcolor-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/harshitduggal/workspace/Aether/.build/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/harshitduggal/workspace -enable-anonymous-context-mangled-names -file-compilation-dir /Users/harshitduggal/workspace -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/harshitduggal/workspace/Aether/.build/out/SDKStatCaches.noindex/macosx27.0-26A5419a-1aa54e4a50e311dbd51de5aafe7eca3dffd68ff603bdaacc80b00cb8898de72d.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Products/Debug/include -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources/arm64 -Xcc -I/Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name AetherCaptureTests -package-name aether -const-gather-protocols-file /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/AetherCaptureTests_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Library/Developer/CommandLineTools/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureCoordinatorTests.o -debug-module-path /Users/harshitduggal/workspace/Aether/.build/out/Intermediates.noindex/NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/AetherCaptureTests.swiftmodule -index-unit-output-path /NativeBrowserEngine.build/Debug/AetherCaptureTests-p.build/Objects-normal/arm64/CaptureCoordinatorTests.o -index-store-path /Users/harshitduggal/workspace/Aether/.build/out -index-system-modules
+[232 / 394] enginebench-product
+error: Build failed
+error: fatalError
+TEST_EXIT=1
