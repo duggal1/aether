@@ -17,7 +17,7 @@ Two new dispatcher methods change the method count from the reported **76 to 78*
 
 | Condition | Status on this branch | Evidence / dependency |
 | --- | --- | --- |
-| Live scripts mutate the DOM and produce captured pixels | Awaiting macOS CI verification | `Scripts/verify_browser.py` pixel cases and uploaded kit |
+| Live scripts mutate the DOM and produce captured pixels | **Verified on `b03abe81`** | macOS CI run `35468196462`, artifact `10591289876`: live viewport and captured PNG RGB `(0,255,0)` |
 | Source file-to-runtime map | Source-traced; written | `Docs/AGENT3_INTEGRATION_MAP.md` |
 | Authenticated session and sandboxed hostile renderer | **Fail: not implemented in base** | Agent 1 security/process contract required |
 | Standards-based modern interactive/authenticated app | **Not qualified** | Agent 1 standards and realistic site qualification |
@@ -25,7 +25,9 @@ Two new dispatcher methods change the method count from the reported **76 to 78*
 | Authorized human+two-agent co-control | **Fail: no principal authority** | Agent 1 and Agent 2 shared input contract required |
 | Actual supported media playback/seek | **Fail: no media engine in base** | Agent 2 integration required |
 | Engine-level blocker before all network paths | **Fail: no integrated blocker in base** | Agent 2 integration required |
-| Profile isolation and restore | Existing partial implementation; integration test pending | `Scripts/verify_browser.py` restore/isolation cases; unauthorized cross-principal access not addressed |
+| Profile isolation and restore | **Partial: controlled fixture passed on `b03abe81`** | macOS run `35468196462` reopens discarded tab and storage, plus cross-context storage test; cross-principal authorization and corruption recovery unqualified |
 | Recovery, accessibility, sustained memory | Not qualified at final-gate level | Renderer crash, IME, hardware and soak evidence outstanding |
+
+On `b03abe81`, the release build, bounded 182/182 Swift tests and daemon harness passed on macOS 15 (`35468196462`, artifact `10591289876`). Later `page.find` code and its three tests are **not macOS verified**: current GitHub Actions jobs fail before runner allocation (zero steps, no logs); no compiler/test outcome can be inferred from those failures. The legacy unbounded parallel CI remains red on Fetch assertions; Agent 1 PR #5 owns the bounded-runner workflow change and must be preserved.
 
 **Verdict: Step 7 remains open.** A green Agent 3 branch alone cannot satisfy the engine-only gate or authorize GUI work. Run the final pass against the newest integrated Agents 1/2/3 SHAs; report exact artifact IDs and failures before changing these statuses.
