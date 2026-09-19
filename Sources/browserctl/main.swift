@@ -105,6 +105,11 @@ struct BrowserControl {
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
         method: .pageQuery, params: ["page": .number(page), "selector": .string(args[2])])
+    case "page-find":
+      guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pageFind,
+        params: ["page": .number(page), "query": .string(args.dropFirst(2).joined(separator: " "))])
     case "page-query-all":
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
@@ -630,6 +635,7 @@ struct BrowserControl {
     browserctl --socket <path> page-snapshot <page>
     browserctl --socket <path> page-query <page> <selector>
     browserctl --socket <path> page-query-all <page> <selector>
+    browserctl --socket <path> page-find <page> <text>
     browserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]
     browserctl --socket <path> page-back <page>
     browserctl --socket <path> page-forward <page>
