@@ -126,8 +126,7 @@ private func freshDirectory() throws -> URL {
   #expect(cache.read(hash: DiskCache.sha256Hex(third)) == third)
 }
 
-@Test func invalidBlobHashIsRejected() throws {
-  let cache = DiskCache(root: freshDirectory())
+@Test func invalidBlobHashIsRejected() {
   #expect(!DiskCache.isValidHash("../escape"))
   #expect(!DiskCache.isValidHash(""))
 }
