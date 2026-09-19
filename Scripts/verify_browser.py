@@ -222,6 +222,9 @@ def main():
             call('page.navigate', page=page, url=base + '/pixel')
             node = call('page.query', page=page, selector='#paint')
             require(node['name'] == 'After JavaScript', 'dynamic DOM text was not rendered')
+            found = call('page.find', page=page, query='after javascript')
+            require(len(found['matches']) == 1, 'live find-in-page did not observe DOM mutation')
+            require(found['matches'][0]['text'] == 'After JavaScript', 'find returned wrong text')
             rgb = ppm_pixel(call('page.render', page=page), 10, 10)
             require(rgb == (0, 255, 0), f'expected JS-updated green pixel, got {rgb}')
             return {'observedRGB': rgb, 'page': page}
