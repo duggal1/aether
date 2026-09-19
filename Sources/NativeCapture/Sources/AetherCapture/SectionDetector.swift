@@ -15,7 +15,9 @@ public enum SectionDetector {
         var accepted: [AetherDocumentNode] = []
         for node in candidates {
             let isNested = accepted.contains {
-                $0.bounds.y <= node.bounds.y + 2 && $0.bounds.bottom >= node.bounds.bottom - 2
+                $0.bounds.y <= node.bounds.y + 2 && $0.bounds.bottom >= node.bounds.bottom - 2 &&
+                $0.bounds.x <= node.bounds.x + 2 &&
+                $0.bounds.x + $0.bounds.width >= node.bounds.x + node.bounds.width - 2
             }
             // Avoid one giant <main> swallowing all <section> elements.
             if node.tag.lowercased() == "main" && candidates.contains(where: {

@@ -1,3 +1,4 @@
+import AetherNetworkHardening
 import Foundation
 
 public struct CacheSnapshot: Sendable {
@@ -86,20 +87,15 @@ public actor HTTPCache {
   public var count: Int { entries.count }
 
   private func cacheable(_ response: HTTPResponse) -> Bool {
-    let control = header("cache-control", in: response.headers).lowercased()
-    return !control.contains("no-store") && !control.contains("private")
+    let freshness = HTTPFreshness(headers: response.headers)
+    let hasSetCookie = response.headers.keys.contains { $0.lowercased() == "set-cookie" }
+    return freshness.storable && !freshness.requiresValidation && freshness.maxAge != nil
+      && freshness.vary.isEmpty && !hasSetCookie
   }
 
   private func isFresh(_ entry: Entry) -> Bool {
-    let control = header("cache-control", in: entry.response.headers).lowercased()
-    if let range = control.range(of: "max-age=") {
-      let suffix = control[range.upperBound...]
-      let number = suffix.prefix { $0.isNumber }
-      if let seconds = TimeInterval(number) {
-        return Date().timeIntervalSince(entry.storedAt) <= seconds
-      }
-    }
-    return Date().timeIntervalSince(entry.storedAt) <= 60
+    HTTPFreshness(headers: entry.response.headers).isFresh(
+      age: max(0, Date().timeIntervalSince(entry.storedAt)))
   }
 
   private func evictIfNeeded() {
@@ -114,7 +110,4 @@ public actor HTTPCache {
     if let entry = entries.removeValue(forKey: url) { bytes -= entry.byteCount }
   }
 
-  private func header(_ name: String, in headers: [String: String]) -> String {
-    headers.first(where: { $0.key.lowercased() == name.lowercased() })?.value ?? ""
-  }
 }

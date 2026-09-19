@@ -21,7 +21,8 @@ let package = Package(
     .target(
       name: "Display", dependencies: ["EngineCore", "DOM", "Layout", "Style", "CSS", "Images"]),
     .target(name: "Graphics", dependencies: ["EngineCore", "Display", "Images"]),
-    .target(name: "Networking", dependencies: ["EngineCore"]),
+    .target(name: "AetherNetworkHardening", path: "Sources/EngineAdditions/Sources/AetherNetworkHardening"),
+    .target(name: "Networking", dependencies: ["EngineCore", "AetherNetworkHardening"]),
     .target(name: "Images", dependencies: ["EngineCore", "Networking"]),
     .target(name: "JavaScript", dependencies: ["EngineCore", "DOM", "Storage"]),
     .target(
@@ -37,6 +38,7 @@ let package = Package(
       dependencies: [
         "EngineCore", "Networking", "HTML", "DOM", "CSS", "Style", "Layout", "Display", "Graphics",
         "Storage", "JavaScript", "WebAPI", "Diagnostics", "Images", "WebSecurity",
+        "AetherNetworkHardening",
       ]),
     .target(name: "AgentProtocol", dependencies: ["EngineCore"]),
     .target(name: "AetherCapture", path: "Sources/NativeCapture/Sources/AetherCapture"),
@@ -72,6 +74,7 @@ let package = Package(
         "HTML", "CSS", "Style", "Layout", "Text", "Display", "Graphics", "DOM", "Images",
       ]),
     .testTarget(name: "NetworkTests", dependencies: ["Networking"]),
+    .testTarget(name: "NetworkHardeningIntegrationTests", dependencies: ["AetherNetworkHardening"]),
     .testTarget(
       name: "AgentTests",
       dependencies: [
@@ -80,7 +83,7 @@ let package = Package(
     .testTarget(
       name: "PerformanceTests", dependencies: ["HTML", "CSS", "Style", "Layout", "Text", "DOM"]),
     .testTarget(name: "JavaScriptTests", dependencies: ["JavaScript", "HTML", "DOM", "Storage"]),
-    .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript"]),
+    .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript", "Networking"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage", "EngineCore"]),
     .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
     .testTarget(name: "SecurityTests", dependencies: ["WebSecurity"]),

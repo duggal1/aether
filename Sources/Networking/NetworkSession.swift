@@ -33,6 +33,8 @@ public actor NetworkSession {
     if request.id.rawValue == 0 { request.id = RequestID(rawValue: counter.next()) }
 
     if request.method == .get, request.cachePolicy != .reloadIgnoringCache,
+      !request.headers.keys.contains(where: { $0.lowercased() == "authorization" || $0.lowercased() == "cookie" }),
+      cookieJar.header(for: request.url) == nil,
       let cached = await cache.response(for: request.url)
     {
       return cached
@@ -75,7 +77,11 @@ public actor NetworkSession {
         fromCache: false,
         durationMilliseconds: millis
       )
-      if request.method == .get { await cache.store(result) }
+      if request.method == .get && !request.headers.keys.contains(where: {
+        $0.lowercased() == "authorization" || $0.lowercased() == "cookie"
+      }) && cookieJar.header(for: request.url) == nil {
+        await cache.store(result)
+      }
       return result
     } catch let error as NetworkError {
       throw error

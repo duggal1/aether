@@ -1,5 +1,6 @@
 import Foundation
 import JavaScript
+import Networking
 import Testing
 import WebAPI
 
