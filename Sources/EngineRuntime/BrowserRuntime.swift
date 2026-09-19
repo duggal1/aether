@@ -754,6 +754,15 @@ public actor BrowserRuntime {
       if redactSensitive, isRedactedNode(id, in: document) { redacted = true }
     }
 
+    var sensitiveAncestors = Set<NodeID>()
+    if redactSensitive {
+      for id in document.depthFirst() where isRedactedNode(id, in: document) {
+        var parent = document.node(id)?.parent
+        while let ancestor = parent, sensitiveAncestors.insert(ancestor).inserted {
+          parent = document.node(ancestor)?.parent
+        }
+      }
+    }
     var nodes: [CapturedNode] = []
     for id in document.depthFirst() {
       guard let node = document.node(id), let tag = node.tagName,
@@ -768,7 +777,9 @@ public actor BrowserRuntime {
       }
       var text: String? = cappedText(document.textContent(of: id))
       if text?.isEmpty == true { text = nil }
-      if redactSensitive, isRedactedNode(id, in: document) {
+      if redactSensitive,
+        isRedactedNode(id, in: document) || sensitiveAncestors.contains(id)
+      {
         text = nil
         redacted = true
       }
