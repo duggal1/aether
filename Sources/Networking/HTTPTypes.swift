@@ -18,11 +18,13 @@ public struct HTTPRequest: Hashable, Sendable {
   public var headers: [String: String]
   public var body: Data?
   public var cachePolicy: HTTPCachePolicy
+  public var sendsCookies: Bool
 
   public init(
     id: RequestID = RequestID(rawValue: 0), url: URL, method: HTTPMethod = .get,
     headers: [String: String] = [:], body: Data? = nil,
-    cachePolicy: HTTPCachePolicy = .useProtocolCachePolicy
+    cachePolicy: HTTPCachePolicy = .useProtocolCachePolicy,
+    sendsCookies: Bool = true
   ) {
     self.id = id
     self.url = url
@@ -30,6 +32,7 @@ public struct HTTPRequest: Hashable, Sendable {
     self.headers = headers
     self.body = body
     self.cachePolicy = cachePolicy
+    self.sendsCookies = sendsCookies
   }
 }
 
