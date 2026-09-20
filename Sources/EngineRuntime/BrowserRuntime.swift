@@ -1,4 +1,5 @@
 import CSS
+import ContentBlocker
 import Diagnostics
 import Display
 import DOM
@@ -9,6 +10,7 @@ import HTML
 import Images
 import JavaScript
 import Layout
+import Media
 import Navigation
 import Networking
 import Persistence
@@ -25,7 +27,7 @@ public actor BrowserRuntime {
     case move(Int)
   }
 
-  private struct PageRecord {
+  struct PageRecord {
     var id: PageID
     var contextID: ContextID
     var viewport: Size
@@ -36,6 +38,7 @@ public actor BrowserRuntime {
     var lifecycle: PageLifecycleState
     var scroll: Point
     var focused: NodeID?
+    var textSelection: NSRange? = nil
     var hovered: NodeID?
     var lastActive: Double
     var lastHTML: String?
@@ -50,7 +53,7 @@ public actor BrowserRuntime {
     var ledger = ResourceLedger()
   }
 
-  private struct DialogRecord: Sendable {
+  struct DialogRecord: Sendable {
     var id: DialogID
     var pageID: PageID
     var kind: String
@@ -58,14 +61,14 @@ public actor BrowserRuntime {
     var defaultPrompt: String?
   }
 
-  private struct SessionRecord: Sendable {
+  struct SessionRecord: Sendable {
     var id: SessionID
     var name: String
     var contextIDs: [ContextID]
     var createdAt: Double
   }
 
-  private struct DownloadRecord: Sendable {
+  struct DownloadRecord: Sendable {
     var id: DownloadID
     var contextID: ContextID
     var pageID: PageID?
@@ -75,7 +78,7 @@ public actor BrowserRuntime {
     var bytes: Int
   }
 
-  private struct ContextRecord {
+  struct ContextRecord {
     var id: ContextID
     var name: String
     var network: NetworkSession
@@ -84,6 +87,22 @@ public actor BrowserRuntime {
     var profile: ProfileStore?
     var pages: [PageID: PageRecord]
     var downloads: [DownloadID: DownloadRecord]
+    var bookmarks: [BookmarkInfo]
+    var media: MediaRegistry
+    var mediaBridge: JSMediaBridge
+    var mediaMirror: MediaMirror
+    var pendingPlay: [NodeID: [PendingPlay]]
+    var blocker: FilterEngine
+  }
+
+  struct StoredSearchProvider: Codable {
+    var endpoint: String
+    var queryParameter: String
+  }
+
+  struct PendingPlay: Sendable {
+    var token: UUID
+    var completion: @Sendable (Bool, String?) -> Void
   }
 
   private let contextCounter = AtomicCounter()
@@ -96,7 +115,15 @@ public actor BrowserRuntime {
   private let sessionCounter = AtomicCounter()
   private let metricsCollector = MetricsCollector()
   private let scheduler = EngineScheduler()
-  private var contexts: [ContextID: ContextRecord] = [:]
+  var contexts: [ContextID: ContextRecord] = [:] {
+    didSet { publishPageStates() }
+  }
+  var pageObservers: [UUID: AsyncStream<RuntimePageState>.Continuation] = [:]
+  var observedStates: [PageID: RuntimePageState] = [:]
+  var navigationLoads: [PageID: Task<LoadedPage, Error>] = [:]
+  var navigationEpochs: [PageID: UUID] = [:]
+  var navigationErrors: [PageID: String] = [:]
+  var navigationTargets: [PageID: URL] = [:]
   private var sessions: [SessionID: SessionRecord] = [:]
   private var maxActivePages = 8
   private var fleetMemoryBudget = 512 * 1024 * 1024
@@ -105,7 +132,9 @@ public actor BrowserRuntime {
 
   public func createContext(name: String) -> BrowserContextInfo {
     let id = ContextID(rawValue: contextCounter.next())
-    let record = ContextRecord(
+    let bridge = JSMediaBridge()
+    let mirror = MediaMirror()
+    var record = ContextRecord(
       id: id,
       name: name.isEmpty ? "context-\(id.rawValue)" : name,
       network: NetworkSession(),
@@ -113,17 +142,61 @@ public actor BrowserRuntime {
       permissions: PermissionStore(),
       profile: nil,
       pages: [:],
-      downloads: [:]
+      downloads: [:],
+      bookmarks: [],
+      media: MediaRegistry(),
+      mediaBridge: bridge,
+      mediaMirror: mirror,
+      pendingPlay: [:],
+      blocker: FilterEngine()
     )
+    bridge.snapshot = { [mirror] node in mirror.get(node) }
+    bridge.play = { [weak self] node, completion in
+      Task { await self?.requestPlay(node: node, completion: completion) }
+    }
+    bridge.pause = { [weak self] node in
+      Task { await self?.requestPause(node: node) }
+    }
+    bridge.seek = { [weak self] node, seconds, completion in
+      Task {
+        let ok = await self?.requestSeek(node: node, seconds: seconds) ?? false
+        completion?(ok)
+      }
+    }
+    bridge.setValue = { [weak self] node, name, value in
+      let assignment: MediaAssignment
+      switch name {
+      case "currentTime":
+        guard case .number(let seconds) = value else { return }
+        assignment = .currentTime(seconds)
+      case "volume":
+        guard case .number(let volume) = value else { return }
+        assignment = .volume(volume)
+      case "muted":
+        assignment = .muted(value.truthy)
+      case "playbackRate":
+        guard case .number(let rate) = value else { return }
+        assignment = .rate(rate)
+      default:
+        return
+      }
+      Task { await self?.requestMediaSet(node: node, assignment: assignment) }
+    }
+    bridge.reload = { [weak self] node in
+      Task { await self?.requestReload(node: node) }
+    }
     contexts[id] = record
     return BrowserContextInfo(id: id, name: record.name, pageCount: 0)
   }
 
-  public func destroyContext(_ id: ContextID) throws {
+  public func destroyContext(_ id: ContextID) async throws {
     guard let removed = contexts.removeValue(forKey: id) else {
       throw BrowserRuntimeError.contextNotFound(id)
     }
     removed.profile?.close()
+    for pageID in removed.pages.keys {
+      await removed.media.removePage(pageID)
+    }
   }
 
   public func listContexts() -> [BrowserContextInfo] {
@@ -133,10 +206,22 @@ public actor BrowserRuntime {
   }
 
   public func openProfile(contextID: ContextID, directory: URL) async throws {
-    guard let context = contexts[contextID] else {
+    guard contexts[contextID] != nil else {
       throw BrowserRuntimeError.contextNotFound(contextID)
     }
     let profile = try ProfileStore.open(directory: directory)
+    do {
+      try await attachProfile(profile, contextID: contextID)
+    } catch {
+      profile.close()
+      throw error
+    }
+  }
+
+  private func attachProfile(_ profile: ProfileStore, contextID: ContextID) async throws {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
     let name = context.name
     let cookies = try profile.loadCookies().map { row in
       Cookie(
@@ -178,6 +263,10 @@ public actor BrowserRuntime {
       decisions[origin, default: [:]][permission] = decision
     }
     await context.permissions.restore(decisions)
+    let bookmarks = try profile.loadBookmarks().map { row in
+      BookmarkInfo(
+        url: row.url, title: row.title, createdAt: row.createdAt.timeIntervalSince1970)
+    }
     let sessionPages = try profile.loadSessionPages().filter { $0.context == name }
     let historyRows = try profile.loadHistory().filter { $0.context == name }
     guard var current = contexts[contextID] else {
@@ -186,6 +275,7 @@ public actor BrowserRuntime {
     }
     if let existing = current.profile { existing.close() }
     current.profile = profile
+    current.bookmarks = bookmarks
     if current.pages.isEmpty {
       for slot in sessionPages.sorted(by: { $0.slot < $1.slot }) {
         let urls = historyRows.filter { $0.slot == slot.slot }.sorted(by: { $0.index < $1.index })
@@ -267,6 +357,12 @@ public actor BrowserRuntime {
             decision: $0.value.rawValue)
         }
       })
+    try profile.saveBookmarks(
+      context.bookmarks.map { bookmark in
+        BookmarkRow(
+          url: bookmark.url, title: bookmark.title,
+          createdAt: Date(timeIntervalSince1970: bookmark.createdAt))
+      })
     try persistDownloads(context)
   }
 
@@ -293,6 +389,326 @@ public actor BrowserRuntime {
       throw BrowserRuntimeError.profileNotConfigured(contextID)
     }
     return try profile.getKV(scope: "checkpoints", key: key)
+  }
+
+  private func syncMedia(contextID: ContextID, pageID: PageID, loaded: LoadedPage) async {
+    guard let context = contexts[contextID] else { return }
+    let live = await context.media.sync(
+      pageID: pageID, document: loaded.document, baseURL: loaded.url
+    ) { [weak self] node, event in
+      Task { await self?.mediaEvent(contextID: contextID, node: node, event: event) }
+    }
+    for node in live {
+      await refreshMediaMirror(contextID: contextID, node: node)
+    }
+  }
+
+  private func refreshMediaMirror(contextID: ContextID, node: NodeID) async {
+    guard let context = contexts[contextID],
+      let element = await context.media.element(node)
+    else { return }
+    let state = await context.media.snapshot(node, tag: element.tag)
+    var values = JSMediaBridge.stateValues(state)
+    values["tag"] = .string(element.tag)
+    context.mediaMirror.set(node, values: values)
+  }
+
+  private func mediaEvent(contextID: ContextID, node: NodeID, event: MediaEvent) async {
+    await refreshMediaMirror(contextID: contextID, node: node)
+    if event == .playing || event == .error {
+      guard var context = contexts[contextID] else { return }
+      let pending = context.pendingPlay.removeValue(forKey: node) ?? []
+      contexts[contextID] = context
+      var message: String? = nil
+      if event == .error {
+        message = "media error"
+        if let element = await context.media.element(node) {
+          let state = await context.media.snapshot(element.node, tag: element.tag)
+          message = state.error?.message ?? "media error"
+        }
+      }
+      for entry in pending { entry.completion(event == .playing, message) }
+    }
+    guard let context = contexts[contextID],
+      let pageID = await context.media.page(containing: node),
+      let runtime = context.pages[pageID]?.javascript
+    else { return }
+    try? runtime.dispatchEvent(type: event.rawValue, target: node)
+  }
+
+  private func requestPlay(
+    node: NodeID, completion: (@Sendable (Bool, String?) -> Void)?
+  ) async {
+    guard let (contextID, context) = await contextContaining(node: node),
+      await context.media.element(node) != nil
+    else {
+      completion?(false, "no playable source")
+      return
+    }
+    if let completion {
+      let token = UUID()
+      var updated = context
+      updated.pendingPlay[node, default: []].append(PendingPlay(token: token, completion: completion))
+      contexts[contextID] = updated
+      Task { [weak self] in
+        try? await Task.sleep(for: .seconds(15))
+        await self?.expirePlay(node: node, token: token)
+      }
+    }
+    await context.media.play(node)
+  }
+
+  private func expirePlay(node: NodeID, token: UUID) async {
+    for (contextID, var context) in contexts {
+      guard var pending = context.pendingPlay[node] else { continue }
+      guard let position = pending.firstIndex(where: { $0.token == token }) else { continue }
+      let entry = pending.remove(at: position)
+      context.pendingPlay[node] = pending.isEmpty ? nil : pending
+      contexts[contextID] = context
+      entry.completion(false, "play timed out")
+      return
+    }
+  }
+
+  private func requestPause(node: NodeID) async {
+    guard let (_, context) = await contextContaining(node: node) else { return }
+    await context.media.pause(node)
+  }
+
+  private func requestSeek(node: NodeID, seconds: Double) async -> Bool {
+    guard let (contextID, context) = await contextContaining(node: node) else { return false }
+    let ok = await context.media.seek(node, to: seconds)
+    await refreshMediaMirror(contextID: contextID, node: node)
+    return ok
+  }
+
+  private func requestMediaSet(node: NodeID, assignment: MediaAssignment) async {
+    guard let (contextID, context) = await contextContaining(node: node) else { return }
+    switch assignment {
+    case .currentTime(let seconds):
+      _ = await context.media.seek(node, to: seconds)
+    case .volume(let volume):
+      await context.media.setVolume(node, volume: volume)
+    case .muted(let muted):
+      await context.media.setMuted(node, muted: muted)
+    case .rate(let rate):
+      await context.media.setRate(node, rate: rate)
+    }
+    await refreshMediaMirror(contextID: contextID, node: node)
+  }
+
+  private func requestReload(node: NodeID) async {
+    guard let (contextID, context) = await contextContaining(node: node) else { return }
+    await context.media.reload(node)
+    await refreshMediaMirror(contextID: contextID, node: node)
+  }
+
+  private func contextContaining(node: NodeID) async -> (ContextID, ContextRecord)? {
+    for (id, context) in contexts {
+      if await context.media.element(node) != nil { return (id, context) }
+    }
+    return nil
+  }
+
+  public func mediaStates(pageID: PageID) async throws -> [MediaElementState] {
+    guard let contextID = contextID(containing: pageID),
+      let loaded = contexts[contextID]?.pages[pageID]?.loaded
+    else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    await syncMedia(contextID: contextID, pageID: pageID, loaded: loaded)
+    guard let context = contexts[contextID] else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    var states: [MediaElementState] = []
+    for element in await context.media.elements(pageID: pageID) {
+      states.append(await context.media.snapshot(element.node, tag: element.tag))
+    }
+    return states
+  }
+
+  public func mediaCommand(
+    pageID: PageID, node: NodeID, action: MediaAction, time: Double? = nil,
+    value: Double? = nil, muted: Bool? = nil, rate: Double? = nil
+  ) async throws -> MediaElementState {
+    guard let contextID = contextID(containing: pageID),
+      let context = contexts[contextID]
+    else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    guard await context.media.element(node) != nil else {
+      throw BrowserRuntimeError.nodeNotFound(node)
+    }
+    switch action {
+    case .play:
+      await requestPlay(node: node, completion: nil)
+      if let settled = await settleMedia(
+        contextID: contextID, node: node, timeout: 10, predicate: { !$0.paused })
+      { return settled }
+      throw BrowserRuntimeError.invalidNavigation("Playback did not start")
+    case .pause:
+      await requestPause(node: node)
+      if let settled = await settleMedia(
+        contextID: contextID, node: node, timeout: 3, predicate: { $0.paused })
+      { return settled }
+      throw BrowserRuntimeError.invalidNavigation("Pause did not apply")
+    case .seek:
+      guard let time, await requestSeek(node: node, seconds: time) else {
+        throw BrowserRuntimeError.invalidNavigation("Seek target is out of range")
+      }
+      if let settled = await settleMedia(
+        contextID: contextID, node: node, timeout: 5,
+        predicate: { abs($0.currentTime - time) < 0.35 })
+      { return settled }
+      throw BrowserRuntimeError.invalidNavigation("Seek did not settle")
+    case .setVolume:
+      guard let value else { throw BrowserRuntimeError.invalidNavigation("Volume is required") }
+      await context.media.setVolume(node, volume: value)
+      await refreshMediaMirror(contextID: contextID, node: node)
+    case .setMuted:
+      await context.media.setMuted(node, muted: muted ?? true)
+      await refreshMediaMirror(contextID: contextID, node: node)
+    case .setRate:
+      guard let rate else { throw BrowserRuntimeError.invalidNavigation("Rate is required") }
+      await context.media.setRate(node, rate: rate)
+      await refreshMediaMirror(contextID: contextID, node: node)
+    case .load:
+      await requestReload(node: node)
+    }
+    guard let state = await mediaSnapshotState(contextID: contextID, node: node) else {
+      throw BrowserRuntimeError.nodeNotFound(node)
+    }
+    return state
+  }
+
+  private func mediaSnapshotState(contextID: ContextID, node: NodeID) async -> MediaElementState? {
+    guard let context = contexts[contextID],
+      let element = await context.media.element(node)
+    else { return nil }
+    await refreshMediaMirror(contextID: contextID, node: node)
+    return await context.media.snapshot(element.node, tag: element.tag)
+  }
+
+  private func settleMedia(
+    contextID: ContextID, node: NodeID, timeout: Double,
+    predicate: (MediaElementState) -> Bool
+  ) async -> MediaElementState? {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+      if let state = await mediaSnapshotState(contextID: contextID, node: node),
+        predicate(state)
+      { return state }
+      try? await Task.sleep(for: .milliseconds(100))
+    }
+    return nil
+  }
+
+  public func addBookmark(contextID: ContextID, url: URL, title: String) throws -> BookmarkInfo {
+    guard var context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    guard bookmarkable(url) else {
+      throw BrowserRuntimeError.invalidNavigation("Bookmarks require an http(s) URL")
+    }
+    if let index = context.bookmarks.firstIndex(where: { $0.url == url.absoluteString }) {
+      context.bookmarks[index].title = title
+    } else {
+      context.bookmarks.append(
+        BookmarkInfo(url: url.absoluteString, title: title, createdAt: nowSeconds()))
+    }
+    contexts[contextID] = context
+    guard let bookmark = context.bookmarks.first(where: { $0.url == url.absoluteString }) else {
+      throw BrowserRuntimeError.invalidState("Bookmark was not stored")
+    }
+    return bookmark
+  }
+
+  public func listBookmarks(contextID: ContextID) throws -> [BookmarkInfo] {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    return context.bookmarks.sorted { $0.createdAt < $1.createdAt }
+  }
+
+  public func removeBookmark(contextID: ContextID, url: URL) throws -> Bool {
+    guard var context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    guard
+      let index = context.bookmarks.firstIndex(where: { $0.url == url.absoluteString })
+    else { return false }
+    context.bookmarks.remove(at: index)
+    contexts[contextID] = context
+    return true
+  }
+
+  public func suggestNavigation(
+    contextID: ContextID, prefix: String, limit: Int = 8
+  ) throws -> [NavigationSuggestion] {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    let needle = prefix.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard !needle.isEmpty else {
+      throw BrowserRuntimeError.invalidNavigation("A suggestion prefix is required")
+    }
+    guard limit >= 1 && limit <= 50 else {
+      throw BrowserRuntimeError.invalidNavigation("Suggestion limit must be 1 through 50")
+    }
+    var suggestions: [NavigationSuggestion] = []
+    var seen = Set<String>()
+    for bookmark in context.bookmarks
+      where bookmark.url.lowercased().contains(needle)
+        || bookmark.title.lowercased().contains(needle)
+    {
+      suggestions.append(
+        NavigationSuggestion(kind: "bookmark", url: bookmark.url, title: bookmark.title))
+      seen.insert(bookmark.url)
+      if suggestions.count >= limit { return suggestions }
+    }
+    let recent = context.pages.values.sorted { $0.lastActive > $1.lastActive }
+    for page in recent {
+      for url in page.history.reversed() {
+        let absolute = url.absoluteString
+        guard !seen.contains(absolute), absolute.lowercased().contains(needle) else { continue }
+        seen.insert(absolute)
+        suggestions.append(NavigationSuggestion(kind: "history", url: absolute))
+        if suggestions.count >= limit { return suggestions }
+      }
+    }
+    return suggestions
+  }
+
+  public func searchProvider(contextID: ContextID) throws -> SearchProvider {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    guard let profile = context.profile,
+      let data = try profile.getKV(scope: "search", key: "provider"),
+      let stored = try? JSONDecoder().decode(StoredSearchProvider.self, from: data),
+      let endpoint = URL(string: stored.endpoint),
+      let provider = try? SearchProvider.validated(
+        endpoint: endpoint, queryParameter: stored.queryParameter)
+    else { return .defaultProvider }
+    return provider
+  }
+
+  public func setSearchProvider(
+    contextID: ContextID, endpoint: URL, queryParameter: String = "q"
+  ) throws -> SearchProvider {
+    guard contexts[contextID] != nil else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    let provider = try SearchProvider.validated(
+      endpoint: endpoint, queryParameter: queryParameter)
+    guard let profile = try requireContext(contextID).profile else {
+      throw BrowserRuntimeError.profileNotConfigured(contextID)
+    }
+    let stored = StoredSearchProvider(
+      endpoint: endpoint.absoluteString, queryParameter: provider.queryParameter)
+    try profile.setKV(scope: "search", key: "provider", value: try JSONEncoder().encode(stored))
+    return provider
+  }
+
+  private func bookmarkable(_ url: URL) -> Bool {
+    guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+      let host = url.host, !host.isEmpty
+    else { return false }
+    return true
   }
 
   public func createPage(contextID: ContextID, viewport: Size = Size(width: 1280, height: 800))
@@ -324,12 +740,14 @@ public actor BrowserRuntime {
     return info(for: page)
   }
 
-  public func closePage(_ pageID: PageID) throws {
+  public func closePage(_ pageID: PageID) async throws {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID] else {
       throw BrowserRuntimeError.pageNotFound(pageID)
     }
+    stopNavigation(pageID: pageID)
     context.pages.removeValue(forKey: pageID)
     contexts[contextID] = context
+    await context.media.removePage(pageID)
   }
 
   public func suspendPage(_ pageID: PageID) throws -> BrowserPageInfo {
@@ -548,7 +966,7 @@ public actor BrowserRuntime {
     try type(pageID: pageID, nodeID: nodeID, text: value, append: false)
   }
 
-  public func evaluate(pageID: PageID, source: String) throws -> JavaScriptResult {
+  public func evaluate(pageID: PageID, source: String) async throws -> JavaScriptResult {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -560,6 +978,7 @@ public actor BrowserRuntime {
       let storage = context.storage.localStorage(for: originKey(loaded.url))
       runtime = JSRuntime(document: loaded.document, localStorage: storage)
     }
+    runtime.mediaHost = context.mediaBridge
     wireScriptRuntime(runtime, network: context.network)
     let before = loaded.document.mutationVersion
     do {
@@ -569,6 +988,9 @@ public actor BrowserRuntime {
       context.pages[pageID] = page
       contexts[contextID] = context
       if loaded.document.mutationVersion != before { try refreshPage(pageID) }
+      if let current = contexts[contextID]?.pages[pageID]?.loaded {
+        await syncMedia(contextID: contextID, pageID: pageID, loaded: current)
+      }
       return JavaScriptResult(value: value.description, console: runtime.consoleOutput)
     } catch {
       throw BrowserRuntimeError.javascript(String(describing: error))
@@ -820,7 +1242,9 @@ public actor BrowserRuntime {
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     let (loaded, runtime) = buildLoaded(
       html: html, url: url, viewport: page.viewport, storage: context.storage,
-      network: context.network, page: &page, jar: context.network.cookieJar)
+      network: context.network, page: &page, jar: context.network.cookieJar,
+      blocker: context.blocker)
+    runtime.mediaHost = context.mediaBridge
     page.loaded = loaded
     page.javascript = runtime
     if page.historyIndex + 1 < page.history.count {
@@ -842,6 +1266,7 @@ public actor BrowserRuntime {
     page.networkLog = Array(page.networkLog.suffix(32))
     context.pages[pageID] = page
     contexts[contextID] = context
+    await syncMedia(contextID: contextID, pageID: pageID, loaded: loaded)
     return info(for: page)
   }
 
@@ -1441,10 +1866,32 @@ public actor BrowserRuntime {
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     let pipeline = NavigationPipeline(
       network: initialContext.network, metricsCollector: metricsCollector)
+    stopNavigation(pageID: pageID)
+    let epoch = UUID()
+    navigationEpochs[pageID] = epoch
+    navigationTargets[pageID] = request.url
+    navigationErrors[pageID] = nil
+    let viewport = initialPage.viewport
+    let load = Task { try await pipeline.load(request, viewport: viewport) }
+    navigationLoads[pageID] = load
+    publishPageStates()
     var loaded: LoadedPage
     do {
-      loaded = try await pipeline.load(request, viewport: initialPage.viewport)
+      loaded = try await withTaskCancellationHandler {
+        try await load.value
+      } onCancel: { load.cancel() }
+      try Task.checkCancellation()
+      guard navigationEpochs[pageID] == epoch else { throw CancellationError() }
+      navigationLoads[pageID] = nil
+      navigationTargets[pageID] = nil
     } catch {
+      if navigationEpochs[pageID] == epoch {
+        navigationLoads[pageID] = nil
+        navigationTargets[pageID] = nil
+        if !(error is CancellationError) { navigationErrors[pageID] = String(describing: error) }
+        publishPageStates()
+      }
+      if error is CancellationError { throw error }
       throw BrowserRuntimeError.invalidNavigation(String(describing: error))
     }
     let storage = initialContext.storage.localStorage(for: originKey(loaded.url))
@@ -1457,6 +1904,7 @@ public actor BrowserRuntime {
     configureRuntime(
       host.runtime, page: &page, loaded: loaded, jar: context.network.cookieJar,
       network: context.network)
+    host.runtime.mediaHost = context.mediaBridge
     loaded.scriptErrors.append(contentsOf: host.run(loaded.scripts))
     host.pump()
     let runtime = host.runtime
@@ -1498,6 +1946,7 @@ public actor BrowserRuntime {
     }
     context.pages[pageID] = page
     contexts[contextID] = context
+    await syncMedia(contextID: contextID, pageID: pageID, loaded: loaded)
     return info(for: page)
   }
 
@@ -1542,6 +1991,7 @@ public actor BrowserRuntime {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { return }
+    if page.focused != id { page.textSelection = nil }
     page.focused = id
     page.lastActive = nowSeconds()
     context.pages[pageID] = page
@@ -1690,7 +2140,7 @@ public actor BrowserRuntime {
 
   private func buildLoaded(
     html: String, url: URL, viewport: Size, storage: StoragePartition, network: NetworkSession,
-    page: inout PageRecord, jar: CookieJar
+    page: inout PageRecord, jar: CookieJar, blocker: FilterEngine
   ) -> (LoadedPage, JSRuntime) {
     let totalClock = ContinuousClock()
     let totalStart = totalClock.now
@@ -1777,7 +2227,8 @@ public actor BrowserRuntime {
         ? page.history[page.historyIndex] : URL(string: "https://localhost/")!
       let (loaded, runtime) = buildLoaded(
         html: html, url: url, viewport: page.viewport, storage: context.storage,
-        network: context.network, page: &page, jar: context.network.cookieJar)
+        network: context.network, page: &page, jar: context.network.cookieJar,
+        blocker: context.blocker)
       page.loaded = loaded
       page.javascript = runtime
       page.networkLog.append(
@@ -1801,7 +2252,7 @@ public actor BrowserRuntime {
     throw BrowserRuntimeError.pageNotLoaded(pageID)
   }
 
-  private func refreshPage(_ pageID: PageID) throws {
+  func refreshPage(_ pageID: PageID) throws {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID], var loaded = page.loaded
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -1840,22 +2291,22 @@ public actor BrowserRuntime {
     )
   }
 
-  private func requirePage(_ id: PageID) throws -> PageRecord {
+  func requirePage(_ id: PageID) throws -> PageRecord {
     guard let contextID = contextID(containing: id), let page = contexts[contextID]?.pages[id]
     else { throw BrowserRuntimeError.pageNotFound(id) }
     return page
   }
 
-  private func requireContext(_ id: ContextID) throws -> ContextRecord {
+  func requireContext(_ id: ContextID) throws -> ContextRecord {
     guard let context = contexts[id] else { throw BrowserRuntimeError.contextNotFound(id) }
     return context
   }
 
-  private func contextID(containing pageID: PageID) -> ContextID? {
+  func contextID(containing pageID: PageID) -> ContextID? {
     contexts.first(where: { $0.value.pages[pageID] != nil })?.key
   }
 
-  private func info(for page: PageRecord) -> BrowserPageInfo {
+  func info(for page: PageRecord) -> BrowserPageInfo {
     BrowserPageInfo(
       id: page.id,
       contextID: page.contextID,
@@ -1916,7 +2367,7 @@ public actor BrowserRuntime {
     document.setAttribute("checked", value: "", on: id)
   }
 
-  private func currentValue(_ id: NodeID, document: DOMDocument) -> String {
+  func currentValue(_ id: NodeID, document: DOMDocument) -> String {
     guard let node = document.node(id) else { return "" }
     if let value = node.attribute("value") { return value }
     if node.tagName == "textarea" || node.attribute("contenteditable") == "true" {
@@ -1925,7 +2376,7 @@ public actor BrowserRuntime {
     return ""
   }
 
-  private func setControlValue(_ value: String, nodeID: NodeID, document: DOMDocument) {
+  func setControlValue(_ value: String, nodeID: NodeID, document: DOMDocument) {
     guard let node = document.node(nodeID) else { return }
     if node.attribute("contenteditable") == "true" {
       if let textNode = node.children.first(where: { child in

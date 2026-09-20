@@ -289,6 +289,30 @@ public struct HistoryEntry: Hashable, Sendable, Codable {
   }
 }
 
+public struct BookmarkInfo: Hashable, Sendable, Codable {
+  public var url: String
+  public var title: String
+  public var createdAt: Double
+
+  public init(url: String, title: String, createdAt: Double) {
+    self.url = url
+    self.title = title
+    self.createdAt = createdAt
+  }
+}
+
+public struct NavigationSuggestion: Hashable, Sendable, Codable {
+  public var kind: String
+  public var url: String
+  public var title: String?
+
+  public init(kind: String, url: String, title: String? = nil) {
+    self.kind = kind
+    self.url = url
+    self.title = title
+  }
+}
+
 public struct NetworkLogEntry: Hashable, Sendable, Codable {
   public var request: RequestID
   public var navigation: NavigationID?
@@ -475,5 +499,48 @@ public struct CaptureDocumentData: Hashable, Sendable, Codable {
     self.nodes = nodes
     self.resources = resources
     self.issues = issues
+  }
+}
+
+public struct BlockerStatsInfo: Sendable, Equatable {
+  public var requestsEvaluated: Int
+  public var requestsBlocked: Int
+  public var exceptionsMatched: Int
+  public var allowlistedRequests: Int
+  public var networkRules: Int
+  public var cosmeticRules: Int
+
+  public init(
+    requestsEvaluated: Int, requestsBlocked: Int, exceptionsMatched: Int,
+    allowlistedRequests: Int, networkRules: Int, cosmeticRules: Int
+  ) {
+    self.requestsEvaluated = requestsEvaluated
+    self.requestsBlocked = requestsBlocked
+    self.exceptionsMatched = exceptionsMatched
+    self.allowlistedRequests = allowlistedRequests
+    self.networkRules = networkRules
+    self.cosmeticRules = cosmeticRules
+  }
+}
+
+public struct BlockerRulesInfo: Sendable, Equatable {
+  public var networkRules: Int
+  public var cosmeticRules: Int
+  public var notice: String?
+
+  public init(networkRules: Int, cosmeticRules: Int, notice: String?) {
+    self.networkRules = networkRules
+    self.cosmeticRules = cosmeticRules
+    self.notice = notice
+  }
+}
+
+public struct BlockerPolicyInfo: Sendable, Equatable {
+  public var enabled: Bool
+  public var temporaryAllowedDomains: [String]
+
+  public init(enabled: Bool, temporaryAllowedDomains: [String]) {
+    self.enabled = enabled
+    self.temporaryAllowedDomains = temporaryAllowedDomains
   }
 }

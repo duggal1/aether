@@ -49,7 +49,7 @@ public struct NavigationPipeline: Sendable {
     }
 
     let (response, networkMilliseconds) = try await MetricClock.asyncMilliseconds {
-      try await network.fetch(request)
+      try await network.fetch(HTTPRequest(id: request.id, url: request.url, method: request.method, headers: request.headers, body: request.body, cachePolicy: request.cachePolicy, resourceKind: .document, documentURL: request.url))
     }
     let html = HTMLParser.decodeBytes(response.body)
 
@@ -175,7 +175,7 @@ public struct NavigationPipeline: Sendable {
           continue
         }
         do {
-          let response = try await network.fetch(url)
+          let response = try await network.fetch(HTTPRequest(url: url, resourceKind: .script, documentURL: pageURL))
           try ResponseContentGuard.validate(
             status: response.statusCode, headers: response.headers, destination: .script)
           if let source = response.text {
@@ -208,7 +208,7 @@ public struct NavigationPipeline: Sendable {
       let loader = ImageLoader(network: network)
       for image in allowed {
         group.addTask {
-          do { return (image.nodeID, image.url, .success(try await loader.load(image.url))) } catch
+          do { return (image.nodeID, image.url, .success(try await loader.load(image.url, documentURL: pageURL))) } catch
           { return (image.nodeID, image.url, .failure(error)) }
         }
       }
@@ -227,7 +227,7 @@ public struct NavigationPipeline: Sendable {
   private func loadStylesheets(_ urls: [URL], pageURL: URL) async -> [String] {
     let allowed = urls.filter { subresourceError($0, pageURL: pageURL) == nil }
     let requests = allowed.enumerated().map {
-      ResourceRequest(key: String($0.offset), url: $0.element)
+      ResourceRequest(key: String($0.offset), url: $0.element, documentURL: pageURL)
     }
     let results = await ResourceLoader(network: network).load(requests)
     return allowed.indices.compactMap { index in

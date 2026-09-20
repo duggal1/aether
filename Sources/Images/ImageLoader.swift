@@ -8,8 +8,8 @@ public struct ImageLoader: Sendable {
     self.network = network
   }
 
-  public func load(_ url: URL) async throws -> DecodedImage {
-    let response = try await network.fetch(url)
+  public func load(_ url: URL, documentURL: URL? = nil) async throws -> DecodedImage {
+    let response = try await network.fetch(HTTPRequest(url: url, resourceKind: .image, documentURL: documentURL))
     return try ImageDecoder.decode(response.body)
   }
 }

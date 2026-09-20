@@ -489,6 +489,7 @@ public final class JSRuntime {
     (@Sendable (String, String, [String: String], String?) async throws -> (
       Int, [String: String], Data
     ))?
+  public weak var mediaHost: (any JSMediaHost)?
 
   private let completionLock = NSLock()
   private var pendingCompletions: [@Sendable () -> Void] = []
@@ -3404,6 +3405,7 @@ public final class JSRuntime {
   private func installWindow(document: DOMDocument?, localStorage: LocalStorage?) {
     guard let document else { return }
     let context = JSDOMContext(runtime: self, document: document, events: eventRegistry)
+    context.mediaHost = mediaHost
     domContext = context
     let documentObject = JSDOMBindings.documentObject(context: context)
     var localStorageObject: JSObject?

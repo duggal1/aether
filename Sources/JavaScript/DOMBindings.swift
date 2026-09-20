@@ -5,6 +5,7 @@ public final class JSDOMContext {
   weak var runtime: JSRuntime?
   let document: DOMDocument
   let events: JSEventRegistry
+  weak var mediaHost: (any JSMediaHost)?
   var eventPrototype = JSObject()
   var customEventPrototype = JSObject()
   var mouseEventPrototype = JSObject()
@@ -195,7 +196,11 @@ public enum JSDOMBindings {
               document.querySelectorAll("td,th").filter {
                 descendant($0, of: id, document: document)
               }.map { .object(context.wrap($0)) }))
-        default: return node.attribute(key).map(JSValue.string)
+        default:
+          if let media = JSMediaElement.property(id, context: context, name: key) {
+            return media
+          }
+          return node.attribute(key).map(JSValue.string)
         }
       },
       nativeSet: { [weak document] key, value in
@@ -224,6 +229,9 @@ public enum JSDOMBindings {
           setSelectedIndex(value, of: id, document: document)
           return true
         default:
+          if JSMediaElement.setProperty(id, context: context, name: key, value: value) {
+            return true
+          }
           return false
         }
       }, nativeNodeID: id)
@@ -903,6 +911,7 @@ public enum JSDOMBindings {
 
   static func installNodeProperties(_ object: JSObject, id: NodeID, context: JSDOMContext) {
     JSDOMEvents.installNodeExtras(object, id: id, context: context)
+    JSMediaElement.installExtras(object, id: id, context: context)
   }
 
   static func installNodeListeners(

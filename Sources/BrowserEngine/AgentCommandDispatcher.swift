@@ -5,6 +5,7 @@ import Diagnostics
 import EngineCore
 import EngineRuntime
 import Foundation
+import Media
 
 public final class AgentCommandDispatcher: Sendable {
   public let engine: NativeBrowserEngine
@@ -43,6 +44,29 @@ public final class AgentCommandDispatcher: Sendable {
           throw DispatchError.badParameter("url")
         }
         result = pageJSON(try await engine.runtime.navigate(pageID: page, to: url))
+      case .pageNavigateInput:
+        let page = PageID(rawValue: try uint64(request, "page"))
+        guard let input = request.params["input"]?.string else {
+          throw DispatchError.badParameter("input")
+        }
+        let provider: SearchProvider
+        if let raw = request.params["providerURL"]?.string {
+          guard let endpoint = URL(string: raw),
+            let validated = try? SearchProvider.validated(
+              endpoint: endpoint, queryParameter: request.params["queryParameter"]?.string ?? "q")
+          else { throw DispatchError.badParameter("providerURL") }
+          provider = validated
+        } else {
+          let owner = try await engine.runtime.pageInfo(page)
+          provider = try await engine.runtime.searchProvider(contextID: owner.contextID)
+        }
+        let resolution = try NavigationInputResolver.resolve(input, provider: provider)
+        let navigated = try await engine.runtime.navigate(pageID: page, to: resolution.url)
+        result = .object([
+          "kind": .string(resolution.kind.rawValue),
+          "url": .string(resolution.url.absoluteString),
+          "page": pageJSON(navigated),
+        ])
       case .pageBack:
         result = pageJSON(
           try await engine.runtime.goBack(pageID: PageID(rawValue: try uint64(request, "page"))))
@@ -90,6 +114,34 @@ public final class AgentCommandDispatcher: Sendable {
         }
         result = .array(
           try await engine.runtime.queryAll(pageID: page, selector: selector).map(nodeJSON))
+      case .pageFind:
+        let page = PageID(rawValue: try uint64(request, "page"))
+        guard let query = request.params["query"]?.string, !query.isEmpty else {
+          throw DispatchError.badParameter("query")
+        }
+        let limit = request.params["limit"] == nil ? 100 : try integer(request.params, "limit")
+        guard limit > 0 && limit <= 1_000 else {
+          throw DispatchError.badParameter("limit")
+        }
+        let snapshot = try await engine.runtime.snapshot(pageID: page)
+        let matches = PageTextSearch.find(
+          in: snapshot, query: query,
+          caseSensitive: request.params["caseSensitive"]?.bool ?? false,
+          maximumMatches: limit)
+        result = .object([
+          "mutationVersion": .number(Double(snapshot.mutationVersion)),
+          "matches": .array(matches.map { match in
+            var item: [String: JSONValue] = [
+              "nodeIndex": .number(Double(match.node.index)),
+              "nodeGeneration": .number(Double(match.node.version)),
+              "characterOffset": .number(Double(match.characterOffset)),
+              "characterLength": .number(Double(match.characterLength)),
+              "text": .string(match.text),
+            ]
+            if let bounds = match.bounds { item["bounds"] = rectJSON(bounds) }
+            return .object(item)
+          }),
+        ])
       case .pageWait:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let selector = request.params["selector"]?.string else {
@@ -272,6 +324,21 @@ public final class AgentCommandDispatcher: Sendable {
           try await engine.runtime.pendingDialogs(
             pageID: PageID(rawValue: try uint64(request, "page"))
           ).map(dialogJSON))
+      case .pageMedia:
+        result = .array(
+          try await engine.runtime.mediaStates(
+            pageID: PageID(rawValue: try uint64(request, "page"))
+          ).map(mediaJSON))
+      case .pageMediaControl:
+        guard let rawAction = request.params["action"]?.string,
+          let action = MediaAction(rawValue: rawAction)
+        else { throw DispatchError.badParameter("action") }
+        result = mediaJSON(
+          try await engine.runtime.mediaCommand(
+            pageID: PageID(rawValue: try uint64(request, "page")),
+            node: try nodeID(request), action: action,
+            time: request.params["time"]?.number, value: request.params["value"]?.number,
+            muted: request.params["muted"]?.bool, rate: request.params["rate"]?.number))
       case .dialogResolve:
         let id = DialogID(rawValue: try uint64(request, "dialog"))
         result = .object([
@@ -421,6 +488,55 @@ public final class AgentCommandDispatcher: Sendable {
           try await engine.runtime.checkpointValue(
             contextID: ContextID(rawValue: try uint64(request, "context")), key: key
           ).map { .string($0.base64EncodedString()) } ?? .null
+      case .contextBookmarkAdd:
+        guard let raw = request.params["url"]?.string, let url = URL(string: raw) else {
+          throw DispatchError.badParameter("url")
+        }
+        result = bookmarkJSON(
+          try await engine.runtime.addBookmark(
+            contextID: ContextID(rawValue: try uint64(request, "context")), url: url,
+            title: request.params["title"]?.string ?? ""))
+      case .contextBookmarks:
+        result = .array(
+          try await engine.runtime.listBookmarks(
+            contextID: ContextID(rawValue: try uint64(request, "context"))
+          ).map(bookmarkJSON))
+      case .contextBookmarkRemove:
+        guard let raw = request.params["url"]?.string, let url = URL(string: raw) else {
+          throw DispatchError.badParameter("url")
+        }
+        result = .object([
+          "removed": .bool(
+            try await engine.runtime.removeBookmark(
+              contextID: ContextID(rawValue: try uint64(request, "context")), url: url))
+        ])
+      case .contextSuggest:
+        guard let prefix = request.params["prefix"]?.string else {
+          throw DispatchError.badParameter("prefix")
+        }
+        let limit = request.params["limit"] == nil ? 8 : try integer(request.params, "limit")
+        guard limit >= 1 && limit <= 50 else { throw DispatchError.badParameter("limit") }
+        result = .array(
+          try await engine.runtime.suggestNavigation(
+            contextID: ContextID(rawValue: try uint64(request, "context")), prefix: prefix,
+            limit: limit
+          ).map(suggestionJSON))
+      case .contextSearchProvider:
+        result = providerJSON(
+          try await engine.runtime.searchProvider(
+            contextID: ContextID(rawValue: try uint64(request, "context"))))
+      case .contextSetSearchProvider:
+        guard let raw = request.params["endpoint"]?.string, let endpoint = URL(string: raw) else {
+          throw DispatchError.badParameter("endpoint")
+        }
+        do {
+          result = providerJSON(
+            try await engine.runtime.setSearchProvider(
+              contextID: ContextID(rawValue: try uint64(request, "context")), endpoint: endpoint,
+              queryParameter: request.params["queryParameter"]?.string ?? "q"))
+        } catch is NavigationInputError {
+          throw DispatchError.badParameter("endpoint")
+        }
       case .sessionCreate:
         result = sessionJSON(
           await engine.runtime.createSession(name: request.params["name"]?.string ?? ""))
@@ -643,6 +759,28 @@ public final class AgentCommandDispatcher: Sendable {
     ])
   }
 
+  private func bookmarkJSON(_ bookmark: BookmarkInfo) -> JSONValue {
+    .object([
+      "url": .string(bookmark.url), "title": .string(bookmark.title),
+      "createdAt": .number(bookmark.createdAt),
+    ])
+  }
+
+  private func suggestionJSON(_ suggestion: NavigationSuggestion) -> JSONValue {
+    var object: [String: JSONValue] = [
+      "kind": .string(suggestion.kind), "url": .string(suggestion.url),
+    ]
+    if let title = suggestion.title { object["title"] = .string(title) }
+    return .object(object)
+  }
+
+  private func providerJSON(_ provider: SearchProvider) -> JSONValue {
+    .object([
+      "endpoint": .string(provider.endpoint.absoluteString),
+      "queryParameter": .string(provider.queryParameter),
+    ])
+  }
+
   private func dialogJSON(_ dialog: AgentDialogInfo) -> JSONValue {
     var object: [String: JSONValue] = [
       "id": .number(Double(dialog.id.rawValue)), "page": .number(Double(dialog.page.rawValue)),
@@ -668,6 +806,37 @@ public final class AgentCommandDispatcher: Sendable {
       "contexts": .number(Double(session.contextCount)),
       "createdAt": .number(session.createdAt),
     ])
+  }
+
+  private func mediaJSON(_ state: MediaElementState) -> JSONValue {
+    var object: [String: JSONValue] = [
+      "nodeIndex": .number(Double(state.nodeIndex)),
+      "nodeGeneration": .number(Double(state.nodeGeneration)),
+      "tag": .string(state.tag),
+      "networkState": .number(Double(state.networkState.rawValue)),
+      "readyState": .number(Double(state.readyState.rawValue)),
+      "seeking": .bool(state.seeking),
+      "paused": .bool(state.paused),
+      "ended": .bool(state.ended),
+      "currentTime": .number(state.currentTime),
+      "duration": .number(state.duration),
+      "volume": .number(state.volume),
+      "muted": .bool(state.muted),
+      "playbackRate": .number(state.playbackRate),
+      "videoWidth": .number(Double(state.videoWidth)),
+      "videoHeight": .number(Double(state.videoHeight)),
+      "deliveredFrames": .number(Double(state.deliveredFrames)),
+      "audioTracks": .number(Double(state.audioTracks.count)),
+      "textTracks": .number(Double(state.textTracks.count)),
+    ]
+    if let src = state.currentSrc { object["currentSrc"] = .string(src) }
+    if let lastFrame = state.lastFrameTime { object["lastFrameTime"] = .number(lastFrame) }
+    if let error = state.error {
+      object["error"] = .object([
+        "code": .number(Double(error.code.rawValue)), "message": .string(error.message),
+      ])
+    }
+    return .object(object)
   }
 
   private func fleetStatsJSON(_ stats: FleetStats) -> JSONValue {

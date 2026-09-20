@@ -87,6 +87,14 @@ struct BrowserControl {
       guard let page = create.result?.object?["id"]?.number else { return }
       request = AgentRequest(
         method: .pageNavigate, params: ["page": .number(page), "url": .string(args[2])])
+    case "page-navigate-input":
+      guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pageNavigateInput,
+        params: [
+          "page": .number(page),
+          "input": .string(args.dropFirst(2).joined(separator: " ")),
+        ])
     case "page-inspect":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .pageInspect, params: ["page": .number(page)])
@@ -97,6 +105,11 @@ struct BrowserControl {
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
         method: .pageQuery, params: ["page": .number(page), "selector": .string(args[2])])
+    case "page-find":
+      guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pageFind,
+        params: ["page": .number(page), "query": .string(args.dropFirst(2).joined(separator: " "))])
     case "page-query-all":
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
@@ -312,6 +325,24 @@ struct BrowserControl {
     case "page-dialogs":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .pageDialogs, params: ["page": .number(page)])
+    case "page-media":
+      guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .pageMedia, params: ["page": .number(page)])
+    case "page-media-control":
+      guard args.count >= 6, let page = Double(args[1]),
+        let nodeIndex = Double(args[2]), let nodeGeneration = Double(args[3])
+      else { throw CLIError.usage }
+      var mediaParams: [String: JSONValue] = [
+        "page": .number(page), "nodeIndex": .number(nodeIndex),
+        "nodeGeneration": .number(nodeGeneration), "action": .string(args[4]),
+      ]
+      if args.count > 5, let number = Double(args[5]) {
+        mediaParams["time"] = .number(number)
+        mediaParams["value"] = .number(number)
+        mediaParams["rate"] = .number(number)
+      }
+      if args.contains("--muted") { mediaParams["muted"] = .bool(true) }
+      request = AgentRequest(method: .pageMediaControl, params: mediaParams)
     case "dialog-resolve":
       guard args.count >= 2, let dialog = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
@@ -402,6 +433,35 @@ struct BrowserControl {
     case "context-profile-usage":
       guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .contextProfileUsage, params: ["context": .number(context)])
+    case "context-bookmark-add":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      var bookmarkParams: [String: JSONValue] = [
+        "context": .number(context), "url": .string(args[2]),
+      ]
+      if args.count > 3 { bookmarkParams["title"] = .string(args[3]) }
+      request = AgentRequest(method: .contextBookmarkAdd, params: bookmarkParams)
+    case "context-bookmarks":
+      guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .contextBookmarks, params: ["context": .number(context)])
+    case "context-bookmark-remove":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextBookmarkRemove,
+        params: ["context": .number(context), "url": .string(args[2])])
+    case "context-suggest":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextSuggest,
+        params: ["context": .number(context), "prefix": .string(args[2])])
+    case "context-search-provider":
+      guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextSearchProvider, params: ["context": .number(context)])
+    case "context-set-search-provider":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextSetSearchProvider,
+        params: ["context": .number(context), "endpoint": .string(args[2])])
     case "session-create":
       request = AgentRequest(
         method: .sessionCreate, params: ["name": .string(args.count > 1 ? args[1] : "")])
@@ -617,10 +677,12 @@ struct BrowserControl {
     browserctl --socket <path> context-create <name>
     browserctl --socket <path> context-list
     browserctl --socket <path> page-open <context> <url>
+    browserctl --socket <path> page-navigate-input <page> <url-or-search-terms>
     browserctl --socket <path> page-inspect <page>
     browserctl --socket <path> page-snapshot <page>
     browserctl --socket <path> page-query <page> <selector>
     browserctl --socket <path> page-query-all <page> <selector>
+    browserctl --socket <path> page-find <page> <text>
     browserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]
     browserctl --socket <path> page-back <page>
     browserctl --socket <path> page-forward <page>
@@ -660,6 +722,8 @@ struct BrowserControl {
     browserctl --socket <path> page-frame <page>
     browserctl --socket <path> page-workers <page>
     browserctl --socket <path> page-dialogs <page>
+    browserctl --socket <path> page-media <page>
+    browserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]
     browserctl --socket <path> dialog-resolve <dialog> [--accept]
     browserctl --socket <path> context-cookies <context>
     browserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]
@@ -678,6 +742,12 @@ struct BrowserControl {
     browserctl --socket <path> context-open-profile <context> <directory>
     browserctl --socket <path> context-checkpoint <context>
     browserctl --socket <path> context-profile-usage <context>
+    browserctl --socket <path> context-bookmark-add <context> <url> [title]
+    browserctl --socket <path> context-bookmarks <context>
+    browserctl --socket <path> context-bookmark-remove <context> <url>
+    browserctl --socket <path> context-suggest <context> <prefix>
+    browserctl --socket <path> context-search-provider <context>
+    browserctl --socket <path> context-set-search-provider <context> <endpoint>
     browserctl --socket <path> session-create <name>
     browserctl --socket <path> session-list
     browserctl --socket <path> session-destroy <session>

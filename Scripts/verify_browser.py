@@ -1,4 +1,5 @@
 import argparse
+import base64
 import concurrent.futures
 import hashlib
 import http.server
@@ -20,6 +21,7 @@ def png():
 
 
 IMAGE = png()
+PIXEL_HTML = b'''<html><head><style>body{margin:0}#paint{height:100px;background-color:#ff0000}</style></head><body><div id="paint">Before JavaScript</div><script>document.getElementById('paint').setAttribute('style','height:100px;background-color:#00ff00');document.getElementById('paint').textContent='After JavaScript';</script></body></html>'''
 CSS = b'body{margin:0;background:white;color:#202020}section{height:300px;padding:20px}header{height:100px;background:#eeeeee}footer{height:80px}img{width:16px;height:16px}'
 HTML = b'''<!DOCTYPE html><html><head><title>Capture integration</title><link rel="stylesheet" href="/main.css"></head><body><header><h1>Aether capture verification</h1></header><main><section id="one"><h2>First section</h2><img src="/image.png"><p id="live">Original</p><a id="next" href="/next">Next page</a><input id="name" value="alpha"></section><section id="two"><h2>Second section</h2><img src="/missing.png"><svg viewBox="0 0 20 20"><path d="M0 0L20 20"/></svg></section><section id="three"><h2>Third section</h2></section></main><footer>End of document</footer><script>document.getElementById('live').textContent='Updated by JavaScript';localStorage.setItem('loaded','yes');</script></body></html>'''
 
@@ -46,6 +48,8 @@ class FixtureServer(http.server.BaseHTTPRequestHandler):
             status, body = 404, b'missing'
         elif path == '/blocked':
             status, body = 403, b'<html><body>Denied</body></html>'
+        elif path == '/pixel':
+            body = PIXEL_HTML
         elif path == '/next':
             body = b'<html><head><title>Next</title></head><body><h1>Next page</h1></body></html>'
         elif path == '/download':
@@ -103,6 +107,66 @@ def validate_kit(directory):
     return manifest
 
 
+def ppm_pixel(result, x, y):
+    assert result['format'] == 'ppm', 'unexpected raster transport'
+    raw = base64.b64decode(result['data'], validate=True)
+    header, pixels = raw.split(b'\n255\n', 1)
+    tokens = header.split()
+    assert tokens[0] == b'P6', 'unexpected image encoding'
+    width, height = map(int, tokens[1:3])
+    assert len(pixels) == width * height * 3, 'truncated raster'
+    offset = (y * width + x) * 3
+    return tuple(pixels[offset:offset + 3])
+
+
+def png_pixel(path, x, y):
+    data = path.read_bytes()
+    assert data.startswith(b'\x89PNG\r\n\x1a\n'), 'capture is not PNG'
+    cursor, compressed, width, height, channels = 8, bytearray(), 0, 0, 0
+    while cursor < len(data):
+        size = struct.unpack_from('>I', data, cursor)[0]
+        kind = data[cursor + 4:cursor + 8]
+        payload = data[cursor + 8:cursor + 8 + size]
+        cursor += 12 + size
+        if kind == b'IHDR':
+            width, height, depth, color, _, _, interlace = struct.unpack('>IIBBBBB', payload)
+            assert depth == 8 and color in (2, 6) and interlace == 0, 'unsupported PNG pixel layout'
+            channels = 3 if color == 2 else 4
+        elif kind == b'IDAT':
+            compressed.extend(payload)
+        elif kind == b'IEND':
+            break
+    assert 0 <= x < width and 0 <= y < height, 'pixel outside image'
+    stride = width * channels
+    raw = zlib.decompress(compressed)
+    previous = bytearray(stride)
+    cursor = 0
+    for row in range(y + 1):
+        filtering = raw[cursor]
+        current = bytearray(raw[cursor + 1:cursor + 1 + stride])
+        cursor += stride + 1
+        for i in range(stride):
+            left = current[i - channels] if i >= channels else 0
+            above = previous[i]
+            upper_left = previous[i - channels] if i >= channels else 0
+            if filtering == 1:
+                prediction = left
+            elif filtering == 2:
+                prediction = above
+            elif filtering == 3:
+                prediction = (left + above) // 2
+            elif filtering == 4:
+                candidate = left + above - upper_left
+                distances = (abs(candidate - left), abs(candidate - above), abs(candidate - upper_left))
+                prediction = (left, above, upper_left)[distances.index(min(distances))]
+            else:
+                assert filtering == 0, 'unknown PNG row filter'
+                prediction = 0
+            current[i] = (current[i] + prediction) & 255
+        previous = current
+    return tuple(previous[x * channels:x * channels + 3])
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bin', default='.build/out/Products/Debug')
@@ -154,7 +218,25 @@ def main():
         check('scroll', lambda: (call('page.scroll', page=page, x=0, y=320), require(call('page.scrollOffset', page=page)['y'] == 320, 'offset incorrect')))
         check('render', lambda: call('page.render', page=page, path=str(output / 'viewport.png')))
         check('resize', lambda: require(call('page.resize', page=page, width=640, height=480)['width'] == 640, 'resize failed'))
+        def dynamic_pixels():
+            call('page.navigate', page=page, url=base + '/pixel')
+            node = call('page.query', page=page, selector='#paint')
+            require(node['name'] == 'After JavaScript', 'dynamic DOM text was not rendered')
+            found = call('page.find', page=page, query='after javascript')
+            require(len(found['matches']) == 1, 'live find-in-page did not observe DOM mutation')
+            require(found['matches'][0]['text'] == 'After JavaScript', 'find returned wrong text')
+            rgb = ppm_pixel(call('page.render', page=page), 10, 10)
+            require(rgb == (0, 255, 0), f'expected JS-updated green pixel, got {rgb}')
+            return {'observedRGB': rgb, 'page': page}
+        check('dynamic DOM-to-raster pixels', dynamic_pixels)
+        def typed_input():
+            result = call('page.navigateInput', page=page, input=f'127.0.0.1:{server.server_port}/pixel')
+            require(result['kind'] == 'url', 'address interpreted as a search')
+            require(result['page']['url'] == base + '/pixel', 'typed input did not navigate the live page')
+            return {'kind': result['kind'], 'url': result['url']}
+        check('typed address uses live page', typed_input)
         def history():
+            call('page.navigate', page=page, url=base)
             call('page.navigate', page=page, url=base + '/next')
             require(call('page.back', page=page)['title'] == 'Capture integration', 'back failed')
             require(call('page.forward', page=page)['title'] == 'Next', 'forward failed')
@@ -170,9 +252,13 @@ def main():
             call('context.storageSet', context=context, origin=base, key='persist', value='value')
             call('context.checkpoint', context=context)
             call('context.destroy', context=context)
-            restored = call('context.create', name='restored')['id']
+            restored = call('context.create', name='verification')['id']
             call('context.openProfile', context=restored, directory=str(output / 'profile'))
             require(call('context.storageValues', context=restored, origin=base)['persist'] == 'value', 'profile data lost')
+            pages = call('page.list', context=restored)
+            require(len(pages) == 1 and not pages[0]['loaded'], 'session page missing')
+            recovered = call('page.restore', page=pages[0]['id'])
+            require(recovered['title'] == 'Next', 'session restore wrong history entry')
             call('context.destroy', context=restored)
         check('profile checkpoint and reopen', profile)
         def sessions():
@@ -191,6 +277,33 @@ def main():
                 call('context.destroy', context=ctx)
             require(call('fleet.stats')['pages'] == 0, 'pages leaked')
         check('tabs isolation lifecycle cleanup', sessions)
+        def services():
+            ctx = call('context.create', name='services')['id']
+            call('context.openProfile', context=ctx, directory=str(output / 'services-profile'))
+            added = call('context.bookmarkAdd', context=ctx, url=base + '/next', title='Next fixture')
+            require(added['url'] == base + '/next', 'bookmark URL mismatch')
+            require(len(call('context.bookmarks', context=ctx)) == 1, 'bookmark missing')
+            found = call('context.suggest', context=ctx, prefix='next')
+            require(any(s['kind'] == 'bookmark' for s in found), 'suggest missed bookmark')
+            provider = call('context.searchProvider', context=ctx)
+            require(provider['endpoint'] == 'https://www.google.com/search', 'default provider changed')
+            call('context.setSearchProvider', context=ctx, endpoint='https://search.example.test/find')
+            require(call('context.searchProvider', context=ctx)['endpoint'] == 'https://search.example.test/find', 'provider not stored')
+            try:
+                call('context.setSearchProvider', context=ctx, endpoint='ftp://example.test/')
+                raise AssertionError('unsafe provider accepted')
+            except RuntimeError:
+                pass
+            call('context.checkpoint', context=ctx)
+            call('context.destroy', context=ctx)
+            again = call('context.create', name='services')['id']
+            call('context.openProfile', context=again, directory=str(output / 'services-profile'))
+            require(len(call('context.bookmarks', context=again)) == 1, 'bookmark lost across reopen')
+            require(call('context.searchProvider', context=again)['endpoint'] == 'https://search.example.test/find', 'provider lost across reopen')
+            require(call('context.suggest', context=again, prefix='next')[0]['kind'] == 'bookmark', 'suggest lost across reopen')
+            call('context.destroy', context=again)
+            return {'bookmarks': 1}
+        check('engine services persist across reopen', services)
         def capture(name, path='/', **options):
             directory = output / name
             call('page.capture', url=base + path, path=str(directory), width=400, height=300, **options)
@@ -210,6 +323,17 @@ def main():
             capture('kit-timer', '/timer')
             require('Timer completed' in (output / 'kit-timer' / 'website.html').read_text(), 'timer never pumped during capture')
         check('delayed JavaScript capture', timer)
+        def dynamic_capture_pixels():
+            directory = output / 'kit-pixel'
+            manifest = capture('kit-pixel', '/pixel', format='png')
+            require('After JavaScript' in (directory / 'website.html').read_text(),
+                    'captured DOM omitted JavaScript mutation')
+            first = manifest['screenshots'][0]
+            require(first['format'] == 'png', 'PNG capture unsupported on this host')
+            rgb = png_pixel(directory / first['file'], 10, 10)
+            require(rgb == (0, 255, 0), f'captured pixel is not JS-updated green: {rgb}')
+            return {'observedRGB': rgb, 'screenshot': first['file']}
+        check('dynamic capture DOM and pixel', dynamic_capture_pixels)
         def refused(path):
             try:
                 call('page.capture', url=base + path, path=str(output / ('failed-' + path[1:])))

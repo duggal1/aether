@@ -1,3 +1,4 @@
+import ContentBlocker
 import EngineCore
 import Foundation
 
@@ -10,8 +11,10 @@ public actor NetworkSession {
   private let counter = AtomicCounter()
   public nonisolated let cookieJar: CookieJar
   public let cache: HTTPCache
+  public nonisolated let blocker: FilterEngine
 
-  public init(cacheBytes: Int = 64 * 1024 * 1024) {
+  public init(cacheBytes: Int = 64 * 1024 * 1024, blocker: FilterEngine = FilterEngine()) {
+    self.blocker = blocker
     let configuration = URLSessionConfiguration.ephemeral
     configuration.httpShouldSetCookies = false
     configuration.urlCache = nil
@@ -29,6 +32,9 @@ public actor NetworkSession {
       throw NetworkError.disallowedScheme(input.url.scheme ?? "")
     }
 
+    let decision = blocker.decide(url: input.url, kind: input.resourceKind, documentURL: input.documentURL)
+    guard !decision.blocked else { throw NetworkError.requestFailed(decision.reason ?? "Content blocked") }
+    let redirectPolicy = FilterRedirectDelegate(blocker: blocker, kind: input.resourceKind, documentURL: input.documentURL)
     var request = input
     if request.id.rawValue == 0 { request.id = RequestID(rawValue: counter.next()) }
 
@@ -56,7 +62,8 @@ public actor NetworkSession {
     let clock = ContinuousClock()
     let start = clock.now
     do {
-      let (data, response) = try await session.data(for: urlRequest)
+      let (data, response) = try await session.data(for: urlRequest, delegate: redirectPolicy)
+      if redirectPolicy.wasBlocked { throw NetworkError.requestFailed("Redirect blocked by content policy") }
       guard let http = response as? HTTPURLResponse else { throw NetworkError.invalidResponse }
       let duration = start.duration(to: clock.now)
       let millis =

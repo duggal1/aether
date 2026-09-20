@@ -1,3 +1,4 @@
+import ContentBlocker
 import EngineCore
 import Foundation
 
@@ -18,11 +19,14 @@ public struct HTTPRequest: Hashable, Sendable {
   public var headers: [String: String]
   public var body: Data?
   public var cachePolicy: HTTPCachePolicy
+  public var resourceKind: BlockResourceKind
+  public var documentURL: URL?
 
   public init(
     id: RequestID = RequestID(rawValue: 0), url: URL, method: HTTPMethod = .get,
     headers: [String: String] = [:], body: Data? = nil,
-    cachePolicy: HTTPCachePolicy = .useProtocolCachePolicy
+    cachePolicy: HTTPCachePolicy = .useProtocolCachePolicy,
+    resourceKind: BlockResourceKind = .other, documentURL: URL? = nil
   ) {
     self.id = id
     self.url = url
@@ -30,6 +34,8 @@ public struct HTTPRequest: Hashable, Sendable {
     self.headers = headers
     self.body = body
     self.cachePolicy = cachePolicy
+    self.resourceKind = resourceKind
+    self.documentURL = documentURL
   }
 }
 
