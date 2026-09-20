@@ -13,6 +13,7 @@ final class WebKitVerification {
     var finalURL: String?
     var title: String?
     var elapsedMilliseconds: Double
+    var titleMilliseconds: Double?
     var details: String?
     var screenshot: String?
     var error: String?
@@ -40,6 +41,9 @@ final class WebKitVerification {
             if case .failed(let message) = tab.loadState { throw BrowserRuntimeError.invalidState(message) }
             if let page = tab.enginePageID {
               let state = try await adapter.snapshot(pageID: page)
+              if result.titleMilliseconds == nil, !(state.title.isEmpty) {
+                result.titleMilliseconds = Date().timeIntervalSince(start) * 1000
+              }
               if !state.isLoading, state.url != nil, !state.title.isEmpty {
                 ready = page
                 break

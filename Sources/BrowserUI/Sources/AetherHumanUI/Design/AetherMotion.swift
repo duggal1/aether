@@ -73,17 +73,3 @@ public struct AetherPointingCursor: ViewModifier {
         content.pointerStyle(.link)
     }
 }
-
-public struct AetherTextCursor: ViewModifier {
-    public init() {}
-    public func body(content: Content) -> some View {
-        content.pointerStyle(.horizontalText)
-    }
-}
-
-public struct AetherColumnResizeCursor: ViewModifier {
-    public init() {}
-    public func body(content: Content) -> some View {
-        content.pointerStyle(.columnResize)
-    }
-}
