@@ -277,6 +277,33 @@ def main():
                 call('context.destroy', context=ctx)
             require(call('fleet.stats')['pages'] == 0, 'pages leaked')
         check('tabs isolation lifecycle cleanup', sessions)
+        def services():
+            ctx = call('context.create', name='services')['id']
+            call('context.openProfile', context=ctx, directory=str(output / 'services-profile'))
+            added = call('context.bookmarkAdd', context=ctx, url=base + '/next', title='Next fixture')
+            require(added['url'] == base + '/next', 'bookmark URL mismatch')
+            require(len(call('context.bookmarks', context=ctx)) == 1, 'bookmark missing')
+            found = call('context.suggest', context=ctx, prefix='next')
+            require(any(s['kind'] == 'bookmark' for s in found), 'suggest missed bookmark')
+            provider = call('context.searchProvider', context=ctx)
+            require(provider['endpoint'] == 'https://www.google.com/search', 'default provider changed')
+            call('context.setSearchProvider', context=ctx, endpoint='https://search.example.test/find')
+            require(call('context.searchProvider', context=ctx)['endpoint'] == 'https://search.example.test/find', 'provider not stored')
+            try:
+                call('context.setSearchProvider', context=ctx, endpoint='ftp://example.test/')
+                raise AssertionError('unsafe provider accepted')
+            except RuntimeError:
+                pass
+            call('context.checkpoint', context=ctx)
+            call('context.destroy', context=ctx)
+            again = call('context.create', name='services')['id']
+            call('context.openProfile', context=again, directory=str(output / 'services-profile'))
+            require(len(call('context.bookmarks', context=again)) == 1, 'bookmark lost across reopen')
+            require(call('context.searchProvider', context=again)['endpoint'] == 'https://search.example.test/find', 'provider lost across reopen')
+            require(call('context.suggest', context=again, prefix='next')[0]['kind'] == 'bookmark', 'suggest lost across reopen')
+            call('context.destroy', context=again)
+            return {'bookmarks': 1}
+        check('engine services persist across reopen', services)
         def capture(name, path='/', **options):
             directory = output / name
             call('page.capture', url=base + path, path=str(directory), width=400, height=300, **options)

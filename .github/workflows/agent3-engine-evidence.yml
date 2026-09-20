@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - agent3/engine-services-gate-20260920
+      - agent3/engine-services-gate-20260920-work
   pull_request:
 
 concurrency:
