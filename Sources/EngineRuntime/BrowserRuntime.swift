@@ -48,6 +48,8 @@ public actor BrowserRuntime {
     var pipeline = FramePipelineState()
     var frames = FrameRecorder()
     var ledger = ResourceLedger()
+    var raster = RetainedRaster()
+    var surfaceID: UUID?
   }
 
   private struct DialogRecord: Sendable {
@@ -337,6 +339,8 @@ public actor BrowserRuntime {
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     page.loaded = nil
+    page.raster.clear()
+    page.ledger.reset(.raster)
     page.javascript = nil
     page.lifecycle = .discarded
     context.pages[pageID] = page
@@ -575,18 +579,96 @@ public actor BrowserRuntime {
     }
   }
 
+  public func attachSurface(pageID: PageID) throws -> PageSurface {
+    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
+      var page = context.pages[pageID]
+    else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    guard page.surfaceID == nil else { throw PageSurfaceError.alreadyAttached }
+    let id = UUID()
+    page.surfaceID = id
+    context.pages[pageID] = page
+    contexts[contextID] = context
+    return PageSurface(pageID: pageID, attachmentID: id)
+  }
+
+  public func detachSurface(_ surface: PageSurface) throws {
+    try validateSurface(surface)
+    guard let contextID = contextID(containing: surface.pageID),
+      var context = contexts[contextID], var page = context.pages[surface.pageID]
+    else { throw BrowserRuntimeError.pageNotFound(surface.pageID) }
+    page.surfaceID = nil
+    context.pages[surface.pageID] = page
+    contexts[contextID] = context
+  }
+
+  public func resizeSurface(_ surface: PageSurface, viewport: Size) throws -> BrowserPageInfo {
+    try validateSurface(surface)
+    return try resize(pageID: surface.pageID, viewport: viewport)
+  }
+
+  public func nodeAtSurfacePoint(_ surface: PageSurface, x: Double, y: Double) throws -> InspectedNode? {
+    try validateSurface(surface)
+    return try nodeAtPoint(pageID: surface.pageID, x: x, y: y)
+  }
+
+  public func clickSurface(_ surface: PageSurface, x: Double, y: Double) async throws -> BrowserPageInfo {
+    try validateSurface(surface)
+    guard let node = try nodeAtPoint(pageID: surface.pageID, x: x, y: y) else {
+      return try pageInfo(surface.pageID)
+    }
+    return try await click(pageID: surface.pageID, nodeID: node.id)
+  }
+
+  public func requestFrame(_ surface: PageSurface, after revision: UInt64? = nil) throws -> PageFrame {
+    try validateSurface(surface)
+    return try frame(pageID: surface.pageID, after: revision)
+  }
+
+  public func frame(pageID: PageID, after revision: UInt64? = nil) throws -> PageFrame {
+    let page = try requirePage(pageID)
+    return try rasterFrame(pageID: pageID, origin: page.scroll, after: revision)
+  }
+
   public func render(pageID: PageID, origin: Point = .zero) throws -> PixelBuffer {
+    try rasterFrame(pageID: pageID, origin: origin, after: nil).pixels
+  }
+
+  private func validateSurface(_ surface: PageSurface) throws {
+    let page = try requirePage(surface.pageID)
+    guard page.surfaceID == surface.attachmentID else { throw PageSurfaceError.detached }
+  }
+
+  private func rasterFrame(pageID: PageID, origin: Point, after revision: UInt64?) throws -> PageFrame {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID], var loaded = page.loaded
     else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    let (buffer, milliseconds) = try MetricClock.milliseconds {
-      try SoftwareRenderer().render(loaded.displayList, viewport: page.viewport, origin: origin)
+    let (result, milliseconds) = try MetricClock.milliseconds {
+      try page.raster.render(
+        loaded.displayList, viewport: page.viewport, origin: origin,
+        maximumBytes: page.ledger.budget.maxRasterBytes)
     }
-    loaded.metrics.renderMilliseconds = milliseconds
+    page.ledger.reset(.raster)
+    guard page.ledger.allocate(page.raster.byteCount, category: .raster) else {
+      throw RendererError.renderingFailed
+    }
+    _ = page.pipeline.takePending()
+    let report = FrameReport(
+      rasterMilliseconds: result.reused ? 0 : milliseconds,
+      frameMilliseconds: milliseconds, ramBytesEstimate: page.ledger.used(.raster),
+      domNodes: loaded.document.nodeCount, displayCommands: loaded.displayList.commands.count)
+    page.frames.record(report)
+    var damage = DirtyRegion()
+    if revision != page.raster.revision {
+      damage.add(Rect(origin: .zero, size: page.viewport))
+    }
+    loaded.metrics.renderMilliseconds = report.rasterMilliseconds
     page.loaded = loaded
     context.pages[pageID] = page
     contexts[contextID] = context
-    return buffer
+    return PageFrame(
+      pageID: pageID, revision: page.raster.revision,
+      mutationVersion: loaded.document.mutationVersion, viewport: page.viewport,
+      scroll: origin, damage: damage, pixels: result.pixels, report: report)
   }
 
   public func metrics(pageID: PageID) throws -> EngineMetrics {
@@ -807,7 +889,9 @@ public actor BrowserRuntime {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    page.viewport = normalized(viewport)
+    let nextViewport = normalized(viewport)
+    if page.viewport == nextViewport { return info(for: page) }
+    page.viewport = nextViewport
     context.pages[pageID] = page
     contexts[contextID] = context
     if page.loaded != nil { try refreshPage(pageID) }
@@ -887,6 +971,8 @@ public actor BrowserRuntime {
       page.lifecycle = .frozen
     case .discarded:
       page.loaded = nil
+      page.raster.clear()
+      page.ledger.reset(.raster)
       page.javascript = nil
       page.lifecycle = .discarded
     }
@@ -1045,7 +1131,11 @@ public actor BrowserRuntime {
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    guard x.isFinite, y.isFinite, abs(x) <= 1_000_000_000, abs(y) <= 1_000_000_000 else {
+      throw RendererError.renderingFailed
+    }
     page.scroll = Point(x: max(0, x), y: max(0, y))
+    page.pipeline.markDirty(.composite, mutationVersion: page.loaded?.document.mutationVersion ?? 0)
     page.lastActive = nowSeconds()
     context.pages[pageID] = page
     contexts[contextID] = context
@@ -1507,7 +1597,7 @@ public actor BrowserRuntime {
     guard let loaded = page.loaded else { return 0 }
     let imageBytes = loaded.images.values.reduce(0) { $0 + $1.rgba.count }
     return loaded.document.nodeCount * 256 + loaded.displayList.commands.count * 128 + imageBytes
-      + loaded.metrics.responseBytes
+      + loaded.metrics.responseBytes + page.raster.byteCount
   }
 
   private func importance(of page: PageRecord) -> Double {
@@ -1810,6 +1900,8 @@ public actor BrowserRuntime {
     let layout = LayoutEngine().layout(styled, viewport: page.viewport)
     let display = DisplayListBuilder.build(
       document: loaded.document, layout: layout, images: loaded.images)
+    page.pipeline.markDirty([.style, .layout, .paint, .composite],
+      mutationVersion: loaded.document.mutationVersion)
     loaded.styledDocument = styled
     loaded.layout = layout
     loaded.displayList = display
