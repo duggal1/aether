@@ -24,15 +24,14 @@ public struct DomainIcon: View {
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
-                    .frame(width: size * 0.78, height: size * 0.78)
-                    .clipShape(RoundedRectangle(cornerRadius: size * 0.2, style: .continuous))
+                    .frame(width: size * 0.9, height: size * 0.9)
             } else if host != nil {
                 Image(systemName: AetherSymbol.globe.rawValue)
-                    .font(AetherType.symbol(size * 0.62))
+                    .font(AetherType.symbol(size * 0.68))
                     .foregroundStyle(theme.muted)
             } else {
                 AetherLogo()
-                    .frame(width: size * 0.7, height: size * 0.7)
+                    .frame(width: size * 0.78, height: size * 0.78)
             }
         }
         .frame(width: size, height: size)

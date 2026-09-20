@@ -1,0 +1,130 @@
+{
+ "sites": {
+  "https://www.apple.com": {
+   "wall_ms": 2038,
+   "load_ms": 1066,
+   "fcp_ms": 343,
+   "doc_bytes": 48542,
+   "title": "Apple"
+  },
+  "https://www.youtube.com": {
+   "wall_ms": 1477,
+   "load_ms": 881,
+   "fcp_ms": 268,
+   "doc_bytes": 97322,
+   "title": "YouTube"
+  },
+  "https://en.wikipedia.org/wiki/WebKit": {
+   "wall_ms": 1005,
+   "load_ms": 862,
+   "fcp_ms": 543,
+   "doc_bytes": 73915,
+   "title": "WebKit - Wikipedia"
+  },
+  "https://github.com": {
+   "wall_ms": 470,
+   "load_ms": 0,
+   "fcp_ms": 411,
+   "doc_bytes": 117800,
+   "title": "GitHub \u00b7 Change is constant. GitHub keeps you ahea"
+  },
+  "https://www.google.com": {
+   "wall_ms": 818,
+   "load_ms": 668,
+   "fcp_ms": 581,
+   "doc_bytes": 32055,
+   "title": "Google"
+  },
+  "https://www.bing.com": {
+   "wall_ms": 1631,
+   "load_ms": 282,
+   "fcp_ms": 282,
+   "doc_bytes": 64233,
+   "title": "Search - Microsoft Bing"
+  },
+  "https://duckduckgo.com": {
+   "wall_ms": 655,
+   "load_ms": 531,
+   "fcp_ms": 145,
+   "doc_bytes": 58941,
+   "title": "DuckDuckGo - Protection. Privacy. Peace of mind."
+  },
+  "https://example.com": {
+   "wall_ms": 113,
+   "load_ms": 27,
+   "fcp_ms": 28,
+   "doc_bytes": 636,
+   "title": "Example Domain"
+  },
+  "https://www.notion.so": {
+   "wall_ms": 3563,
+   "load_ms": 1115,
+   "fcp_ms": 1297,
+   "doc_bytes": 0,
+   "title": "The AI workspace that works for you. | Notion"
+  },
+  "https://chatgpt.com": {
+   "wall_ms": 8339,
+   "load_ms": 2958,
+   "fcp_ms": 2992,
+   "doc_bytes": 97068,
+   "title": "ChatGPT: Chat, Work, Create & Code with AI"
+  }
+ },
+ "heavy": {
+  "https://kononenkogroup.com/": {
+   "wall_ms": 1615,
+   "load_ms": 1478,
+   "fcp_ms": 71,
+   "doc_bytes": 18757,
+   "title": "Kononenko Architectural Bureau"
+  },
+  "https://weaveos.com/": {
+   "wall_ms": 2738,
+   "load_ms": 2039,
+   "fcp_ms": 409,
+   "doc_bytes": 27199,
+   "title": "Weave - AI to measure engineers and agents"
+  },
+  "https://www.melius.com/": {
+   "wall_ms": 2509,
+   "load_ms": 2147,
+   "fcp_ms": 594,
+   "doc_bytes": 37849,
+   "title": "Melius \u2013 the AI-native operating system for creati"
+  }
+ },
+ "extraction": {
+  "limit_20000": {
+   "ms": 2291,
+   "nodes": 8277
+  },
+  "limit_500": {
+   "ms": 185,
+   "nodes": 500
+  },
+  "limit_200": {
+   "ms": 50,
+   "nodes": 200
+  },
+  "limit_50": {
+   "ms": 33,
+   "nodes": 50
+  }
+ },
+ "cache": {
+  "first_ms": 1577,
+  "repeat_ms": 926,
+  "repeat_doc_bytes": [
+   0
+  ]
+ },
+ "prewarm": {
+  "prewarmed_navigate_ms": 50,
+  "cold_open_ms": 83
+ },
+ "memory": {
+  "daemon_rss_kb": 50528,
+  "note": "WebKit XPC RSS is launchd-owned and shared machine-wide; not attributable per app"
+ }
+}

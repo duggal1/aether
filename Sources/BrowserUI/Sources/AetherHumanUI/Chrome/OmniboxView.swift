@@ -7,6 +7,8 @@ public struct OmniboxView: View {
     @BrowserState private var draft = ""
     @BrowserState private var selection = 0
     @BrowserState private var showingSuggestions = false
+    @BrowserState private var progress = -1.0
+    @BrowserState private var progressCycle = 0
     let window: BrowserWindowModel
 
     public init(window: BrowserWindowModel) { self.window = window }
@@ -34,6 +36,7 @@ public struct OmniboxView: View {
             BrowserIconView(icon: focused ? .search : (window.selected?.isSecure == false ? .warning : .lock),
                             tint: focused ? theme.ink : theme.muted)
                 .iconSize(12)
+                .frame(height: 20, alignment: .center)
             NativeAddressField(text: $draft, focused: $focused,
                 fullAddress: window.selected?.url ?? "",
                 placeholder: "Search \(window.workspace.preferences.provider.rawValue) or enter URL",
@@ -53,11 +56,15 @@ public struct OmniboxView: View {
                 .onChange(of: window.selected?.url) { _, url in
                     if !focused { draft = displayAddress(url) }
                 }
+                .onChange(of: window.selected?.loadState == .loading) { _, loading in
+                    if loading == true { startProgress() } else { finishProgress() }
+                }
             if !focused {
                 Button { window.navigateSelected("https://www.google.com/ai") } label: {
                     Text("AI Mode").font(AetherType.body(11)).foregroundStyle(theme.muted)
                 }
                 .buttonStyle(.plain)
+                .aetherFocusTreatment(radius: 6)
                 .help("Open Google AI Mode")
                 .accessibilityIdentifier("aether.google-ai")
             }
@@ -66,6 +73,7 @@ public struct OmniboxView: View {
                     BrowserIconView(icon: .close, tint: theme.muted).iconSize(11)
                 }
                 .buttonStyle(.plain)
+                .aetherFocusTreatment(radius: 6)
                 .help("Clear address")
             }
             Button {
@@ -78,17 +86,18 @@ public struct OmniboxView: View {
                     .iconSize(13)
             }
             .buttonStyle(.plain)
+            .aetherFocusTreatment(radius: 6)
             .help("Bookmark this page")
         }
         .padding(.leading, 12).padding(.trailing, 6)
         .frame(height: 32)
-        .background { AetherCardBackground(radius: 8) }
-        .overlay {
-            if focused {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(theme.hairline, lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
+        .background { AetherGlassBackdrop(radius: 8, interactive: true) }
+        .overlay(alignment: .bottom) {
+            AetherProgressLine(
+                fraction: progress,
+                color: window.workspace.preferences.progressColor.color
+            )
+            .offset(y: 5)
         }
         .animation(AetherMotion.focus(reduced), value: focused)
         .onAppear { draft = displayAddress(window.selected?.url) }
@@ -110,7 +119,7 @@ public struct OmniboxView: View {
             ForEach(Array(matches.enumerated()), id: \.element.id) { offset, item in
                 suggestionRow(offset: offset + 1, selected: selection == offset + 1) {
                     HStack(spacing: 10) {
-                        DomainIcon(item.url, size: 18)
+                        DomainIcon(item.url, size: 20)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(item.title).font(AetherType.rowTitle(12)).lineLimit(1)
                             Text(item.subtitle).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1)
@@ -142,6 +151,7 @@ public struct OmniboxView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .aetherFocusTreatment(radius: 8)
     }
 
     private func displayAddress(_ url: String?) -> String {
@@ -159,6 +169,47 @@ public struct OmniboxView: View {
         focused = false; showingSuggestions = false
         if item.kind == .tab { window.select(item.id) }
         else if let url = item.url { window.navigateSelected(url) }
+    }
+
+    private func startProgress() {
+        progressCycle += 1
+        progress = 0.04
+        withAnimation(.smooth(duration: 1.6)) { progress = 0.78 }
+    }
+
+    private func finishProgress() {
+        guard progress >= 0 else { return }
+        progressCycle += 1
+        let cycle = progressCycle
+        withAnimation(.smooth(duration: 0.25)) { progress = 1.0 }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.35))
+            if progressCycle == cycle { progress = -1.0 }
+        }
+    }
+}
+
+private struct AetherProgressLine: View {
+    let fraction: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            if fraction >= 0 {
+                LinearGradient(
+                    colors: [color.opacity(0.35), color],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(width: max(4, proxy.size.width * min(1, fraction)), height: 2)
+                .clipShape(Capsule())
+                .shadow(color: color.opacity(0.45), radius: 3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .transition(.opacity)
+            }
+        }
+        .frame(height: 6)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

@@ -190,6 +190,7 @@ public actor BrowserRuntime {
       Task { await self?.requestReload(node: node) }
     }
     contexts[id] = record
+    webProfileIdentifiers[id] = UUID()
     return BrowserContextInfo(id: id, name: record.name, pageCount: 0)
   }
 
@@ -219,7 +220,9 @@ public actor BrowserRuntime {
     guard contexts[contextID] != nil else {
       throw BrowserRuntimeError.contextNotFound(contextID)
     }
-    webProfileIdentifiers[contextID] = UUID(uuidString: directory.lastPathComponent)
+    if let profileID = UUID(uuidString: directory.lastPathComponent) {
+      webProfileIdentifiers[contextID] = profileID
+    }
     let profile = try ProfileStore.open(directory: directory)
     do {
       try await attachProfile(profile, contextID: contextID)
@@ -840,8 +843,8 @@ public actor BrowserRuntime {
     return PageInspection(page: try pageInfo(pageID), nodes: nodes)
   }
 
-  public func snapshot(pageID: PageID) async throws -> PageSnapshot {
-    return try await webPage(pageID).snapshot(info: pageInfo(pageID))
+  public func snapshot(pageID: PageID, limit: Int = 20000) async throws -> PageSnapshot {
+    return try await webPage(pageID).snapshot(info: pageInfo(pageID), limit: limit)
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     let dom = loaded.document.snapshot()

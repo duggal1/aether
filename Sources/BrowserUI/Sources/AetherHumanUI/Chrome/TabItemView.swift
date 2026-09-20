@@ -39,6 +39,7 @@ public struct TabItemView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .aetherFocusTreatment(radius: 5)
                 .help("Close tab")
                 .transition(.opacity)
             }
@@ -50,6 +51,8 @@ public struct TabItemView: View {
         .contentShape(Rectangle())
         .onTapGesture { window.select(tab.id) }
         .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
+        .aetherPointingCursor()
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
         .contextMenu {
             Button("New Tab") { _ = window.newTab() }
             Button("Duplicate Tab") { window.duplicate(tab.id) }
@@ -73,8 +76,14 @@ public struct TabItemView: View {
 
     @ViewBuilder private var selectionBackground: some View {
         if selected {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(theme.raised)
+            if let namespace {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(theme.raised)
+                    .matchedGeometryEffect(id: "aether.tab.active", in: namespace, isSource: true)
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(theme.raised)
+            }
         } else if hovering {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(theme.hover.opacity(0.55))

@@ -17,7 +17,7 @@ struct NativeAddressField: NSViewRepresentable {
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = .systemFont(ofSize: 12)
+        field.font = .systemFont(ofSize: 13)
         field.lineBreakMode = .byTruncatingTail
         field.cell?.isScrollable = true
         field.delegate = context.coordinator

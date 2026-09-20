@@ -32,7 +32,7 @@ public struct ProfileSwitcherView: View {
                     .font(AetherType.sectionHeader(10)).tracking(0.4)
                     .foregroundStyle(theme.soft)
                     .padding(.horizontal, 9).padding(.top, 4).padding(.bottom, 6)
-                ForEach(window.workspace.profiles) { profile in
+                ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
                     Button {
                         window.switchProfile(profile.id)
                         showing = false
@@ -43,6 +43,10 @@ public struct ProfileSwitcherView: View {
                                     .font(AetherType.symbol(8)).foregroundStyle(theme.muted)
                                 Text(profile.name).font(AetherType.body(12)).lineLimit(1)
                                 Spacer(minLength: 6)
+                                if index < 5 {
+                                    Text("\u{2303}\(index + 1)")
+                                        .font(AetherType.caption(11)).foregroundStyle(theme.soft)
+                                }
                                 if profile.id == window.activeProfileID {
                                     BrowserIconView(icon: .checkmark, tint: theme.muted).iconSize(11)
                                 }
@@ -72,6 +76,7 @@ public struct ProfileSwitcherView: View {
                     Spacer()
                     Button("Cancel") { creating = false }
                         .buttonStyle(.plain)
+                        .aetherFocusTreatment(radius: 6)
                     Button("Create Profile") {
                         let profile = window.workspace.createProfile(profileName)
                         window.switchProfile(profile.id)

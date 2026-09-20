@@ -13,6 +13,7 @@ public final class BrowserPreferences {
     public var sidebarWidth: Double { didSet { save() } }
     public var downloadFolder: String { didSet { save() } }
     public var privacy: BrowserPrivacyPolicy { didSet { save() } }
+    public var progressColor: AetherProgressColor { didSet { save() } }
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -29,6 +30,7 @@ public final class BrowserPreferences {
             blockTrackers: defaults.object(forKey: "aether.blockTrackers") as? Bool ?? true,
             handleCookieBanners: defaults.object(forKey: "aether.cookieBanners") as? Bool ?? true
         )
+        progressColor = AetherProgressColor(rawValue: defaults.string(forKey: "aether.progressColor") ?? "") ?? .violet
     }
     private func save() {
         defaults.set(arrangement.rawValue, forKey: "aether.tabs")
@@ -42,5 +44,6 @@ public final class BrowserPreferences {
         defaults.set(privacy.blockAds, forKey: "aether.blockAds")
         defaults.set(privacy.blockTrackers, forKey: "aether.blockTrackers")
         defaults.set(privacy.handleCookieBanners, forKey: "aether.cookieBanners")
+        defaults.set(progressColor.rawValue, forKey: "aether.progressColor")
     }
 }

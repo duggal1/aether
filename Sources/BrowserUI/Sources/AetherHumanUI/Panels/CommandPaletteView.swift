@@ -85,8 +85,7 @@ public struct AetherCommandPalette: View {
         .frame(width: 348)
         .frame(maxHeight: .infinity, alignment: .top)
         .background {
-            UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12)
-                .fill(theme.raised)
+            AetherLeadingGlassPanel()
         }
         .aetherFloatingShadow(dark: theme.dark)
         .onAppear { fieldFocused = true }
@@ -130,7 +129,7 @@ public struct AetherCommandPalette: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 if let url {
-                    DomainIcon(url, size: 18)
+                    DomainIcon(url, size: 20)
                 } else if let symbol {
                     AetherSymbolView(symbol, tint: theme.muted, size: 13)
                 }
@@ -161,6 +160,9 @@ private struct AetherPaletteRowStyle: ButtonStyle {
     let reduced: Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .background { AetherFocusedFill(radius: 7) }
+            .focusEffectDisabled()
+            .modifier(AetherPointingCursor())
             .background(configuration.isPressed ? theme.hover : .clear,
                         in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)

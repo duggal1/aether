@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 public enum AetherMotion {
@@ -35,7 +36,43 @@ public struct AetherPressStyle: ButtonStyle {
     public init(reduced: Bool) { self.reduced = reduced }
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .background { AetherFocusedFill(radius: 8) }
+            .focusEffectDisabled()
+            .modifier(AetherPointingCursor())
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
             .animation(AetherMotion.press(reduced), value: configuration.isPressed)
+    }
+}
+
+public struct AetherFocusedFill: View {
+    @Environment(\.isFocused) private var focused
+    @Environment(\.aetherTheme) private var theme
+    let radius: CGFloat
+    public init(radius: CGFloat = 8) { self.radius = radius }
+    public var body: some View {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(focused ? theme.hover : .clear)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+public extension View {
+    func aetherFocusTreatment(radius: CGFloat = 8) -> some View {
+        self.background { AetherFocusedFill(radius: radius) }
+            .focusEffectDisabled()
+    }
+
+    func aetherPointingCursor() -> some View {
+        self.modifier(AetherPointingCursor())
+    }
+}
+
+public struct AetherPointingCursor: ViewModifier {
+    public init() {}
+    public func body(content: Content) -> some View {
+        content.onHover { inside in
+            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
     }
 }

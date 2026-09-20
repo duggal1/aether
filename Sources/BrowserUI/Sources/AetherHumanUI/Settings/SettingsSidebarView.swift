@@ -25,15 +25,16 @@ public struct SettingsSidebarView: View {
                     .padding(.horizontal, 12).frame(height: 32)
                     .background(selection == section ? theme.selection : .clear, in: RoundedRectangle(cornerRadius: 7))
                     .contentShape(Rectangle())
-                }.buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
+                .aetherFocusTreatment(radius: 7)
             }
-            Spacer()
-            Text("NATIVE · MACOS")
-                .font(AetherType.caption(9)).foregroundStyle(theme.soft).padding(.horizontal, 12).padding(.bottom, 20)
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 9)
+        .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.surface)
+        .background(theme.canvas)
     }
 
     private func nativeIcon(for section: SettingsSection) -> AetherSymbol {

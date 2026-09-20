@@ -46,9 +46,10 @@ extension WebKitPage {
     return values.map(\.inspected)
   }
 
-  func snapshot(info: BrowserPageInfo) async throws -> PageSnapshot {
+  func snapshot(info: BrowserPageInfo, limit: Int = 20000) async throws -> PageSnapshot {
     try await prepareDOM()
-    let values = try await decode([WebDOMNode].self, "JSON.stringify(globalThis.__aetherDOM.snapshot())")
+    let capped = max(1, min(limit, 20000))
+    let values = try await decode([WebDOMNode].self, "JSON.stringify(globalThis.__aetherDOM.snapshot(\(capped)))")
     return PageSnapshot(page: info, documentID: DocumentID(rawValue: UInt64(generation)),
       mutationVersion: UInt64(generation), nodes: values.map(\.snapshot))
   }

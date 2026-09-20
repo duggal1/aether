@@ -65,10 +65,11 @@ enum WebKitDOMScript {
           enabled:!el?.matches(':disabled'),editable:!!el?.matches('input,textarea,select,[contenteditable=true]'),
           bounds:rect ? {origin:{x:rect.x+scrollX,y:rect.y+scrollY},size:{width:rect.width,height:rect.height}} : null};
       };
-      globalThis.__aetherDOM = {generation:\(generation),describe,get:i => nodes.get(i)?.deref(),snapshot:() => {
+      globalThis.__aetherDOM = {generation:\(generation),describe,get:i => nodes.get(i)?.deref(),snapshot:(max) => {
+        const limit = max > 0 ? Math.min(max, 20000) : 20000;
         const walker = document.createTreeWalker(document,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT);
         const result = [];
-        while (walker.nextNode() && result.length < 20000) {
+        while (walker.nextNode() && result.length < limit) {
           if (walker.currentNode.parentElement?.closest('script,style,noscript')) continue;
           result.push(describe(walker.currentNode));
         }

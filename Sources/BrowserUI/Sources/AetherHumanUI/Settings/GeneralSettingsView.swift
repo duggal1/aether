@@ -13,9 +13,29 @@ public struct GeneralSettingsView: View {
         }
         AetherSection("New windows") {
             AetherRow("Open with profile") {
-                Picker("Profile", selection: Binding(get: { workspace.defaultProfileID }, set: { workspace.setDefaultProfile($0) })) {
-                    ForEach(workspace.profiles) { Text($0.name).tag($0.id) }
-                }.labelsHidden().frame(width: 160)
+                Menu {
+                    ForEach(workspace.profiles) { profile in
+                        Button(profile.name) { workspace.setDefaultProfile(profile.id) }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(workspace.name(for: workspace.defaultProfileID))
+                            .font(AetherType.body(12)).lineLimit(1)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(AetherType.symbol(10, weight: .regular))
+                            .foregroundStyle(theme.muted)
+                    }
+                    .foregroundStyle(theme.ink)
+                    .padding(.horizontal, 10)
+                    .frame(width: 160, height: 28)
+                    .background(theme.hover, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .aetherFocusTreatment(radius: 6)
+                .help("Choose the profile for new windows")
+                .accessibilityLabel("Open new windows with profile")
             }
         }
         SettingsHelp("Browser data, JavaScript execution, renderer behavior and profile security remain owned by the existing Aether engine.")

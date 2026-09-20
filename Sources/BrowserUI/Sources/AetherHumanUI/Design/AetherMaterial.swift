@@ -1,81 +1,70 @@
 import AppKit
 import SwiftUI
 
-public enum AetherMaterialRole: Sendable {
-    case chrome
+public enum AetherChromeRole: Sendable {
     case sidebar
-    case settingsSidebar
-    case popover
-}
-
-public struct AetherNativeMaterial: NSViewRepresentable {
-    public typealias NSViewType = NSView
-    public let role: AetherMaterialRole
-
-    public init(_ role: AetherMaterialRole) { self.role = role }
-
-    public func makeNSView(context: Context) -> NSView { makeView() }
-    public func updateNSView(_ view: NSView, context: Context) {}
-
-    private func makeView() -> NSView {
-        if #available(macOS 26.0, *) {
-            let glass = NSGlassEffectView()
-            glass.style = .regular
-            glass.cornerRadius = 0
-            glass.tintColor = nil
-            return glass
-        }
-        let view = NSVisualEffectView()
-        view.state = .followsWindowActiveState
-        view.isEmphasized = false
-        switch role {
-        case .chrome:
-            view.material = .titlebar
-            view.blendingMode = .withinWindow
-        case .sidebar, .settingsSidebar, .popover:
-            view.material = .sidebar
-            view.blendingMode = .behindWindow
-        }
-        return view
-    }
+    case toolbar
 }
 
 public struct AetherChromeBackground: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
-    public let role: AetherMaterialRole
+    public let role: AetherChromeRole
 
-    public init(_ role: AetherMaterialRole) { self.role = role }
+    public init(_ role: AetherChromeRole) { self.role = role }
 
     private var isOpaque: Bool { reduceTransparency || contrast == .increased }
 
     public var body: some View {
         ZStack {
-            if isOpaque { solid } else { AetherNativeMaterial(role) }
+            theme.canvas
+            if !isOpaque { AetherChromeBlur(role: role) }
         }
         .accessibilityHidden(true)
     }
+}
 
-    private var solid: Color {
-        switch role {
-        case .chrome: theme.canvas
-        case .sidebar, .settingsSidebar, .popover: theme.surface
-        }
+private struct AetherChromeBlur: NSViewRepresentable {
+    typealias NSViewType = NSVisualEffectView
+    let role: AetherChromeRole
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = role == .sidebar ? .sidebar : .titlebar
+        view.blendingMode = .withinWindow
+        view.state = .followsWindowActiveState
+        view.isEmphasized = false
+        return view
     }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
 public struct AetherPopoverBackground: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
     public init() {}
+
+    private var isOpaque: Bool { reduceTransparency || contrast == .increased }
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous) }
+
     public var body: some View {
-        RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
-            .fill(theme.raised)
-            .accessibilityHidden(true)
+        if isOpaque {
+            shape.fill(theme.raised).accessibilityHidden(true)
+        } else if #available(macOS 26.0, *) {
+            ZStack {
+                shape.fill(theme.raised.opacity(0.55)).accessibilityHidden(true)
+                Color.clear
+                    .glassEffect(.regular, in: shape)
+                    .accessibilityHidden(true)
+            }
+        } else {
+            shape.fill(.regularMaterial).accessibilityHidden(true)
+        }
     }
 }
-
 public struct AetherCardBackground: View {
     @Environment(\.aetherTheme) private var theme
     public let radius: CGFloat
@@ -84,6 +73,33 @@ public struct AetherCardBackground: View {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
             .fill(theme.raised)
             .accessibilityHidden(true)
+    }
+}
+
+public struct AetherLeadingGlassPanel: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    public init() {}
+
+    private var isOpaque: Bool { reduceTransparency || contrast == .increased }
+    private var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12)
+    }
+
+    public var body: some View {
+        if isOpaque {
+            shape.fill(theme.raised).accessibilityHidden(true)
+        } else if #available(macOS 26.0, *) {
+            ZStack {
+                shape.fill(theme.raised.opacity(0.55)).accessibilityHidden(true)
+                Color.clear
+                    .glassEffect(.regular, in: shape)
+                    .accessibilityHidden(true)
+            }
+        } else {
+            shape.fill(.regularMaterial).accessibilityHidden(true)
+        }
     }
 }
 

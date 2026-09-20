@@ -98,8 +98,10 @@ public final class AgentCommandDispatcher: Sendable {
           "page": pageJSON(inspection.page), "nodes": .array(inspection.nodes.map(nodeJSON)),
         ])
       case .pageSnapshot:
+        let limit = request.params["limit"]?.number.map { Int($0) } ?? 20000
         result = snapshotJSON(
-          try await engine.runtime.snapshot(pageID: PageID(rawValue: try uint64(request, "page"))))
+          try await engine.runtime.snapshot(
+            pageID: PageID(rawValue: try uint64(request, "page")), limit: limit))
       case .pageQuery:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let selector = request.params["selector"]?.string else {

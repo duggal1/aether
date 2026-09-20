@@ -15,6 +15,16 @@ public struct AppearanceSettingsView: View {
             .padding(12)
         }
         SettingsHelp("System mode follows macOS appearance changes. Focus rings, Reduce Motion, Reduce Transparency and Increase Contrast stay managed by the system.")
+        AetherSection("Loading indicator") {
+            AetherRow("Progress line color", subtitle: "Thin loading line under the address bar.") {
+                Picker("Progress line color", selection: Binding(get: { workspace.preferences.progressColor }, set: { workspace.preferences.progressColor = $0 })) {
+                    ForEach(AetherProgressColor.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 280)
+            }
+        }
     }
 
     private func appearanceCard(_ option: AetherAppearance) -> some View {

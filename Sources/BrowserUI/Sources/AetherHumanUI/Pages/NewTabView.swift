@@ -53,7 +53,7 @@ public struct NewTabView: View {
         .padding(.leading, 14).padding(.trailing, 8)
         .frame(height: 42)
         .frame(width: 438)
-        .background { AetherCardBackground(radius: 21) }
+        .background { AetherGlassBackdrop(radius: 21, interactive: true) }
         .aetherRestingShadow(dark: theme.dark)
     }
 
@@ -67,7 +67,7 @@ public struct NewTabView: View {
     private func shortcut(_ item: BrowserShortcut) -> some View {
         Button { window.navigateSelected(item.url) } label: {
             VStack(spacing: 9) {
-                DomainIcon(item.url, size: 26)
+                DomainIcon(item.url, size: 34)
                     .frame(width: 54, height: 54)
                     .background { AetherCardBackground(radius: 12) }
                 Text(item.name)

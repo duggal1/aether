@@ -50,6 +50,23 @@ public enum AetherMetrics {
     public static let settingsSidebar: CGFloat = 190
 }
 
+public enum AetherProgressColor: String, CaseIterable, Codable, Identifiable, Sendable {
+    case violet = "Violet"
+    case blue = "Blue"
+    case green = "Green"
+    case orange = "Orange"
+    public var id: String { rawValue }
+
+    public var color: Color {
+        switch self {
+        case .violet: Color(red: 0xA2 / 255, green: 0x94 / 255, blue: 0xE5 / 255)
+        case .blue: Color(red: 0x0A / 255, green: 0x84 / 255, blue: 0xFF / 255)
+        case .green: Color(red: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255)
+        case .orange: Color(red: 0xFF / 255, green: 0x9F / 255, blue: 0x0A / 255)
+        }
+    }
+}
+
 public enum AetherShadow {
     public static func resting(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
         (Color.black.opacity(dark ? 0.22 : 0.08), 6, 1)

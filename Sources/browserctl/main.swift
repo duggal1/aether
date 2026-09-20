@@ -100,7 +100,9 @@ struct BrowserControl {
       request = AgentRequest(method: .pageInspect, params: ["page": .number(page)])
     case "page-snapshot":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
-      request = AgentRequest(method: .pageSnapshot, params: ["page": .number(page)])
+      var snapshotParams: [String: JSONValue] = ["page": .number(page)]
+      if args.count > 2, let limit = Double(args[2]) { snapshotParams["limit"] = .number(limit) }
+      request = AgentRequest(method: .pageSnapshot, params: snapshotParams)
     case "page-query":
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(

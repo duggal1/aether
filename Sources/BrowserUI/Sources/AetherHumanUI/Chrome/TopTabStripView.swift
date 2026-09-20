@@ -26,14 +26,11 @@ public struct TopTabStripView: View {
             }
             HStack(spacing: 2) {
                 ChromeButton(.plus, help: "New tab \u{2318}T") { _ = window.newTab() }
-                ChromeButton(.arrowDown, help: "Tab list", selected: window.showsTabSearch) {
-                    window.showsTabSearch.toggle()
-                }
             }
         }
         .padding(.horizontal, 11)
         .frame(height: 43)
-        .background { AetherChromeBackground(.chrome) }
+        .background { AetherChromeBackground(.toolbar) }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
         .animation(AetherMotion.tab(reduced), value: window.selectedID)
     }

@@ -39,6 +39,6 @@ public struct NavigationBarView: View {
         }
         .padding(.horizontal, 10)
         .frame(height: AetherMetrics.chromeHeight)
-        .background { AetherChromeBackground(.chrome) }
+        .background { AetherChromeBackground(.toolbar) }
     }
 }

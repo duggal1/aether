@@ -85,7 +85,7 @@ public struct SidebarTabListView: View {
 
     private func shortcutTile(_ item: BrowserShortcut) -> some View {
         Button { _ = window.newTab(url: item.url) } label: {
-            DomainIcon(item.url, size: 22)
+            DomainIcon(item.url, size: 26)
                 .frame(maxWidth: .infinity)
                 .frame(height: 38)
                 .background(theme.raised, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -125,6 +125,9 @@ struct SidebarRowStyle: ButtonStyle {
     var radius: CGFloat = AetherMetrics.fieldRadius
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .background { AetherFocusedFill(radius: radius) }
+            .focusEffectDisabled()
+            .modifier(AetherPointingCursor())
             .background(configuration.isPressed ? theme.hover : .clear,
                         in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
@@ -137,6 +140,9 @@ struct SidebarTileStyle: ButtonStyle {
     let reduced: Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .background { AetherFocusedFill(radius: 8) }
+            .focusEffectDisabled()
+            .modifier(AetherPointingCursor())
             .background(configuration.isPressed ? theme.hover : .clear,
                         in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)

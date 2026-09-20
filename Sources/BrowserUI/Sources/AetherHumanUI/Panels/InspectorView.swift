@@ -62,6 +62,7 @@ public struct InspectorView: View {
                                                     in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
+                                .aetherFocusTreatment(radius: 6)
                                 .contextMenu { Button("Copy Element HTML") { copy(node.html) } }
                             }
                         case .styles:
