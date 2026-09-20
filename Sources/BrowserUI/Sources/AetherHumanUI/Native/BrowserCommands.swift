@@ -49,6 +49,8 @@ public struct BrowserCommands: Commands {
             Button("Back") { window?.perform(.back) }.keyboardShortcut("[", modifiers: .command)
             Button("Forward") { window?.perform(.forward) }.keyboardShortcut("]", modifiers: .command)
             Divider()
+            Button("Search Tabs, History, Bookmarks") { window?.showsTabSearch = true }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
             Button("History") { window?.showsHistory = true }.keyboardShortcut("y")
             Button("Bookmarks") { window?.showsBookmarks = true }
                 .keyboardShortcut("b", modifiers: [.command, .option])

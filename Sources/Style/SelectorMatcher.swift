@@ -8,6 +8,67 @@ public enum SelectorMatcher {
     return matchPart(selector.parts.count - 1, node: node, selector: selector, document: document)
   }
 
+  private struct InnerSelectorPart {
+    var combinator: CSSCombinator
+    var selector: CSSSelector
+  }
+
+  private final class InnerSelectorCache: @unchecked Sendable {
+    private let lock = NSLock()
+    private var anyList: [String: [CSSSelector]] = [:]
+    private var hasList: [String: [InnerSelectorPart]] = [:]
+    private let limit = 4096
+
+    func any(_ key: String, build: () -> [CSSSelector]) -> [CSSSelector] {
+      lock.lock()
+      defer { lock.unlock() }
+      if let cached = anyList[key] { return cached }
+      let value = build()
+      if anyList.count >= limit { anyList.removeAll(keepingCapacity: true) }
+      anyList[key] = value
+      return value
+    }
+
+    func has(_ key: String, build: () -> [InnerSelectorPart]) -> [InnerSelectorPart] {
+      lock.lock()
+      defer { lock.unlock() }
+      if let cached = hasList[key] { return cached }
+      let value = build()
+      if hasList.count >= limit { hasList.removeAll(keepingCapacity: true) }
+      hasList[key] = value
+      return value
+    }
+  }
+
+  private static let innerCache = InnerSelectorCache()
+
+  private static func attributeValue(_ name: String, of node: DOMNode) -> String? {
+    for attribute in node.attributes where attribute.name.string == name { return attribute.value }
+    return nil
+  }
+
+  private static func isWhitespaceByte(_ byte: UInt8) -> Bool {
+    byte == 0x20 || byte == 0x09 || byte == 0x0A || byte == 0x0C || byte == 0x0D
+  }
+
+  private static func containsToken(_ text: String, _ token: String) -> Bool {
+    let bytes = text.utf8
+    let needle = token.utf8
+    var index = bytes.startIndex
+    while index < bytes.endIndex {
+      while index < bytes.endIndex, isWhitespaceByte(bytes[index]) {
+        bytes.formIndex(after: &index)
+      }
+      var end = index
+      while end < bytes.endIndex, !isWhitespaceByte(bytes[end]) {
+        bytes.formIndex(after: &end)
+      }
+      if index < end, bytes[index..<end].elementsEqual(needle) { return true }
+      index = end
+    }
+    return false
+  }
+
   private static func matchPart(
     _ index: Int, node: NodeID, selector: CSSSelector, document: DOMDocument
   ) -> Bool {
@@ -61,11 +122,10 @@ public enum SelectorMatcher {
     if selector.pseudoElement != nil { return false }
     if let tag = selector.tag, node.tagName != tag { return false }
     if selector.universal, selector.tag != nil { return false }
-    if let idValue = selector.id, node.attribute("id") != idValue { return false }
+    if let idValue = selector.id, attributeValue("id", of: node) != idValue { return false }
     if !selector.classes.isEmpty {
-      let classes = Set(
-        (node.attribute("class") ?? "").split(whereSeparator: { $0.isWhitespace }).map(String.init))
-      if selector.classes.contains(where: { !classes.contains($0) }) { return false }
+      let classAttribute = attributeValue("class", of: node) ?? ""
+      for required in selector.classes where !containsToken(classAttribute, required) { return false }
     }
     for attribute in selector.attributes {
       guard matchesAttribute(attribute, node: node) else { return false }
@@ -85,7 +145,7 @@ public enum SelectorMatcher {
       return actual == (selector.value ?? "")
     case .includes:
       guard let expected = selector.value else { return false }
-      return actual.split(whereSeparator: { $0.isWhitespace }).map(String.init).contains(expected)
+      return containsToken(actual, expected)
     case .dashMatch:
       guard let expected = selector.value else { return false }
       return actual == expected || actual.hasPrefix(expected + "-")
@@ -200,64 +260,77 @@ public enum SelectorMatcher {
   private static func matchesAnyInner(
     _ argument: String, node id: NodeID, document: DOMDocument
   ) -> Bool {
-    for part in splitInnerSelectors(argument) {
-      if let selector = CSSParser.parseSelector(part),
-        matches(selector, node: id, document: document)
-      {
-        return true
-      }
+    for selector in innerCache.any(argument, build: { parsedInnerSelectors(argument) }) {
+      if matches(selector, node: id, document: document) { return true }
     }
     return false
+  }
+
+  private static func parsedInnerSelectors(_ argument: String) -> [CSSSelector] {
+    splitInnerSelectors(argument).compactMap { CSSParser.parseSelector($0) }
   }
 
   private static func matchesHas(
     _ argument: String, node id: NodeID, document: DOMDocument
   ) -> Bool {
-    for part in splitInnerSelectors(argument) {
-      let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
-      if trimmed.hasPrefix(">") {
-        let rest = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let selector = CSSParser.parseSelector(rest) else { continue }
-        for child in document.children(of: id) {
-          guard document.node(child)?.tagName != nil else { continue }
-          if matches(selector, node: child, document: document) { return true }
+    for part in innerCache.has(argument, build: { parsedHasSelectors(argument) }) {
+      switch part.combinator {
+      case .child:
+        for child in document.children(of: id) where document.node(child)?.tagName != nil {
+          if matches(part.selector, node: child, document: document) { return true }
         }
-        continue
-      }
-      if trimmed.hasPrefix("+") || trimmed.hasPrefix("~") {
+      case .adjacentSibling, .generalSibling:
         guard let parent = document.parent(of: id) else { continue }
-        let siblings = document.children(of: parent).filter {
-          document.node($0)?.tagName != nil
-        }
+        let siblings = document.children(of: parent).filter { document.node($0)?.tagName != nil }
         guard let position = siblings.firstIndex(of: id) else { continue }
-        let rest = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let selector = CSSParser.parseSelector(rest) else { continue }
-        if trimmed.hasPrefix("+") {
-          let next = siblings.index(after: position)
-          if next < siblings.endIndex,
-            matches(selector, node: siblings[next], document: document)
-          {
+        let following = siblings[siblings.index(after: position)...]
+        if part.combinator == .adjacentSibling {
+          if let next = following.first, matches(part.selector, node: next, document: document) {
             return true
           }
         } else {
-          for sibling in siblings[siblings.index(after: position)...] {
-            if matches(selector, node: sibling, document: document) { return true }
+          for sibling in following where matches(part.selector, node: sibling, document: document) {
+            return true
           }
         }
-        continue
-      }
-      guard let selector = CSSParser.parseSelector(trimmed) else { continue }
-      var stack = document.children(of: id)
-      while let current = stack.popLast() {
-        if document.node(current)?.tagName != nil,
-          matches(selector, node: current, document: document)
-        {
-          return true
+      case .descendant:
+        var stack = document.children(of: id)
+        while let current = stack.popLast() {
+          if document.node(current)?.tagName != nil,
+            matches(part.selector, node: current, document: document)
+          {
+            return true
+          }
+          stack.append(contentsOf: document.children(of: current))
         }
-        stack.append(contentsOf: document.children(of: current))
       }
     }
     return false
+  }
+
+  private static func parsedHasSelectors(_ argument: String) -> [InnerSelectorPart] {
+    var parts: [InnerSelectorPart] = []
+    for part in splitInnerSelectors(argument) {
+      let combinator: CSSCombinator
+      let source: String
+      if part.hasPrefix(">") {
+        combinator = .child
+        source = String(part.dropFirst())
+      } else if part.hasPrefix("+") {
+        combinator = .adjacentSibling
+        source = String(part.dropFirst())
+      } else if part.hasPrefix("~") {
+        combinator = .generalSibling
+        source = String(part.dropFirst())
+      } else {
+        combinator = .descendant
+        source = part
+      }
+      let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard let selector = CSSParser.parseSelector(trimmed) else { continue }
+      parts.append(InnerSelectorPart(combinator: combinator, selector: selector))
+    }
+    return parts
   }
 
   private static func splitInnerSelectors(_ argument: String) -> [String] {

@@ -8,6 +8,7 @@ public struct BrowserWindowRoot: View {
     public var body: some View {
         AetherThemeScope {
             BrowserWindowView(window: window)
+                .aetherTypography()
                 .focusedSceneValue(\.aetherWindow, window)
                 .task { await window.restoreProfile() }
         }

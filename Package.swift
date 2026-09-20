@@ -13,7 +13,11 @@ let package = Package(
     .executable(name: "enginebench", targets: ["enginebench"]),
   ],
   targets: [
-    .target(name: "AetherHumanUI", path: "Sources/BrowserUI/Sources/AetherHumanUI",
+    .target(
+      name: "AetherHumanUI", path: "Sources/BrowserUI/Sources",
+      exclude: ["AetherHumanUI/Resources"],
+      sources: ["AetherHumanUI", "icons"],
+      resources: [.copy("AetherHumanUI/Resources/Fonts")],
       swiftSettings: [.swiftLanguageMode(.v5)]),
     .executableTarget(name: "AetherApp", dependencies: ["AetherHumanUI", "BrowserEngine", "EngineRuntime", "EngineCore", "AgentProtocol", "Graphics", "Display", "DOM", "Media", "ContentBlocker"], exclude: ["Resources"]),
     .testTarget(name: "AetherHumanUITests", dependencies: ["AetherHumanUI"], path: "Sources/BrowserUI/Tests/AetherHumanUITests", swiftSettings: [.swiftLanguageMode(.v5)]),
@@ -27,7 +31,7 @@ let package = Package(
     .target(name: "Layout", dependencies: ["EngineCore", "DOM", "Style", "Text"]),
     .target(
       name: "Display", dependencies: ["EngineCore", "DOM", "Layout", "Style", "CSS", "Images"]),
-    .target(name: "Graphics", dependencies: ["EngineCore", "Display", "Images"]),
+    .target(name: "Graphics", dependencies: ["EngineCore"]),
     .target(name: "AetherNetworkHardening", path: "Sources/EngineAdditions/Sources/AetherNetworkHardening"),
     .target(name: "Networking", dependencies: ["EngineCore", "AetherNetworkHardening", "ContentBlocker"]),
     .target(name: "Images", dependencies: ["EngineCore", "Networking"]),
@@ -77,11 +81,6 @@ let package = Package(
     .testTarget(name: "DOMTests", dependencies: ["DOM"]),
     .testTarget(
       name: "LayoutTests", dependencies: ["HTML", "CSS", "Style", "Layout", "Text", "DOM"]),
-    .testTarget(
-      name: "RenderingTests",
-      dependencies: [
-        "HTML", "CSS", "Style", "Layout", "Text", "Display", "Graphics", "DOM", "Images",
-      ]),
     .testTarget(name: "NetworkTests", dependencies: ["Networking"]),
     .testTarget(name: "NetworkHardeningIntegrationTests", dependencies: ["AetherNetworkHardening"]),
     .testTarget(

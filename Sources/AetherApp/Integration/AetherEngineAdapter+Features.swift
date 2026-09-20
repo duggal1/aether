@@ -22,7 +22,7 @@ extension AetherEngineAdapter: BrowserInspectionProviding, BrowserReaderProvidin
     }
     return BrowserInspectionSnapshot(nodes: nodes, documentHTML: document.html,
       availableCSS: document.stylesheets.map(\.css).joined(separator: "\n\n"),
-      consoleMessages: try await engine.runtime.consoleOutput(pageID: id),
+      consoleMessages: [],
       networkRequests: try await engine.runtime.networkLogEntries(pageID: id).map {
         "\($0.statusCode) \($0.url) — \($0.durationMilliseconds) ms"
       })
@@ -38,9 +38,8 @@ extension AetherEngineAdapter: BrowserInspectionProviding, BrowserReaderProvidin
   }
 
   func markdown(pageID: String) async throws -> String {
-    let snapshot = try await engine.snapshot(pageID: page(pageID))
-    let text = snapshot.nodes.filter { $0.kind == "text" && $0.visible }.compactMap(\.text)
-    return "# \(snapshot.page.title)\n\n" + text.joined(separator: "\n\n")
+    let state = try await snapshot(pageID: pageID)
+    return "# \(state.title)\n\n" + (try await engine.runtime.webDocumentText(pageID: page(pageID)))
   }
 
   func downloads(profileID: UUID) async throws -> [BrowserDownloadRecord] {
@@ -59,14 +58,6 @@ extension AetherEngineAdapter: BrowserInspectionProviding, BrowserReaderProvidin
 
   func find(pageID: String, query: String, forward: Bool) async throws -> Int {
     guard !query.isEmpty else { return 0 }
-    let id = try page(pageID)
-    let snapshot = try await engine.snapshot(pageID: id)
-    let matches = PageTextSearch.find(in: snapshot, query: query)
-    guard !matches.isEmpty else { return 0 }
-    let old = findPositions[pageID]
-    let index = old?.query == query ? ((old!.index + (forward ? 1 : -1) + matches.count) % matches.count) : 0
-    findPositions[pageID] = (query, index)
-    _ = try await engine.runtime.scrollIntoView(pageID: id, nodeID: matches[index].node)
-    return matches.count
+    return try await engine.runtime.findWebText(pageID: page(pageID), query: query, forward: forward)
   }
 }

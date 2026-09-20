@@ -61,3 +61,8 @@ public struct BrowserPrivacyPolicy: Equatable, Sendable {
 @MainActor public protocol BrowserPageObserving: AnyObject {
     func pageUpdates() -> AsyncStream<EnginePageSnapshot>
 }
+
+@MainActor
+public protocol BrowserPageActivating: AnyObject {
+    func activate(pageID: String) async throws
+}

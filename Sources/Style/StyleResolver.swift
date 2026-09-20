@@ -27,6 +27,11 @@ public enum StyleResolver {
       for name in sheet.layerOrder { layerOrder.declare(name) }
     }
     let rules = stylesheets.flatMap(\.rules)
+    var prepared: [(rank: Int, rule: CSSRule)] = []
+    for rule in rules {
+      if let media = rule.media, !MediaQuery.matchesAny(media, viewport: viewport) { continue }
+      prepared.append((layerOrder.rank(of: rule.layer), rule))
+    }
     var computed: [NodeID: ComputedStyle] = [:]
     var customProps: [NodeID: [String: String]] = [:]
     var rootFontSize = 16.0
@@ -37,34 +42,34 @@ public enum StyleResolver {
       var style = initialStyle(for: node, parent: parentStyle)
       var winners: [String: (CascadeKey, CSSDeclaration)] = [:]
 
-      for rule in rules {
-        if let media = rule.media, !MediaQuery.matchesAny(media, viewport: viewport) {
-          continue
-        }
-        let rank = layerOrder.rank(of: rule.layer)
-        for selector in rule.selectors
-        where SelectorMatcher.matches(selector, node: id, document: document) {
-          let specificity = selector.specificity
-          for declaration in rule.declarations {
-            let important = declaration.important ? 2 : 0
-            let key = CascadeKey(
-              important: important,
-              effectiveRank: declaration.important ? -rank : rank,
-              specificity: specificity,
-              sourceOrder: rule.sourceOrder)
-            if let existing = winners[declaration.property], existing.0 > key { continue }
-            winners[declaration.property] = (key, declaration)
+      if case .element = node.kind {
+        for entry in prepared {
+          let rank = entry.rank
+          let rule = entry.rule
+          for selector in rule.selectors
+          where SelectorMatcher.matches(selector, node: id, document: document) {
+            let specificity = selector.specificity
+            for declaration in rule.declarations {
+              let important = declaration.important ? 2 : 0
+              let key = CascadeKey(
+                important: important,
+                effectiveRank: declaration.important ? -rank : rank,
+                specificity: specificity,
+                sourceOrder: rule.sourceOrder)
+              if let existing = winners[declaration.property], existing.0 > key { continue }
+              winners[declaration.property] = (key, declaration)
+            }
           }
         }
-      }
 
-      if let inline = node.attribute("style") {
-        for declaration in CSSParser.parseDeclarations(inline) {
-          let key = CascadeKey(
-            important: declaration.important ? 3 : 1,
-            effectiveRank: 0,
-            specificity: CSSSpecificity(ids: 1_000, classes: 0, types: 0), sourceOrder: Int.max)
-          winners[declaration.property] = (key, declaration)
+        if let inline = node.attribute("style") {
+          for declaration in CSSParser.parseDeclarations(inline) {
+            let key = CascadeKey(
+              important: declaration.important ? 3 : 1,
+              effectiveRank: 0,
+              specificity: CSSSpecificity(ids: 1_000, classes: 0, types: 0), sourceOrder: Int.max)
+            winners[declaration.property] = (key, declaration)
+          }
         }
       }
 

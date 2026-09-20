@@ -1,45 +1,70 @@
 import SwiftUI
 
+struct AetherMenuRow<Content: View>: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    @BrowserState private var hovering = false
+    let radius: CGFloat
+    let content: Content
+    init(radius: CGFloat = 7, @ViewBuilder content: () -> Content) {
+        self.radius = radius
+        self.content = content()
+    }
+    var body: some View {
+        content
+            .background(hovering ? theme.hover : .clear,
+                        in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
+    }
+}
+
 public struct MoreMenuView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
+
     public var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            menuButton("Search Tabs", "magnifyingglass") { window.showsTabSearch = true }
-            menuButton("History", "clock") { window.showsHistory = true }
-            menuButton("Bookmarks", "book") { window.showsBookmarks = true }
-            menuButton("Downloads", "arrow.down.circle") { window.showsDownloads = true }
-            divider
-            menuButton("Find in Page", "text.magnifyingglass") { window.showsFind = true }
-            menuButton("Reader", "text.book.closed") { window.showsReader = true }
-            menuButton("Inspect Page", "curlybraces") { window.showsInspector = true }
-            divider
-            menuButton(window.arrangement == .top ? "Use Sidebar Tabs" : "Use Top Tabs", "rectangle.split.2x1") {
+        VStack(alignment: .leading, spacing: 1) {
+            row("Search Tabs", .search) { window.showsTabSearch = true }
+            row("History", .history) { window.showsHistory = true }
+            row("Bookmarks", .bookmark) { window.showsBookmarks = true }
+            row("Downloads", .download) { window.showsDownloads = true }
+            Divider().padding(.vertical, 5)
+            row("Find in Page", .search) { window.showsFind = true }
+            row("Reader", .web) { window.showsReader = true }
+            row("Inspect Page", .terminalArrowRight) { window.showsInspector = true }
+            Divider().padding(.vertical, 5)
+            row(window.arrangement == .top ? "Use Sidebar Tabs" : "Use Top Tabs", .sidebar) {
                 window.toggleArrangement()
             }
-            SettingsLink {
-                HStack(spacing: 10) {
-                    Image(systemName: "gearshape").frame(width: 15)
-                    Text("Settings")
-                    Spacer()
-                }.font(AetherType.body(12)).foregroundStyle(theme.ink).padding(9)
-            }.buttonStyle(.plain)
-        }
-        .padding(9).frame(width: 225).background { AetherPopoverBackground() }
-    }
-    private var divider: some View {
-        Rectangle().fill(theme.faintLine).frame(height: 1).padding(.vertical, 5)
-    }
-    private func menuButton(_ name: String, _ symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: symbol).frame(width: 15)
-                Text(name)
-                Spacer()
+            Button(action: { window.showsSettings = true }) {
+                menuLabel(.gear, "Settings")
             }
-            .font(AetherType.body(12)).foregroundStyle(theme.ink).padding(9)
+            .buttonStyle(AetherPressStyle(reduced: reduced))
+        }
+        .padding(7)
+        .frame(width: 232)
+        .background { AetherPopoverBackground() }
+    }
+
+    private func row(_ title: String, _ icon: BrowserIcon, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            menuLabel(icon, title)
+        }
+        .buttonStyle(AetherPressStyle(reduced: reduced))
+    }
+
+    private func menuLabel(_ icon: BrowserIcon, _ title: String) -> some View {
+        AetherMenuRow {
+            HStack(spacing: 10) {
+                BrowserIconView(icon: icon, tint: theme.muted).iconSize(14)
+                Text(title).font(AetherType.body(12.5)).foregroundStyle(theme.ink)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 9)
+            .frame(height: 29)
             .contentShape(Rectangle())
-        }.buttonStyle(.plain)
+        }
     }
 }

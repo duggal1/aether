@@ -13,12 +13,16 @@ public struct AetherRow<Accessory: View>: View {
     public var body: some View {
         HStack(spacing: 12) {
             if let symbol {
-                Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(theme.muted)
+                Image(systemName: symbol)
+                    .font(AetherType.symbol(13)).foregroundStyle(theme.muted)
                     .frame(width: 19)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(AetherType.medium()).foregroundStyle(theme.ink)
-                if let subtitle { Text(subtitle).font(AetherType.body(11)).foregroundStyle(theme.muted).fixedSize(horizontal: false, vertical: true) }
+                Text(title).font(AetherType.rowTitle()).foregroundStyle(theme.ink)
+                if let subtitle {
+                    Text(subtitle).font(AetherType.caption(11)).foregroundStyle(theme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 10)
             accessory
@@ -37,11 +41,16 @@ public struct AetherSection<Content: View>: View {
         self.title = title; self.footer = footer; self.content = content()
     }
     public var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(title).font(AetherType.medium(12)).foregroundStyle(theme.muted).padding(.leading, 4)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(AetherType.sectionHeader(10)).tracking(0.4)
+                .foregroundStyle(theme.soft)
+                .padding(.leading, 4)
             VStack(spacing: 0) { content }
-                .background(theme.surface, in: RoundedRectangle(cornerRadius: AetherMetrics.cardRadius))
-            if let footer { Text(footer).font(AetherType.body(11)).foregroundStyle(theme.muted).padding(.leading, 4) }
+                .background(theme.surface, in: RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
+            if let footer {
+                Text(footer).font(AetherType.caption(11)).foregroundStyle(theme.muted).padding(.leading, 4)
+            }
         }
     }
 }

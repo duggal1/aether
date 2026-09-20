@@ -5,7 +5,6 @@ import Display
 import DOM
 import EngineCore
 import Foundation
-import Graphics
 import HTML
 import Images
 import JavaScript
@@ -50,7 +49,6 @@ public actor BrowserRuntime {
     var pendingAction: PendingPageAction?
     var pipeline = FramePipelineState()
     var frames = FrameRecorder()
-    var ledger = ResourceLedger()
   }
 
   struct DialogRecord: Sendable {
@@ -128,6 +126,12 @@ public actor BrowserRuntime {
   private var maxActivePages = 8
   private var fleetMemoryBudget = 512 * 1024 * 1024
 
+  var webPages: [PageID: WebKitPage] = [:]
+  var webPageTasks: [PageID: Task<WebKitPage, Never>] = [:]
+  var webContexts: [ContextID: WebKitContext] = [:]
+  var webStates: [PageID: WebPageState] = [:]
+  var webProfileIdentifiers: [ContextID: UUID] = [:]
+
   public init() {}
 
   public func createContext(name: String) -> BrowserContextInfo {
@@ -195,6 +199,12 @@ public actor BrowserRuntime {
     }
     removed.profile?.close()
     for pageID in removed.pages.keys {
+      if let page = webPages.removeValue(forKey: pageID) { await page.close() }
+      webStates[pageID] = nil
+    }
+    webContexts[id] = nil
+    webProfileIdentifiers[id] = nil
+    for pageID in removed.pages.keys {
       await removed.media.removePage(pageID)
     }
   }
@@ -209,6 +219,7 @@ public actor BrowserRuntime {
     guard contexts[contextID] != nil else {
       throw BrowserRuntimeError.contextNotFound(contextID)
     }
+    webProfileIdentifiers[contextID] = UUID(uuidString: directory.lastPathComponent)
     let profile = try ProfileStore.open(directory: directory)
     do {
       try await attachProfile(profile, contextID: contextID)
@@ -737,23 +748,27 @@ public actor BrowserRuntime {
     )
     context.pages[id] = page
     contexts[contextID] = context
+    Task { [weak self] in _ = try? await self?.webPage(id) }
     return info(for: page)
   }
 
   public func closePage(_ pageID: PageID) async throws {
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID] else {
+    guard let contextID = contextID(containing: pageID) else {
       throw BrowserRuntimeError.pageNotFound(pageID)
     }
-    stopNavigation(pageID: pageID)
-    context.pages.removeValue(forKey: pageID)
-    contexts[contextID] = context
+    await stopNavigation(pageID: pageID)
+    if let page = webPages.removeValue(forKey: pageID) { await page.close() }
+    webStates[pageID] = nil
+    guard let context = contexts[contextID] else { return }
+    contexts[contextID]?.pages.removeValue(forKey: pageID)
     await context.media.removePage(pageID)
   }
 
-  public func suspendPage(_ pageID: PageID) throws -> BrowserPageInfo {
+  public func suspendPage(_ pageID: PageID) async throws -> BrowserPageInfo {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    if let view = webPages.removeValue(forKey: pageID) { await view.close() }
     page.loaded = nil
     page.javascript = nil
     page.lifecycle = .discarded
@@ -771,16 +786,20 @@ public actor BrowserRuntime {
 
   @discardableResult
   public func navigate(pageID: PageID, to url: URL) async throws -> BrowserPageInfo {
-    try await performNavigation(pageID: pageID, request: HTTPRequest(url: url), history: .push)
+    return try await navigateWeb(pageID: pageID, request: HTTPRequest(url: url))
+    return try await performNavigation(pageID: pageID, request: HTTPRequest(url: url), history: .push)
   }
 
   @discardableResult
   public func navigate(pageID: PageID, request: HTTPRequest) async throws -> BrowserPageInfo {
-    try await performNavigation(pageID: pageID, request: request, history: .push)
+    return try await navigateWeb(pageID: pageID, request: request)
+    return try await performNavigation(pageID: pageID, request: request, history: .push)
   }
 
   @discardableResult
   public func goBack(pageID: PageID) async throws -> BrowserPageInfo {
+    try await webPage(pageID).back()
+    return try await synchronizedWebInfo(pageID)
     let page = try requirePage(pageID)
     let targetIndex = page.historyIndex - 1
     guard page.history.indices.contains(targetIndex) else {
@@ -793,6 +812,8 @@ public actor BrowserRuntime {
 
   @discardableResult
   public func goForward(pageID: PageID) async throws -> BrowserPageInfo {
+    try await webPage(pageID).forward()
+    return try await synchronizedWebInfo(pageID)
     let page = try requirePage(pageID)
     let targetIndex = page.historyIndex + 1
     guard page.history.indices.contains(targetIndex) else {
@@ -805,6 +826,8 @@ public actor BrowserRuntime {
 
   @discardableResult
   public func reload(pageID: PageID, bypassCache: Bool = false) async throws -> BrowserPageInfo {
+    try await webPage(pageID).reload(bypassCache: bypassCache)
+    return try await synchronizedWebInfo(pageID)
     let page = try requirePage(pageID)
     guard let url = page.loaded?.url else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     var request = HTTPRequest(url: url)
@@ -812,16 +835,13 @@ public actor BrowserRuntime {
     return try await performNavigation(pageID: pageID, request: request, history: .preserve)
   }
 
-  public func inspect(pageID: PageID) throws -> PageInspection {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    let nodes = DOMSemantics.interactiveNodes(in: loaded.document).compactMap { semantic in
-      makeInspectedNode(semantic.nodeID, loaded: loaded)
-    }
-    return PageInspection(page: info(for: page), nodes: nodes)
+  public func inspect(pageID: PageID) async throws -> PageInspection {
+    let nodes = try await webPage(pageID).query("a,button,input,textarea,select,[role],[contenteditable=true]")
+    return PageInspection(page: try pageInfo(pageID), nodes: nodes)
   }
 
-  public func snapshot(pageID: PageID) throws -> PageSnapshot {
+  public func snapshot(pageID: PageID) async throws -> PageSnapshot {
+    return try await webPage(pageID).snapshot(info: pageInfo(pageID))
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     let dom = loaded.document.snapshot()
@@ -850,14 +870,16 @@ public actor BrowserRuntime {
       nodes: nodes)
   }
 
-  public func query(pageID: PageID, selector: String) throws -> InspectedNode? {
+  public func query(pageID: PageID, selector: String) async throws -> InspectedNode? {
+    return try await webPage(pageID).query(selector).first
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let id = loaded.document.querySelector(selector) else { return nil }
     return makeInspectedNode(id, loaded: loaded)
   }
 
-  public func queryAll(pageID: PageID, selector: String) throws -> [InspectedNode] {
+  public func queryAll(pageID: PageID, selector: String) async throws -> [InspectedNode] {
+    return try await webPage(pageID).query(selector)
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     return loaded.document.querySelectorAll(selector).compactMap {
@@ -872,7 +894,7 @@ public actor BrowserRuntime {
     let clock = ContinuousClock()
     let started = clock.now
     while true {
-      let node = try query(pageID: pageID, selector: selector)
+      let node = try await query(pageID: pageID, selector: selector)
       let satisfied: Bool
       switch condition {
       case .attached: satisfied = node != nil
@@ -895,6 +917,8 @@ public actor BrowserRuntime {
 
   @discardableResult
   public func click(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
+    try await webPage(pageID).nodeAction(nodeID, body: "n.scrollIntoView({block:'center'}); n.focus(); n.click();")
+    return try await synchronizedWebInfo(pageID)
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let node = loaded.document.node(nodeID) else {
@@ -946,7 +970,8 @@ public actor BrowserRuntime {
     return info(for: page)
   }
 
-  public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) throws {
+  public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) async throws {
+    try await webPage(pageID).fill(nodeID, value: text, append: append); return
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let node = loaded.document.node(nodeID) else {
@@ -962,11 +987,12 @@ public actor BrowserRuntime {
     try refreshPage(pageID)
   }
 
-  public func setValue(pageID: PageID, nodeID: NodeID, value: String) throws {
-    try type(pageID: pageID, nodeID: nodeID, text: value, append: false)
+  public func setValue(pageID: PageID, nodeID: NodeID, value: String) async throws {
+    try await type(pageID: pageID, nodeID: nodeID, text: value, append: false)
   }
 
   public func evaluate(pageID: PageID, source: String) async throws -> JavaScriptResult {
+    return try await webPage(pageID).evaluate(source)
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -997,18 +1023,8 @@ public actor BrowserRuntime {
     }
   }
 
-  public func render(pageID: PageID, origin: Point = .zero) throws -> PixelBuffer {
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID], var loaded = page.loaded
-    else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    let (buffer, milliseconds) = try MetricClock.milliseconds {
-      try SoftwareRenderer().render(loaded.displayList, viewport: page.viewport, origin: origin)
-    }
-    loaded.metrics.renderMilliseconds = milliseconds
-    page.loaded = loaded
-    context.pages[pageID] = page
-    contexts[contextID] = context
-    return buffer
+  public func render(pageID: PageID, origin: Point = .zero) async throws -> PixelBuffer {
+    return try await webPage(pageID).pixels()
   }
 
   public func metrics(pageID: PageID) throws -> EngineMetrics {
@@ -1023,7 +1039,8 @@ public actor BrowserRuntime {
     return loaded.document.mutations(since: version)
   }
 
-  public func captureState(pageID: PageID) throws -> CapturePageState {
+  public func captureState(pageID: PageID) async throws -> CapturePageState {
+    return try await webPage(pageID).captureState()
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     return CapturePageState(
@@ -1046,6 +1063,7 @@ public actor BrowserRuntime {
   public func captureDocument(
     pageID: PageID, includeComputedStyles: Bool, redactSensitive: Bool
   ) async throws -> CaptureDocumentData {
+    return try await webPage(pageID).captureDocument(includeComputedStyles: includeComputedStyles, redactSensitive: redactSensitive)
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let contextID = contextID(containing: pageID), let context = contexts[contextID] else {
@@ -1225,7 +1243,10 @@ public actor BrowserRuntime {
     info(for: try requirePage(pageID))
   }
 
-  public func resize(pageID: PageID, viewport: Size) throws -> BrowserPageInfo {
+  public func resize(pageID: PageID, viewport: Size) async throws -> BrowserPageInfo {
+    let size = normalized(viewport)
+    try await webPage(pageID).resize(size)
+    return try await synchronizedWebInfo(pageID)
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -1237,6 +1258,8 @@ public actor BrowserRuntime {
   }
 
   public func loadHTML(pageID: PageID, html: String, url: URL) async throws -> BrowserPageInfo {
+    try await webPage(pageID).loadHTML(html, url: url)
+    return try await synchronizedWebInfo(pageID)
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -1277,6 +1300,15 @@ public actor BrowserRuntime {
   public func setLifecycle(pageID: PageID, state: PageLifecycleState) async throws
     -> BrowserPageInfo
   {
+    let record = try requirePage(pageID)
+    if state == .active || state == .background {
+      contexts[record.contextID]?.pages[pageID]?.lifecycle = state
+      if state == .active { try await restoreWebContent(pageID) }
+      return try pageInfo(pageID)
+    }
+    if let view = webPages.removeValue(forKey: pageID) { await view.close() }
+    contexts[record.contextID]?.pages[pageID]?.lifecycle = state
+    return try pageInfo(pageID)
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -1419,7 +1451,9 @@ public actor BrowserRuntime {
     return makeInspectedNode(nodeID, loaded: loaded)
   }
 
-  public func focus(pageID: PageID, nodeID: NodeID) throws -> BrowserPageInfo {
+  public func focus(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
+    try await webPage(pageID).nodeAction(nodeID, body: "n.focus()")
+    return try pageInfo(pageID)
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard loaded.document.node(nodeID) != nil else {
@@ -1439,7 +1473,9 @@ public actor BrowserRuntime {
     return info(for: try requirePage(pageID))
   }
 
-  public func blur(pageID: PageID) throws -> BrowserPageInfo {
+  public func blur(pageID: PageID) async throws -> BrowserPageInfo {
+    _ = try await webPage(pageID).script("document.activeElement?.blur()")
+    return try pageInfo(pageID)
     let page = try requirePage(pageID)
     guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     if let previous = page.focused, let runtime = page.javascript {
@@ -1451,7 +1487,8 @@ public actor BrowserRuntime {
     return info(for: try requirePage(pageID))
   }
 
-  public func focusedNode(pageID: PageID) throws -> InspectedNode? {
+  public func focusedNode(pageID: PageID) async throws -> InspectedNode? {
+    return try await webPage(pageID).query(":focus").first
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let focused = page.focused else { return nil }
@@ -1465,7 +1502,8 @@ public actor BrowserRuntime {
     return makeInspectedNode(hovered, loaded: loaded)
   }
 
-  public func scrollTo(pageID: PageID, x: Double, y: Double) throws -> Point {
+  public func scrollTo(pageID: PageID, x: Double, y: Double) async throws -> Point {
+    return try await webPage(pageID).scroll(x: x, y: y)
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -1477,19 +1515,17 @@ public actor BrowserRuntime {
     return page.scroll
   }
 
-  public func scrollOffset(pageID: PageID) throws -> Point {
+  public func scrollOffset(pageID: PageID) async throws -> Point {
+    return try await webPage(pageID).scrollPosition()
     let page = try requirePage(pageID)
     guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     return page.scroll
   }
 
-  public func scrollIntoView(pageID: PageID, nodeID: NodeID) throws -> Point {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let box = loaded.layout.boxes[nodeID] else {
-      throw BrowserRuntimeError.nodeNotFound(nodeID)
-    }
-    return try scrollTo(pageID: pageID, x: max(0, box.frame.minX), y: max(0, box.frame.minY))
+  public func scrollIntoView(pageID: PageID, nodeID: NodeID) async throws -> Point {
+    let page = try await webPage(pageID)
+    try await page.nodeAction(nodeID, body: "n.scrollIntoView({block:'center'})")
+    return try await page.scrollPosition()
   }
 
   public func nodeAtPoint(pageID: PageID, x: Double, y: Double) throws -> InspectedNode? {
@@ -1511,7 +1547,7 @@ public actor BrowserRuntime {
     let role = DOMSemantics.role(for: node)
     switch key {
     case "Escape":
-      _ = try blur(pageID: pageID)
+      _ = try await blur(pageID: pageID)
       return ""
     case "Tab":
       advanceFocus(pageID: pageID)
@@ -1555,7 +1591,8 @@ public actor BrowserRuntime {
     return updated
   }
 
-  public func selectOption(pageID: PageID, selectNodeID: NodeID, value: String) throws {
+  public func selectOption(pageID: PageID, selectNodeID: NodeID, value: String) async throws {
+    try await webPage(pageID).fill(selectNodeID, value: value, append: false); return
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let select = loaded.document.node(selectNodeID), select.tagName == "select" else {
@@ -1582,7 +1619,8 @@ public actor BrowserRuntime {
     try refreshPage(pageID)
   }
 
-  public func fill(pageID: PageID, nodeID: NodeID, value: String) throws {
+  public func fill(pageID: PageID, nodeID: NodeID, value: String) async throws {
+    try await webPage(pageID).fill(nodeID, value: value, append: false); return
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let node = loaded.document.node(nodeID) else {
@@ -1599,6 +1637,8 @@ public actor BrowserRuntime {
   }
 
   public func submitForm(pageID: PageID, formNodeID: NodeID) async throws -> BrowserPageInfo {
+    try await webPage(pageID).nodeAction(formNodeID, body: "n.requestSubmit()")
+    return try await synchronizedWebInfo(pageID)
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let form = loaded.document.node(formNodeID), form.tagName == "form" else {
@@ -1866,7 +1906,7 @@ public actor BrowserRuntime {
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     let pipeline = NavigationPipeline(
       network: initialContext.network, metricsCollector: metricsCollector)
-    stopNavigation(pageID: pageID)
+    await stopNavigation(pageID: pageID)
     let epoch = UUID()
     navigationEpochs[pageID] = epoch
     navigationTargets[pageID] = request.url
@@ -2307,7 +2347,12 @@ public actor BrowserRuntime {
   }
 
   func info(for page: PageRecord) -> BrowserPageInfo {
-    BrowserPageInfo(
+    if let state = webStates[page.id] {
+      return BrowserPageInfo(id: page.id, contextID: page.contextID, url: state.url,
+        title: state.title, viewport: state.viewport, loaded: state.loaded,
+        historyIndex: state.historyIndex, historyCount: state.history.count)
+    }
+    return BrowserPageInfo(
       id: page.id,
       contextID: page.contextID,
       url: page.loaded?.url,

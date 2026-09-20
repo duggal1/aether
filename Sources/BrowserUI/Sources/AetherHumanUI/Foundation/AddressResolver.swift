@@ -2,6 +2,7 @@ import Foundation
 
 public enum SearchProvider: String, CaseIterable, Codable, Identifiable {
     case google = "Google"
+    case googleAI = "Google AI Mode"
     case duckDuckGo = "DuckDuckGo"
     case bing = "Bing"
     case brave = "Brave"
@@ -9,6 +10,7 @@ public enum SearchProvider: String, CaseIterable, Codable, Identifiable {
     public var template: String {
         switch self {
         case .google: "https://www.google.com/search?q="
+        case .googleAI: "https://www.google.com/search?udm=50&q="
         case .duckDuckGo: "https://duckduckgo.com/?q="
         case .bing: "https://www.bing.com/search?q="
         case .brave: "https://search.brave.com/search?q="

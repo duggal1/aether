@@ -20,15 +20,20 @@ extension AetherEngineAdapter: BrowserProfileManaging {
     for page in existing where pages[page.id.description] == nil {
       let id = page.id.description
       pages[id] = page.id
-      surfaces[id] = try EnginePageView(engine: engine, pageID: page.id)
-      do {
-        _ = try await engine.runtime.restorePage(pageID: page.id)
-        restored.append(try await snapshot(pageID: id))
-      } catch {
-        restored.append(EnginePageSnapshot(id: id, url: nil, title: "Restore failed",
-          canGoBack: false, canGoForward: false, isSecure: false, error: String(describing: error)))
-      }
+      restored.append(EnginePageSnapshot(id: id, url: page.url?.absoluteString,
+        title: page.title.isEmpty ? (page.url?.host ?? "Restored tab") : page.title,
+        canGoBack: false, canGoForward: false, isSecure: page.url?.scheme == "https"))
     }
     return restored
+  }
+}
+
+
+extension AetherEngineAdapter: BrowserPageActivating {
+  func activate(pageID: String) async throws {
+    guard surfaces[pageID] == nil else { return }
+    let id = try page(pageID)
+    _ = try await engine.runtime.restorePage(pageID: id)
+    surfaces[pageID] = try await engine.runtime.webSurface(pageID: id)
   }
 }

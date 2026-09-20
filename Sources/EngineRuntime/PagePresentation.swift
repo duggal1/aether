@@ -44,7 +44,11 @@ extension BrowserRuntime {
   }
 
   func state(for page: PageRecord, closed: Bool = false) -> RuntimePageState {
-    RuntimePageState(page: info(for: page), navigation: page.loaded?.navigationID,
+    if let state = webStates[page.id] {
+      return RuntimePageState(page: info(for: page), navigation: nil, revision: state.sequence,
+        scroll: page.scroll, loading: state.loading, target: state.url, error: state.error, closed: closed)
+    }
+    return RuntimePageState(page: info(for: page), navigation: page.loaded?.navigationID,
       revision: page.loaded?.document.mutationVersion ?? 0, scroll: page.scroll,
       loading: navigationLoads[page.id] != nil, target: navigationTargets[page.id],
       error: navigationErrors[page.id], closed: closed)
@@ -70,7 +74,8 @@ extension BrowserRuntime {
     observedStates = current
   }
 
-  public func stopNavigation(pageID: PageID) {
+  public func stopNavigation(pageID: PageID) async {
+    if let page = webPages[pageID] { await page.stop() }
     navigationEpochs[pageID] = nil
     navigationLoads.removeValue(forKey: pageID)?.cancel()
     navigationTargets[pageID] = nil
@@ -97,24 +102,27 @@ extension BrowserRuntime {
       revision: document.document.mutationVersion)
   }
 
-  public func scrollBy(pageID: PageID, x: Double, y: Double) throws {
+  public func scrollBy(pageID: PageID, x: Double, y: Double) async throws {
+    let offset = try await scrollOffset(pageID: pageID)
+    _ = try await scrollTo(pageID: pageID, x: offset.x + x, y: offset.y + y)
+    return
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    _ = try scrollTo(pageID: pageID,
+    _ = try await scrollTo(pageID: pageID,
       x: min(max(0, page.scroll.x + x), max(0, loaded.layout.contentSize.width - page.viewport.width)),
       y: min(max(0, page.scroll.y + y), max(0, loaded.layout.contentSize.height - page.viewport.height)))
   }
 
-  public func focusNext(pageID: PageID, backwards: Bool = false) throws {
-    let snapshot = try snapshot(pageID: pageID)
+  public func focusNext(pageID: PageID, backwards: Bool = false) async throws {
+    let snapshot = try await snapshot(pageID: pageID)
     let nodes = snapshot.nodes.filter {
       $0.visible && $0.enabled && ($0.editable || ["button", "link", "checkbox", "radio", "combobox"].contains($0.role ?? ""))
     }
     guard !nodes.isEmpty else { return }
-    let focused = try focusedNode(pageID: pageID)?.id
+    let focused = try await focusedNode(pageID: pageID)?.id
     let old = nodes.firstIndex { $0.id == focused } ?? (backwards ? 0 : -1)
     let index = (old + (backwards ? -1 : 1) + nodes.count) % nodes.count
-    _ = try focus(pageID: pageID, nodeID: nodes[index].id)
-    _ = try scrollIntoView(pageID: pageID, nodeID: nodes[index].id)
+    _ = try await focus(pageID: pageID, nodeID: nodes[index].id)
+    _ = try await scrollIntoView(pageID: pageID, nodeID: nodes[index].id)
   }
 }

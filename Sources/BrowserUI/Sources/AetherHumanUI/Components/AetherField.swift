@@ -2,25 +2,37 @@ import SwiftUI
 
 public struct AetherField: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
     @Binding public var text: String
     public var hint: String
-    public var icon: String?
+    public var icon: BrowserIcon?
     public var onSubmit: (() -> Void)?
-    public init(_ hint: String, text: Binding<String>, icon: String? = nil, onSubmit: (() -> Void)? = nil) {
+    @FocusState private var focused: Bool
+
+    public init(_ hint: String, text: Binding<String>, icon: BrowserIcon? = nil, onSubmit: (() -> Void)? = nil) {
         self.hint = hint; _text = text; self.icon = icon; self.onSubmit = onSubmit
     }
+
     public var body: some View {
         HStack(spacing: 9) {
-            if let icon { Image(systemName: icon).font(.system(size: 13)).foregroundStyle(theme.fieldIcon) }
+            if let icon { BrowserIconView(icon: icon, tint: theme.fieldIcon).iconSize(13) }
             TextField(hint, text: $text)
-                .font(AetherType.body())
                 .textFieldStyle(.plain)
+                .font(AetherType.body(13))
                 .foregroundStyle(theme.ink)
+                .focused($focused)
                 .onSubmit { onSubmit?() }
         }
-        .padding(.horizontal, 12)
-        .frame(height: 36)
-        .background(theme.raised, in: RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius))
-        .overlay(RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius).strokeBorder(theme.line, lineWidth: 1))
+        .padding(.horizontal, 11)
+        .frame(height: 34)
+        .background(theme.inset, in: RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
+        .overlay {
+            if focused {
+                RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+                    .strokeBorder(theme.hairline, lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+        }
+        .animation(AetherMotion.focus(reduced), value: focused)
     }
 }

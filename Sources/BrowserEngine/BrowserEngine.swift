@@ -3,7 +3,6 @@ import DOM
 import EngineCore
 import EngineRuntime
 import Foundation
-import Graphics
 
 public final class NativeBrowserEngine: Sendable {
   public let runtime: BrowserRuntime

@@ -20,6 +20,7 @@ public struct AetherTheme {
     public var canvas: Color { AetherPalette.canvas(dark) }
     public var surface: Color { AetherPalette.surface(dark) }
     public var raised: Color { AetherPalette.raised(dark) }
+    public var inset: Color { AetherPalette.inset(dark) }
     public var subtle: Color { AetherPalette.subtle(dark) }
     public var hover: Color { AetherPalette.hover(dark) }
     public var ink: Color { AetherPalette.ink(dark) }
@@ -29,12 +30,14 @@ public struct AetherTheme {
     public var placeholder: Color { AetherPalette.placeholder(dark) }
     public var fieldIcon: Color { AetherPalette.fieldIcon(dark) }
     public var line: Color { AetherPalette.hairline(dark) }
+    public var hairline: Color { AetherPalette.hairline(dark) }
     public var faintLine: Color { AetherPalette.faintLine(dark) }
     public var selection: Color { AetherPalette.selection(dark) }
     public var primary: Color { AetherPalette.primary(dark) }
     public var error: Color { AetherPalette.error(dark) }
     public var errorBackground: Color { AetherPalette.errorBackground(dark) }
     public var active: Color { AetherPalette.active(dark) }
+    public var focus: Color { AetherPalette.focus(dark) }
 }
 
 private struct AetherThemeKey: EnvironmentKey {

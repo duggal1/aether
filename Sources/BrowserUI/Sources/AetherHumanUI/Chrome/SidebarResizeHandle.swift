@@ -2,14 +2,20 @@ import SwiftUI
 
 public struct SidebarResizeHandle: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var initialWidth: Double?
+    @BrowserState private var hovering = false
     let preferences: BrowserPreferences
     public init(preferences: BrowserPreferences) { self.preferences = preferences }
+
     public var body: some View {
-        Rectangle().fill(theme.faintLine)
+        Rectangle()
+            .fill(hovering || initialWidth != nil ? theme.hairline : .clear)
             .frame(width: 1)
-            .frame(width: 6)
+            .frame(width: 7, alignment: .center)
+            .offset(x: 3.5)
             .contentShape(Rectangle())
+            .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
             .gesture(DragGesture(minimumDistance: 2)
                 .onChanged { value in
                     if initialWidth == nil { initialWidth = preferences.sidebarWidth }

@@ -9,56 +9,47 @@ public struct TabItemView: View {
     let selected: Bool
     let compact: Bool
     let window: BrowserWindowModel
-    public init(tab: BrowserTab, selected: Bool, compact: Bool, window: BrowserWindowModel) {
-        self.tab = tab; self.selected = selected; self.compact = compact; self.window = window
+    var namespace: Namespace.ID?
+
+    public init(tab: BrowserTab, selected: Bool, compact: Bool, window: BrowserWindowModel,
+                namespace: Namespace.ID? = nil) {
+        self.tab = tab; self.selected = selected; self.compact = compact
+        self.window = window; self.namespace = namespace
     }
+
     public var body: some View {
         HStack(spacing: 9) {
             DomainIcon(tab.url, size: 16)
             if !compact {
-                Text(tab.title).font(AetherType.medium(12)).lineLimit(1)
+                Text(tab.title)
+                    .font(selected ? AetherType.rowTitle(12) : AetherType.body(12))
+                    .lineLimit(1)
                     .foregroundStyle(selected ? theme.ink : theme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if tab.loadState == .loading {
-                ProgressView().controlSize(.mini).frame(width: 13, height: 13)
+                ProgressView().controlSize(.mini).frame(width: 12, height: 12)
             } else if tab.isPinned {
-                Image(systemName: "pin.fill").font(.system(size: 9)).foregroundStyle(theme.soft)
+                BrowserIconView(icon: .pin, tint: theme.soft).iconSize(10)
             }
             if hovering && !compact {
                 Button { window.close(tab.id) } label: {
-                    Image(systemName: "xmark").font(.system(size: 9, weight: .medium))
-                        .frame(width: 17, height: 17)
+                    BrowserIconView(icon: .close, tint: theme.muted).iconSize(10)
+                        .frame(width: 18, height: 18)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain).foregroundStyle(theme.muted).help("Close tab")
+                .buttonStyle(.plain)
+                .help("Close tab")
+                .transition(.opacity)
             }
         }
         .padding(.horizontal, compact ? 8 : 11)
         .frame(height: AetherMetrics.tabHeight)
         .frame(width: compact ? 38 : nil)
-        .background {
-            if selected && window.arrangement == .top {
-                AetherGlassBackdrop(radius: 8)
-            } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(selected ? theme.selection : hovering ? theme.subtle : .clear)
-            }
-        }
-        .overlay(alignment: .leading) {
-            if selected && window.arrangement == .sidebar {
-                Capsule().fill(theme.muted.opacity(0.72))
-                    .frame(width: 2, height: 17).padding(.leading, 2)
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if selected && window.arrangement == .top {
-                Capsule().fill(theme.muted.opacity(0.6)).frame(height: 1).padding(.horizontal, 15)
-            }
-        }
+        .background { selectionBackground }
         .contentShape(Rectangle())
         .onTapGesture { window.select(tab.id) }
         .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
-        .animation(AetherMotion.selection(reduced), value: selected)
         .contextMenu {
             Button("New Tab") { _ = window.newTab() }
             Button("Duplicate Tab") { window.duplicate(tab.id) }
@@ -76,7 +67,17 @@ public struct TabItemView: View {
             }
             return true
         }
-        .accessibilityLabel("\(tab.title), \(selected ? "selected" : "tab")")
+        .accessibilityLabel(Text("\(tab.title), \(selected ? "selected tab" : "tab")"))
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    @ViewBuilder private var selectionBackground: some View {
+        if selected {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(theme.raised)
+        } else if hovering {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(theme.hover.opacity(0.55))
+        }
     }
 }

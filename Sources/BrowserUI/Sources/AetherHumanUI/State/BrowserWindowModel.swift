@@ -15,11 +15,15 @@ public final class BrowserWindowModel: Identifiable {
     public var showsInspector = false
     public var showsReader = false
     public var showsFind = false
+    public var showsSettings = false
     public var findQuery = ""
     public var addressFocusNonce = 0
     public var alert: String?
+    public private(set) var glow = AetherNavigationGlowState()
+    @ObservationIgnored private var glowSettleTask: Task<Void, Never>?
     @ObservationIgnored private var navigationTasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored private var observation: Task<Void, Never>?
+    @ObservationIgnored private var restorationStarted = false
     @ObservationIgnored private var lastNavigationURLs: [String: String] = [:]
     public private(set) var closedTabs: [ClosedTab] = []
     public private(set) var tabsByProfile: [UUID: [BrowserTab]] = [:]
@@ -50,8 +54,9 @@ public final class BrowserWindowModel: Identifiable {
         }
     }
     public func restoreProfile() async {
-        guard workspace.preferences.restoreWindows,
+        guard !restorationStarted, workspace.preferences.restoreWindows,
               let provider = workspace.engine as? any BrowserProfileManaging else { return }
+        restorationStarted = true
         let profile = activeProfileID
         do {
             let restored = try await provider.restoredPages(profileID: profile)
@@ -140,6 +145,7 @@ public final class BrowserWindowModel: Identifiable {
         guard let destination = AddressResolver.resolve(text, provider: workspace.preferences.provider) else { return }
         tab.url = destination.absoluteString
         tab.loadState = .loading
+        if tab.id == selectedID { beginNavigationGlow() }
         navigationTasks[tab.id]?.cancel()
         navigationTasks[tab.id] = Task {
             do {
@@ -167,10 +173,29 @@ public final class BrowserWindowModel: Identifiable {
         let state = try await workspace.engine.snapshot(pageID: page)
         apply(state, to: tab)
     }
+    public func beginNavigationGlow() {
+        glowSettleTask?.cancel()
+        glowSettleTask = nil
+        glow.begin()
+    }
+    private func finishGlow(_ failed: Bool) {
+        guard glow.phase.isActive else { return }
+        if failed { glow.fail() } else { glow.contentVisible() }
+        scheduleGlowSettle(after: failed ? 0.28 : 0.38)
+    }
+    private func scheduleGlowSettle(after delay: TimeInterval) {
+        glowSettleTask?.cancel()
+        glowSettleTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            self?.glow.settle()
+        }
+    }
     private func apply(_ state: EnginePageSnapshot, to tab: BrowserTab) {
         if state.closed {
             tab.enginePageID = nil
             tab.loadState = .failed("The engine page was closed.")
+            if tab.id == selectedID { finishGlow(true) }
             return
         }
         tab.title = state.title.isEmpty ? (state.url ?? "New Tab") : state.title
@@ -178,8 +203,16 @@ public final class BrowserWindowModel: Identifiable {
         tab.canGoBack = state.canGoBack
         tab.canGoForward = state.canGoForward
         tab.isSecure = state.isSecure
-        if let error = state.error { tab.loadState = .failed(error) }
-        else { tab.loadState = state.isLoading ? .loading : .ready }
+        if let error = state.error {
+            tab.loadState = .failed(error)
+            if tab.id == selectedID { finishGlow(true) }
+        } else if state.isLoading {
+            tab.loadState = .loading
+            if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
+        } else {
+            tab.loadState = .ready
+            if tab.id == selectedID { finishGlow(false) }
+        }
         if !state.isLoading, state.error == nil, let url = state.url,
            lastNavigationURLs[state.id] != url {
             lastNavigationURLs[state.id] = url
@@ -199,7 +232,12 @@ public final class BrowserWindowModel: Identifiable {
     }
     public func perform(_ action: EngineNavigationAction) {
         guard let tab = selected, let page = tab.enginePageID else { return }
-        if case .stop = action { navigationTasks[tab.id]?.cancel() }
+        if case .stop = action {
+            navigationTasks[tab.id]?.cancel()
+            if glow.phase.isActive { glow.fail(); scheduleGlowSettle(after: 0.24) }
+        } else {
+            beginNavigationGlow()
+        }
         tab.loadState = .loading
         Task {
             do {

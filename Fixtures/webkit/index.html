@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aether — Local WebKit verification</title>
+<style>
+:root {font-family:system-ui,sans-serif;color:#292524;background:#fafaf9}
+body {max-width:960px;margin:80px auto;padding:0 40px}
+h1 {font-size:36px;font-weight:500} p {line-height:1.6}
+.grid {display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:40px 0}
+article {padding:32px;background:white;border-radius:20px}
+input,button {font:inherit;padding:14px;border:1px solid #d6d3d1;border-radius:8px;background:white}
+canvas {width:100%;max-width:600px;background:white;border-radius:20px}
+#status {color:#15803d}
+</style>
+<h1>Live websites, native rendering.</h1>
+<p>This page exercises CSS Grid, JavaScript modules, asynchronous fetch, canvas, input events and persistent storage over HTTP on localhost.</p>
+<div class="grid"><article>CSS Grid<br><strong>Three columns</strong></article><article>JavaScript<br><strong id="status">Loading module…</strong></article><article>Fetch API<br><strong id="fetch">Loading…</strong></article></div>
+<form id="form"><input id="name" aria-label="Name" placeholder="Your name"><button id="apply" type="submit">Apply</button></form>
+<p id="result">Enter a name to verify live DOM interaction.</p>
+<canvas width="600" height="150" aria-label="Canvas rendering check"></canvas>
+<p><a href="/second.html">Next page — history check</a></p>
+<script type="module">
+const data = await fetch('/data.json').then(r=>r.json());
+document.querySelector('#fetch').textContent = data.message;
+document.querySelector('#status').textContent = 'Module executed';
+document.querySelector('#form').addEventListener('submit', event => {
+ event.preventDefault(); document.querySelector('#result').textContent='Hello '+document.querySelector('#name').value;
+});
+const ctx=document.querySelector('canvas').getContext('2d');
+ctx.fillStyle='#e7e5e4';ctx.fillRect(20,20,560,110);ctx.fillStyle='#292524';ctx.font='24px system-ui';ctx.fillText('Canvas rendered by WebKit',55,85);
+</script>
+</html>

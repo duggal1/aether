@@ -14,9 +14,10 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   var contextTasks: [UUID: Task<ContextID, Error>] = [:]
   var pages: [String: PageID] = [:]
   var findPositions: [String: (query: String, index: Int)] = [:]
-  var surfaces: [String: EnginePageView] = [:]
+  var surfaces: [String: NSView] = [:]
   var observers: [UUID: AsyncStream<EnginePageSnapshot>.Continuation] = [:]
   private var observation: Task<Void, Never>?
+  private var pendingCheckpoints: [ContextID: Task<Void, Never>] = [:]
   var automation: AppAutomationHost?
   var isConnected: Bool { true }
 
@@ -31,7 +32,6 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
         guard !Task.isCancelled, let self else { break }
         let snapshot = self.project(state)
         for observer in self.observers.values { observer.yield(snapshot) }
-        self.surfaces[state.page.id.description]?.invalidatePage()
       }
     }
   }
@@ -72,7 +72,7 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     let page = try await engine.createPage(contextID: context)
     let id = page.id.description
     pages[id] = page.id
-    surfaces[id] = try EnginePageView(engine: engine, pageID: page.id)
+    surfaces[id] = try await engine.runtime.webSurface(pageID: page.id)
     return id
   }
 
@@ -106,14 +106,26 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   }
   func close(pageID: String) async {
     guard let id = pages.removeValue(forKey: pageID) else { return }
-    surfaces.removeValue(forKey: pageID)?.stopPresenting()
+    surfaces.removeValue(forKey: pageID)?.removeFromSuperview()
     let context = try? await engine.runtime.pageInfo(id).contextID
     try? await engine.closePage(id)
     if let context { try? await engine.runtime.checkpoint(contextID: context) }
   }
   func persist(_ id: String) async throws {
     let info = try await engine.runtime.pageInfo(page(id))
-    try await engine.runtime.checkpoint(contextID: info.contextID)
+    let context = info.contextID
+    pendingCheckpoints[context]?.cancel()
+    pendingCheckpoints[context] = Task { [weak self, engine] in
+      do {
+        try await Task.sleep(for: .milliseconds(750))
+        try Task.checkCancellation()
+        try await engine.runtime.checkpoint(contextID: context)
+      } catch is CancellationError { }
+      catch {
+        FileHandle.standardError.write(Data("Profile checkpoint: \(error)\n".utf8))
+      }
+      if !Task.isCancelled { self?.pendingCheckpoints[context] = nil }
+    }
   }
   func surface(pageID: String) -> NSView? { surfaces[pageID] }
 
@@ -141,7 +153,8 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
 
   func shutdown() async {
     observation?.cancel()
-    for surface in surfaces.values { surface.stopPresenting() }
+    for task in pendingCheckpoints.values { task.cancel() }
+    pendingCheckpoints.removeAll()
     for id in contexts.values { try? await engine.runtime.checkpoint(contextID: id) }
   }
 }

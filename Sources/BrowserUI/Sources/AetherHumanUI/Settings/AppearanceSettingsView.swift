@@ -2,44 +2,56 @@ import SwiftUI
 
 public struct AppearanceSettingsView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
+
     public var body: some View {
-        SettingsHelp("Aether's stone-based design works in both appearances. Websites keep their own colors.")
+        SettingsHelp("Websites follow Aether's appearance. Sites with a native dark theme use it; light pages receive a dark color adjustment that preserves images and video.")
         AetherSection("Appearance") {
             HStack(spacing: 12) {
                 ForEach(AetherAppearance.allCases) { option in appearanceCard(option) }
-            }.padding(12)
+            }
+            .padding(12)
         }
-        SettingsHelp("System mode follows macOS appearance changes. Native focus, accessibility preferences and Reduce Motion remain managed by the system.")
+        SettingsHelp("System mode follows macOS appearance changes. Focus rings, Reduce Motion, Reduce Transparency and Increase Contrast stay managed by the system.")
     }
+
     private func appearanceCard(_ option: AetherAppearance) -> some View {
         let selected = workspace.preferences.appearance == option
         return Button { workspace.preferences.appearance = option } label: {
             VStack(spacing: 10) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 7).fill(option == .dark ? AetherPalette.canvas(true) : AetherPalette.canvas(false))
+                    AetherPalette.canvas(option == .dark)
                     VStack(spacing: 5) {
                         RoundedRectangle(cornerRadius: 2)
                             .fill(option == .dark ? AetherPalette.subtle(true) : AetherPalette.subtle(false))
                             .frame(height: 8)
                         HStack(spacing: 5) {
-                            RoundedRectangle(cornerRadius: 2).fill(option == .dark ? AetherPalette.surface(true) : AetherPalette.surface(false)).frame(width: 24)
-                            RoundedRectangle(cornerRadius: 2).fill(option == .dark ? AetherPalette.surface(true) : AetherPalette.surface(false))
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(option == .dark ? AetherPalette.surface(true) : AetherPalette.surface(false))
+                                .frame(width: 24)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(option == .dark ? AetherPalette.surface(true) : AetherPalette.surface(false))
                         }
-                    }.padding(9)
-                }.frame(height: 77)
-                    .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(theme.line, lineWidth: 1))
+                    }
+                    .padding(9)
+                }
+                .frame(height: 77)
+                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 HStack {
-                    Text(option.rawValue).font(AetherType.medium(12))
-                    Spacer()
-                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 12)).foregroundStyle(selected ? theme.ink : theme.soft)
+                    Text(option.rawValue).font(AetherType.rowTitle(12))
+                    Spacer(minLength: 6)
+                    Image(systemName: selected ? AetherSymbol.selected.rawValue : AetherSymbol.unselected.rawValue)
+                        .font(AetherType.symbol(12))
+                        .foregroundStyle(selected ? theme.ink : theme.soft)
                 }
             }
-            .foregroundStyle(theme.ink).padding(10)
-            .background(theme.raised, in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(selected ? theme.muted : theme.line, lineWidth: 1))
-        }.buttonStyle(.plain)
+            .foregroundStyle(theme.ink)
+            .padding(10)
+            .background(selected ? theme.hover : theme.surface,
+                        in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        }
+        .buttonStyle(AetherPressStyle(reduced: reduced))
     }
 }

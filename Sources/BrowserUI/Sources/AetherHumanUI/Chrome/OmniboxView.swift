@@ -2,13 +2,15 @@ import SwiftUI
 
 public struct OmniboxView: View {
     @Environment(\.aetherTheme) private var theme
-    @FocusState private var focused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    @BrowserState private var focused = false
     @BrowserState private var draft = ""
     @BrowserState private var selection = 0
     @BrowserState private var showingSuggestions = false
     let window: BrowserWindowModel
 
     public init(window: BrowserWindowModel) { self.window = window }
+
     private var matches: [OmniboxResult] {
         let query = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return [] }
@@ -26,78 +28,122 @@ public struct OmniboxView: View {
         }
         return Array(items.prefix(7))
     }
+
     public var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: focused ? "magnifyingglass" : (window.selected?.isSecure == false ? "exclamationmark.triangle" : "lock"))
-                .font(.system(size: 11)).foregroundStyle(theme.muted)
-            TextField("Search Google or enter URL", text: $draft)
-                .font(AetherType.body(12))
-                .textFieldStyle(.plain)
-                .foregroundStyle(theme.ink)
-                .focused($focused)
-                .onSubmit { commit() }
-                .onChange(of: draft) { _, _ in showingSuggestions = focused && !draft.isEmpty; selection = 0 }
-                .onChange(of: focused) { _, now in
-                    draft = now ? (window.selected?.url ?? "") : displayAddress(window.selected?.url)
-                    showingSuggestions = now && !draft.isEmpty
+        HStack(spacing: 8) {
+            BrowserIconView(icon: focused ? .search : (window.selected?.isSecure == false ? .warning : .lock),
+                            tint: focused ? theme.ink : theme.muted)
+                .iconSize(12)
+            NativeAddressField(text: $draft, focused: $focused,
+                fullAddress: window.selected?.url ?? "",
+                placeholder: "Search \(window.workspace.preferences.provider.rawValue) or enter URL",
+                focusRequest: window.addressFocusNonce,
+                onSubmit: { commit() }, onEscape: { showingSuggestions = false })
+                .frame(maxWidth: .infinity)
+                .onChange(of: draft) { _, _ in
+                    showingSuggestions = focused && !draft.isEmpty && draft != window.selected?.url
+                    selection = 0
                 }
-                .onChange(of: window.addressFocusNonce) { _, _ in focused = true }
+                .onChange(of: focused) { _, now in
+                    if !now { draft = displayAddress(window.selected?.url); showingSuggestions = false }
+                }
                 .onChange(of: window.selectedID) { _, _ in
                     draft = displayAddress(window.selected?.url); showingSuggestions = false
                 }
                 .onChange(of: window.selected?.url) { _, url in
                     if !focused { draft = displayAddress(url) }
                 }
+            if !focused {
+                Button { window.navigateSelected("https://www.google.com/ai") } label: {
+                    Text("AI Mode").font(AetherType.body(11)).foregroundStyle(theme.muted)
+                }
+                .buttonStyle(.plain)
+                .help("Open Google AI Mode")
+                .accessibilityIdentifier("aether.google-ai")
+            }
             if focused && !draft.isEmpty {
                 Button { draft = "" } label: {
-                    Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(theme.muted)
-                }.buttonStyle(.plain).help("Clear address")
-            }
-            if !focused, let tab = window.selected, tab.url != nil {
-                ChromeButton(window.workspace.isBookmarked(tab.url, profileID: window.activeProfileID) ? "star.fill" : "star",
-                             help: "Bookmark this page", size: 23) {
-                    if let url = tab.url {
-                        window.workspace.toggleBookmark(profileID: window.activeProfileID, title: tab.title, url: url)
-                    }
+                    BrowserIconView(icon: .close, tint: theme.muted).iconSize(11)
                 }
+                .buttonStyle(.plain)
+                .help("Clear address")
             }
+            Button {
+                if let url = window.selected?.url {
+                    window.workspace.toggleBookmark(profileID: window.activeProfileID, title: window.selected?.title ?? url, url: url)
+                }
+            } label: {
+                BrowserIconView(icon: window.workspace.isBookmarked(window.selected?.url, profileID: window.activeProfileID) ? .doubleBookmark : .bookmark,
+                                tint: theme.muted)
+                    .iconSize(13)
+            }
+            .buttonStyle(.plain)
+            .help("Bookmark this page")
         }
         .padding(.leading, 12).padding(.trailing, 6)
-        .frame(height: 33)
-        .background { AetherGlassBackdrop(radius: 8) }
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .strokeBorder(focused ? theme.muted.opacity(0.54) : theme.line.opacity(0.70), lineWidth: 1))
-        .onAppear { draft = displayAddress(window.selected?.url) }
-        .popover(isPresented: $showingSuggestions, arrowEdge: .bottom) {
-            VStack(spacing: 3) {
-                HStack {
-                    Image(systemName: "magnifyingglass").foregroundStyle(theme.muted)
-                    Text("Search or open \"\(draft)\"").lineLimit(1)
-                    Spacer()
-                    Text("↵").foregroundStyle(theme.soft)
-                }
-                .font(AetherType.body(12)).padding(10)
-                .background(selection == 0 ? theme.selection : .clear, in: RoundedRectangle(cornerRadius: 7))
-                .contentShape(Rectangle()).onTapGesture { commit() }
-                ForEach(Array(matches.enumerated()), id: \.element.id) { offset, item in
-                    Button { choose(item) } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: item.kind.symbol).font(.system(size: 12)).frame(width: 16)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.title).font(AetherType.medium(12)).lineLimit(1)
-                                Text(item.subtitle).font(AetherType.body(11)).foregroundStyle(theme.muted).lineLimit(1)
-                            }
-                            Spacer(minLength: 4)
-                        }
-                        .foregroundStyle(theme.ink).padding(10)
-                        .background(selection == offset + 1 ? theme.selection : .clear,
-                                    in: RoundedRectangle(cornerRadius: 7))
-                    }.buttonStyle(.plain)
-                }
+        .frame(height: 32)
+        .background { AetherCardBackground(radius: 8) }
+        .overlay {
+            if focused {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(theme.hairline, lineWidth: 1)
+                    .allowsHitTesting(false)
             }
-            .padding(7).frame(width: 460).background { AetherPopoverBackground() }
+        }
+        .animation(AetherMotion.focus(reduced), value: focused)
+        .onAppear { draft = displayAddress(window.selected?.url) }
+        .overlay(alignment: .topLeading) {
+            if showingSuggestions { suggestions }
         }
     }
+
+    private var suggestions: some View {
+        VStack(spacing: 2) {
+            suggestionRow(offset: 0, selected: selection == 0) {
+                HStack(spacing: 9) {
+                    BrowserIconView(icon: .search, tint: theme.muted).iconSize(12)
+                    Text("Search or open \"\(draft)\"").lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text("\u{21A9}").foregroundStyle(theme.soft)
+                }
+            } action: { commit() }
+            ForEach(Array(matches.enumerated()), id: \.element.id) { offset, item in
+                suggestionRow(offset: offset + 1, selected: selection == offset + 1) {
+                    HStack(spacing: 10) {
+                        DomainIcon(item.url, size: 18)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.title).font(AetherType.rowTitle(12)).lineLimit(1)
+                            Text(item.subtitle).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1)
+                        }
+                        Spacer(minLength: 4)
+                    }
+                } action: { choose(item) }
+            }
+        }
+        .padding(6)
+        .frame(maxWidth: 470)
+        .fixedSize(horizontal: false, vertical: true)
+        .background { AetherPopoverBackground() }
+        .aetherFloatingShadow(dark: theme.dark)
+        .offset(y: 38)
+        .zIndex(2)
+        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+    }
+
+    @ViewBuilder private func suggestionRow<Content: View>(offset: Int, selected: Bool, @ViewBuilder content: () -> Content, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            content()
+                .font(AetherType.body(12))
+                .foregroundStyle(theme.ink)
+                .padding(.horizontal, 9)
+                .frame(height: 32)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(selected ? theme.hover : .clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func displayAddress(_ url: String?) -> String {
         guard let url else { return "" }
         if window.workspace.preferences.showFullAddress { return url }
@@ -119,8 +165,8 @@ public struct OmniboxView: View {
 private struct OmniboxResult: Identifiable {
     enum Kind {
         case tab, bookmark, history
-        var symbol: String {
-            switch self { case .tab: "square.on.square"; case .bookmark: "star"; case .history: "clock" }
+        var icon: BrowserIcon {
+            switch self { case .tab: .web; case .bookmark: .bookmark; case .history: .history }
         }
     }
     var id: UUID

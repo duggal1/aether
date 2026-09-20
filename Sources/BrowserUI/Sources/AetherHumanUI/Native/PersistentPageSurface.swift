@@ -15,6 +15,7 @@ public final class PageSurfaceRegistry {
 }
 
 public struct PersistentPageSurface: NSViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
     public typealias NSViewType = NSView
     public let pageID: String
     public let engine: any BrowserEnginePort
@@ -29,17 +30,15 @@ public struct PersistentPageSurface: NSViewRepresentable {
     }
     public func updateNSView(_ container: NSView, context: Context) {
         guard let realSurface = registry.surface(for: pageID, engine: engine) else { return }
+        let appearance = colorScheme == .dark ? NSAppearance.Name.darkAqua : .aqua
+        if realSurface.appearance?.name != appearance { realSurface.appearance = NSAppearance(named: appearance) }
         if realSurface.superview !== container {
             container.subviews.forEach { $0.removeFromSuperview() }
             realSurface.removeFromSuperview()
-            realSurface.translatesAutoresizingMaskIntoConstraints = false
+            realSurface.translatesAutoresizingMaskIntoConstraints = true
+            realSurface.autoresizingMask = [.width, .height]
+            realSurface.frame = container.bounds
             container.addSubview(realSurface)
-            NSLayoutConstraint.activate([
-                realSurface.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                realSurface.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                realSurface.topAnchor.constraint(equalTo: container.topAnchor),
-                realSurface.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-            ])
         }
     }
 }

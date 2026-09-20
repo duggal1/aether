@@ -7,9 +7,11 @@ import SwiftUI
 struct AetherApp: App {
   @NSApplicationDelegateAdaptor(AetherApplicationDelegate.self) private var delegate
   private let adapter: AetherEngineAdapter
+  private let verification = WebKitVerification()
   private let workspace: BrowserWorkspace
 
   init() {
+    AetherFontRegistry.install()
     let adapter = AetherEngineAdapter()
     self.adapter = adapter
     workspace = BrowserWorkspace(engine: adapter)
@@ -25,6 +27,9 @@ struct AetherApp: App {
           for profile in workspace.profiles {
             do { try await adapter.updatePrivacy(profileID: profile.id, policy: workspace.preferences.privacy) }
             catch { workspace.persistenceError = error.localizedDescription }
+          }
+          if CommandLine.arguments.contains("--verify-webkit") {
+            await verification.run(adapter: adapter, workspace: workspace)
           }
           if let index = CommandLine.arguments.firstIndex(of: "--url"),
             CommandLine.arguments.indices.contains(index + 1),
@@ -47,6 +52,7 @@ final class AetherApplicationDelegate: NSObject, NSApplicationDelegate {
   static var workspace: BrowserWorkspace?
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.regular)
+    if let icon = AetherAppIconImage.image(side: 512) { NSApp.applicationIconImage = icon }
     NSApp.activate(ignoringOtherApps: true)
   }
   func application(_ application: NSApplication, open urls: [URL]) {
