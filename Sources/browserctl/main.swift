@@ -325,6 +325,24 @@ struct BrowserControl {
     case "page-dialogs":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .pageDialogs, params: ["page": .number(page)])
+    case "page-media":
+      guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .pageMedia, params: ["page": .number(page)])
+    case "page-media-control":
+      guard args.count >= 6, let page = Double(args[1]),
+        let nodeIndex = Double(args[2]), let nodeGeneration = Double(args[3])
+      else { throw CLIError.usage }
+      var mediaParams: [String: JSONValue] = [
+        "page": .number(page), "nodeIndex": .number(nodeIndex),
+        "nodeGeneration": .number(nodeGeneration), "action": .string(args[4]),
+      ]
+      if args.count > 5, let number = Double(args[5]) {
+        mediaParams["time"] = .number(number)
+        mediaParams["value"] = .number(number)
+        mediaParams["rate"] = .number(number)
+      }
+      if args.contains("--muted") { mediaParams["muted"] = .bool(true) }
+      request = AgentRequest(method: .pageMediaControl, params: mediaParams)
     case "dialog-resolve":
       guard args.count >= 2, let dialog = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
@@ -704,6 +722,8 @@ struct BrowserControl {
     browserctl --socket <path> page-frame <page>
     browserctl --socket <path> page-workers <page>
     browserctl --socket <path> page-dialogs <page>
+    browserctl --socket <path> page-media <page>
+    browserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]
     browserctl --socket <path> dialog-resolve <dialog> [--accept]
     browserctl --socket <path> context-cookies <context>
     browserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]

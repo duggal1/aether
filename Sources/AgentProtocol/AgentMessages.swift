@@ -50,6 +50,8 @@ public enum AgentMethod: String, Hashable, Sendable, Codable, CaseIterable {
   case pageFrame = "page.frame"
   case pageWorkers = "page.workers"
   case pageDialogs = "page.dialogs"
+  case pageMedia = "page.media"
+  case pageMediaControl = "page.mediaControl"
   case dialogResolve = "dialog.resolve"
   case contextCookies = "context.cookies"
   case contextSetCookie = "context.setCookie"

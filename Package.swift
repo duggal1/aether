@@ -27,8 +27,9 @@ let package = Package(
     .target(name: "JavaScript", dependencies: ["EngineCore", "DOM", "Storage"]),
     .target(
       name: "WebAPI",
-      dependencies: ["EngineCore", "DOM", "Networking", "JavaScript", "Storage"]),
+      dependencies: ["EngineCore", "DOM", "Networking", "JavaScript", "Storage", "Media"]),
     .target(name: "Storage", dependencies: ["EngineCore"]),
+    .target(name: "Media", dependencies: ["EngineCore", "DOM"]),
     .target(name: "Persistence", dependencies: ["EngineCore"]),
     .target(name: "WebSecurity", dependencies: ["EngineCore"]),
     .target(name: "Scheduler", dependencies: ["EngineCore"]),
@@ -47,13 +48,13 @@ let package = Package(
       dependencies: [
         "EngineCore", "DOM", "Navigation", "Graphics", "Storage", "Scheduler", "Diagnostics",
         "Networking", "JavaScript", "Style", "Layout", "Display", "WebSecurity", "Persistence",
-        "CSS", "WebAPI", "AetherCapture",
+        "CSS", "WebAPI", "AetherCapture", "Media",
       ]),
     .target(
       name: "BrowserEngine",
       dependencies: [
         "EngineCore", "DOM", "AgentProtocol", "EngineRuntime", "Graphics", "Diagnostics",
-        "AetherCapture",
+        "AetherCapture", "Media",
       ]),
     .executableTarget(
       name: "browserctl",
@@ -83,6 +84,7 @@ let package = Package(
     .testTarget(
       name: "PerformanceTests", dependencies: ["HTML", "CSS", "Style", "Layout", "Text", "DOM"]),
     .testTarget(name: "JavaScriptTests", dependencies: ["JavaScript", "HTML", "DOM", "Storage"]),
+    .testTarget(name: "MediaTests", dependencies: ["Media", "EngineCore", "DOM", "HTML"]),
     .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript", "Networking"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage", "EngineCore"]),
     .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),

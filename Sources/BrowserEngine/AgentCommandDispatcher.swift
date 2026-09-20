@@ -5,6 +5,7 @@ import Diagnostics
 import EngineCore
 import EngineRuntime
 import Foundation
+import Media
 
 public final class AgentCommandDispatcher: Sendable {
   public let engine: NativeBrowserEngine
@@ -323,6 +324,21 @@ public final class AgentCommandDispatcher: Sendable {
           try await engine.runtime.pendingDialogs(
             pageID: PageID(rawValue: try uint64(request, "page"))
           ).map(dialogJSON))
+      case .pageMedia:
+        result = .array(
+          try await engine.runtime.mediaStates(
+            pageID: PageID(rawValue: try uint64(request, "page"))
+          ).map(mediaJSON))
+      case .pageMediaControl:
+        guard let rawAction = request.params["action"]?.string,
+          let action = MediaAction(rawValue: rawAction)
+        else { throw DispatchError.badParameter("action") }
+        result = mediaJSON(
+          try await engine.runtime.mediaCommand(
+            pageID: PageID(rawValue: try uint64(request, "page")),
+            node: try nodeID(request), action: action,
+            time: request.params["time"]?.number, value: request.params["value"]?.number,
+            muted: request.params["muted"]?.bool, rate: request.params["rate"]?.number))
       case .dialogResolve:
         let id = DialogID(rawValue: try uint64(request, "dialog"))
         result = .object([
@@ -790,6 +806,37 @@ public final class AgentCommandDispatcher: Sendable {
       "contexts": .number(Double(session.contextCount)),
       "createdAt": .number(session.createdAt),
     ])
+  }
+
+  private func mediaJSON(_ state: MediaElementState) -> JSONValue {
+    var object: [String: JSONValue] = [
+      "nodeIndex": .number(Double(state.nodeIndex)),
+      "nodeGeneration": .number(Double(state.nodeGeneration)),
+      "tag": .string(state.tag),
+      "networkState": .number(Double(state.networkState.rawValue)),
+      "readyState": .number(Double(state.readyState.rawValue)),
+      "seeking": .bool(state.seeking),
+      "paused": .bool(state.paused),
+      "ended": .bool(state.ended),
+      "currentTime": .number(state.currentTime),
+      "duration": .number(state.duration),
+      "volume": .number(state.volume),
+      "muted": .bool(state.muted),
+      "playbackRate": .number(state.playbackRate),
+      "videoWidth": .number(Double(state.videoWidth)),
+      "videoHeight": .number(Double(state.videoHeight)),
+      "deliveredFrames": .number(Double(state.deliveredFrames)),
+      "audioTracks": .number(Double(state.audioTracks.count)),
+      "textTracks": .number(Double(state.textTracks.count)),
+    ]
+    if let src = state.currentSrc { object["currentSrc"] = .string(src) }
+    if let lastFrame = state.lastFrameTime { object["lastFrameTime"] = .number(lastFrame) }
+    if let error = state.error {
+      object["error"] = .object([
+        "code": .number(Double(error.code.rawValue)), "message": .string(error.message),
+      ])
+    }
+    return .object(object)
   }
 
   private func fleetStatsJSON(_ stats: FleetStats) -> JSONValue {
