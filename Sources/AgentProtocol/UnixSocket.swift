@@ -30,6 +30,28 @@ public struct AgentSocketClient: Sendable {
   }
 
   public func send(_ request: AgentRequest) throws -> AgentResponse {
+    try withConnection { fd in
+      try writeAll(fd: fd, data: AgentCodec.encode(request))
+      let data = try readLine(fd: fd)
+      return try AgentCodec.decodeResponse(data)
+    }
+  }
+
+  public func send(_ request: AgentRequest, token: String) throws -> AgentResponse {
+    try withConnection { fd in
+      try writeAll(fd: fd, data: Data(token.utf8) + Data([0x0A]))
+      let handshake = try readLine(fd: fd)
+      let handshakeResponse = try AgentCodec.decodeResponse(handshake)
+      if handshakeResponse.error != nil, handshakeResponse.id == "auth" {
+        return handshakeResponse
+      }
+      try writeAll(fd: fd, data: AgentCodec.encode(request))
+      let data = try readLine(fd: fd)
+      return try AgentCodec.decodeResponse(data)
+    }
+  }
+
+  private func withConnection(_ body: (Int32) throws -> AgentResponse) throws -> AgentResponse {
     #if canImport(Darwin) || canImport(Glibc)
       let fd = socket(AF_UNIX, engineSocketStreamType, 0)
       guard fd >= 0 else { throw AgentTransportError.socket("socket() failed") }
@@ -40,9 +62,7 @@ public struct AgentSocketClient: Sendable {
         pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, addressLength) }
       }
       guard result == 0 else { throw AgentTransportError.socket("connect() failed for \(path)") }
-      try writeAll(fd: fd, data: AgentCodec.encode(request))
-      let data = try readLine(fd: fd)
-      return try AgentCodec.decodeResponse(data)
+      return try body(fd)
     #else
       throw AgentTransportError.unsupported
     #endif
@@ -92,6 +112,89 @@ public struct AgentSocketServer: Sendable {
               error: AgentError(code: "transport", message: String(describing: error)))
             if let data = try? AgentCodec.encode(response) { try? writeAll(fd: client, data: data) }
           }
+        }
+      }
+    #else
+      throw AgentTransportError.unsupported
+    #endif
+  }
+
+  public func run(
+    authenticator: AgentSessionStore,
+    handler: @escaping @Sendable (AgentPrincipal, AgentRequest) async -> AgentResponse
+  ) async throws {
+    #if canImport(Darwin) || canImport(Glibc)
+      try await runSocket { client in
+        do {
+          let tokenData = try readLine(fd: client)
+          let presented = String(decoding: tokenData, as: UTF8.self)
+          let principal: AgentPrincipal
+          do {
+            principal = try await authenticator.bind(presentedToken: presented)
+          } catch {
+            let rejection = AgentResponse(
+              id: "auth",
+              error: AgentError(code: "unauthorized", message: String(describing: error)))
+            if let data = try? AgentCodec.encode(rejection) { try? writeAll(fd: client, data: data) }
+            return
+          }
+          let acknowledgement = AgentResponse(
+            id: "auth", result: .object(["principal": .string(principal.id)]))
+          try writeAll(fd: client, data: AgentCodec.encode(acknowledgement))
+          while true {
+            let data = try readLine(fd: client)
+            guard !data.isEmpty else { return }
+            let response: AgentResponse
+            do {
+              let request = try AgentCodec.decodeRequest(data)
+              response = await handler(principal, request)
+            } catch {
+              response = AgentResponse(
+                id: "unknown",
+                error: AgentError(code: "transport", message: String(describing: error)))
+            }
+            try writeAll(fd: client, data: AgentCodec.encode(response))
+          }
+        } catch {
+          let response = AgentResponse(
+            id: "unknown",
+            error: AgentError(code: "transport", message: String(describing: error)))
+          if let data = try? AgentCodec.encode(response) { try? writeAll(fd: client, data: data) }
+        }
+      }
+    #else
+      throw AgentTransportError.unsupported
+    #endif
+  }
+
+  private func runSocket(
+    _ clientBody: @escaping @Sendable (Int32) async -> Void
+  ) async throws {
+    #if canImport(Darwin) || canImport(Glibc)
+      _ = path.withCString { unlink($0) }
+      let fd = socket(AF_UNIX, engineSocketStreamType, 0)
+      guard fd >= 0 else { throw AgentTransportError.socket("socket() failed") }
+      defer {
+        close(fd)
+        _ = path.withCString { unlink($0) }
+      }
+      var address = try makeUnixAddress(path)
+      let addressLength = unixAddressLength(address)
+      let bindResult = withUnsafePointer(to: &address) { pointer in
+        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, addressLength) }
+      }
+      guard bindResult == 0 else { throw AgentTransportError.socket("bind() failed for \(path)") }
+      guard chmod(path, mode_t(0o600)) == 0 else {
+        throw AgentTransportError.socket("chmod() failed for \(path)")
+      }
+      guard listen(fd, 128) == 0 else { throw AgentTransportError.socket("listen() failed") }
+
+      while !Task.isCancelled {
+        let client = accept(fd, nil, nil)
+        if client < 0 { continue }
+        Task.detached {
+          defer { close(client) }
+          await clientBody(client)
         }
       }
     #else

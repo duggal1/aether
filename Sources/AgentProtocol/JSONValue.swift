@@ -44,4 +44,5 @@ public enum JSONValue: Hashable, Sendable, Codable {
     if case .object(let value) = self { value } else { nil }
   }
   public var array: [JSONValue]? { if case .array(let value) = self { value } else { nil } }
+  public subscript(key: String) -> JSONValue? { object?[key] }
 }

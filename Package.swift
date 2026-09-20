@@ -6,11 +6,18 @@ let package = Package(
   platforms: [.macOS(.v15)],
   products: [
     .library(name: "BrowserEngine", targets: ["BrowserEngine"]),
+    .library(name: "AetherHumanUI", targets: ["AetherHumanUI"]),
+    .executable(name: "AetherApp", targets: ["AetherApp"]),
     .executable(name: "browserctl", targets: ["browserctl"]),
     .executable(name: "browserd", targets: ["browserd"]),
     .executable(name: "enginebench", targets: ["enginebench"]),
   ],
   targets: [
+    .target(name: "AetherHumanUI", path: "Sources/BrowserUI/Sources/AetherHumanUI",
+      swiftSettings: [.swiftLanguageMode(.v5)]),
+    .executableTarget(name: "AetherApp", dependencies: ["AetherHumanUI", "BrowserEngine", "EngineRuntime", "EngineCore", "AgentProtocol", "Graphics", "Display", "DOM", "Media", "ContentBlocker"], exclude: ["Resources"]),
+    .testTarget(name: "AetherHumanUITests", dependencies: ["AetherHumanUI"], path: "Sources/BrowserUI/Tests/AetherHumanUITests", swiftSettings: [.swiftLanguageMode(.v5)]),
+    .testTarget(name: "HumanIntegrationTests", dependencies: ["AetherApp", "EngineRuntime", "EngineCore", "AetherHumanUI"]),
     .target(name: "EngineCore"),
     .target(name: "DOM", dependencies: ["EngineCore"]),
     .target(name: "HTML", dependencies: ["EngineCore", "DOM"]),
@@ -22,7 +29,7 @@ let package = Package(
       name: "Display", dependencies: ["EngineCore", "DOM", "Layout", "Style", "CSS", "Images"]),
     .target(name: "Graphics", dependencies: ["EngineCore", "Display", "Images"]),
     .target(name: "AetherNetworkHardening", path: "Sources/EngineAdditions/Sources/AetherNetworkHardening"),
-    .target(name: "Networking", dependencies: ["EngineCore", "AetherNetworkHardening"]),
+    .target(name: "Networking", dependencies: ["EngineCore", "AetherNetworkHardening", "ContentBlocker"]),
     .target(name: "Images", dependencies: ["EngineCore", "Networking"]),
     .target(name: "JavaScript", dependencies: ["EngineCore", "DOM", "Storage"]),
     .target(
@@ -32,6 +39,7 @@ let package = Package(
     .target(name: "Media", dependencies: ["EngineCore", "DOM"]),
     .target(name: "Persistence", dependencies: ["EngineCore"]),
     .target(name: "WebSecurity", dependencies: ["EngineCore"]),
+    .target(name: "ContentBlocker"),
     .target(name: "Scheduler", dependencies: ["EngineCore"]),
     .target(name: "Diagnostics", dependencies: ["EngineCore"]),
     .target(
@@ -39,7 +47,7 @@ let package = Package(
       dependencies: [
         "EngineCore", "Networking", "HTML", "DOM", "CSS", "Style", "Layout", "Display", "Graphics",
         "Storage", "JavaScript", "WebAPI", "Diagnostics", "Images", "WebSecurity",
-        "AetherNetworkHardening",
+        "AetherNetworkHardening", "ContentBlocker",
       ]),
     .target(name: "AgentProtocol", dependencies: ["EngineCore"]),
     .target(name: "AetherCapture", path: "Sources/NativeCapture/Sources/AetherCapture"),
@@ -48,7 +56,7 @@ let package = Package(
       dependencies: [
         "EngineCore", "DOM", "Navigation", "Graphics", "Storage", "Scheduler", "Diagnostics",
         "Networking", "JavaScript", "Style", "Layout", "Display", "WebSecurity", "Persistence",
-        "CSS", "WebAPI", "AetherCapture", "Media",
+        "CSS", "WebAPI", "AetherCapture", "Media", "ContentBlocker",
       ]),
     .target(
       name: "BrowserEngine",
@@ -89,6 +97,9 @@ let package = Package(
     .testTarget(name: "StorageTests", dependencies: ["Storage", "EngineCore"]),
     .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
     .testTarget(name: "SecurityTests", dependencies: ["WebSecurity"]),
+    .testTarget(
+      name: "BlockerTests",
+      dependencies: ["ContentBlocker", "Navigation", "Networking", "EngineCore", "HTML", "DOM", "CSS", "Style", "Diagnostics"]),
     .testTarget(
       name: "AetherCaptureTests",
       dependencies: ["AetherCapture"],

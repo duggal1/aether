@@ -2,6 +2,7 @@ import AVFoundation
 import CoreMedia
 import CoreVideo
 import Foundation
+import Metal
 
 public final class PlayerBackend: @unchecked Sendable {
   public typealias EventHandler = @Sendable (MediaEvent, MediaElementSnapshot) -> Void
@@ -32,6 +33,8 @@ public final class PlayerBackend: @unchecked Sendable {
   private var snapshot = MediaElementSnapshot()
   private var deliveredFrames: UInt64 = 0
   private var lastFrameTime: Double?
+  private var latestPixelBuffer: CVPixelBuffer?
+  private let textureCache = VideoTextureCache()
   private var onEvent: EventHandler?
   private var onFrame: (@Sendable (CVPixelBuffer, CMTime) -> Void)?
 
@@ -154,11 +157,18 @@ public final class PlayerBackend: @unchecked Sendable {
     else { return }
     let time = item.currentTime().seconds
     let handler = lock.withLock { () -> (@Sendable (CVPixelBuffer, CMTime) -> Void)? in
+      latestPixelBuffer = buffer
       deliveredFrames += 1
       lastFrameTime = time.isFinite ? time : nil
       return onFrame
     }
     handler?(buffer, item.currentTime())
+  }
+
+  public func currentVideoFrame(device: MTLDevice) -> MediaVideoFrame? {
+    pollFrame()
+    guard let buffer = lock.withLock({ latestPixelBuffer }) else { return nil }
+    return textureCache.frame(for: buffer, device: device)
   }
 
   public func state() -> (MediaElementSnapshot, UInt64, Double?) {
@@ -182,6 +192,7 @@ public final class PlayerBackend: @unchecked Sendable {
       timeObserver = nil
     }
     videoOutput = nil
+    lock.withLock { latestPixelBuffer = nil }
   }
 
   private func observe(item: AVPlayerItem, player: AVPlayer) {

@@ -1,4 +1,5 @@
 import CSS
+import ContentBlocker
 import Diagnostics
 import Display
 import DOM
@@ -26,7 +27,7 @@ public actor BrowserRuntime {
     case move(Int)
   }
 
-  private struct PageRecord {
+  struct PageRecord {
     var id: PageID
     var contextID: ContextID
     var viewport: Size
@@ -37,6 +38,7 @@ public actor BrowserRuntime {
     var lifecycle: PageLifecycleState
     var scroll: Point
     var focused: NodeID?
+    var textSelection: NSRange? = nil
     var hovered: NodeID?
     var lastActive: Double
     var lastHTML: String?
@@ -51,7 +53,7 @@ public actor BrowserRuntime {
     var ledger = ResourceLedger()
   }
 
-  private struct DialogRecord: Sendable {
+  struct DialogRecord: Sendable {
     var id: DialogID
     var pageID: PageID
     var kind: String
@@ -59,14 +61,14 @@ public actor BrowserRuntime {
     var defaultPrompt: String?
   }
 
-  private struct SessionRecord: Sendable {
+  struct SessionRecord: Sendable {
     var id: SessionID
     var name: String
     var contextIDs: [ContextID]
     var createdAt: Double
   }
 
-  private struct DownloadRecord: Sendable {
+  struct DownloadRecord: Sendable {
     var id: DownloadID
     var contextID: ContextID
     var pageID: PageID?
@@ -76,7 +78,7 @@ public actor BrowserRuntime {
     var bytes: Int
   }
 
-  private struct ContextRecord {
+  struct ContextRecord {
     var id: ContextID
     var name: String
     var network: NetworkSession
@@ -90,14 +92,15 @@ public actor BrowserRuntime {
     var mediaBridge: JSMediaBridge
     var mediaMirror: MediaMirror
     var pendingPlay: [NodeID: [PendingPlay]]
+    var blocker: FilterEngine
   }
 
-  private struct StoredSearchProvider: Codable {
+  struct StoredSearchProvider: Codable {
     var endpoint: String
     var queryParameter: String
   }
 
-  private struct PendingPlay: Sendable {
+  struct PendingPlay: Sendable {
     var token: UUID
     var completion: @Sendable (Bool, String?) -> Void
   }
@@ -112,7 +115,15 @@ public actor BrowserRuntime {
   private let sessionCounter = AtomicCounter()
   private let metricsCollector = MetricsCollector()
   private let scheduler = EngineScheduler()
-  private var contexts: [ContextID: ContextRecord] = [:]
+  var contexts: [ContextID: ContextRecord] = [:] {
+    didSet { publishPageStates() }
+  }
+  var pageObservers: [UUID: AsyncStream<RuntimePageState>.Continuation] = [:]
+  var observedStates: [PageID: RuntimePageState] = [:]
+  var navigationLoads: [PageID: Task<LoadedPage, Error>] = [:]
+  var navigationEpochs: [PageID: UUID] = [:]
+  var navigationErrors: [PageID: String] = [:]
+  var navigationTargets: [PageID: URL] = [:]
   private var sessions: [SessionID: SessionRecord] = [:]
   private var maxActivePages = 8
   private var fleetMemoryBudget = 512 * 1024 * 1024
@@ -136,7 +147,8 @@ public actor BrowserRuntime {
       media: MediaRegistry(),
       mediaBridge: bridge,
       mediaMirror: mirror,
-      pendingPlay: [:]
+      pendingPlay: [:],
+      blocker: FilterEngine()
     )
     bridge.snapshot = { [mirror] node in mirror.get(node) }
     bridge.play = { [weak self] node, completion in
@@ -732,6 +744,7 @@ public actor BrowserRuntime {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID] else {
       throw BrowserRuntimeError.pageNotFound(pageID)
     }
+    stopNavigation(pageID: pageID)
     context.pages.removeValue(forKey: pageID)
     contexts[contextID] = context
     await context.media.removePage(pageID)
@@ -1229,7 +1242,8 @@ public actor BrowserRuntime {
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     let (loaded, runtime) = buildLoaded(
       html: html, url: url, viewport: page.viewport, storage: context.storage,
-      network: context.network, page: &page, jar: context.network.cookieJar)
+      network: context.network, page: &page, jar: context.network.cookieJar,
+      blocker: context.blocker)
     runtime.mediaHost = context.mediaBridge
     page.loaded = loaded
     page.javascript = runtime
@@ -1852,10 +1866,31 @@ public actor BrowserRuntime {
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     let pipeline = NavigationPipeline(
       network: initialContext.network, metricsCollector: metricsCollector)
+    stopNavigation(pageID: pageID)
+    let epoch = UUID()
+    navigationEpochs[pageID] = epoch
+    navigationTargets[pageID] = request.url
+    navigationErrors[pageID] = nil
+    let load = Task { try await pipeline.load(request, viewport: initialPage.viewport) }
+    navigationLoads[pageID] = load
+    publishPageStates()
     var loaded: LoadedPage
     do {
-      loaded = try await pipeline.load(request, viewport: initialPage.viewport)
+      loaded = try await withTaskCancellationHandler {
+        try await load.value
+      } onCancel: { load.cancel() }
+      try Task.checkCancellation()
+      guard navigationEpochs[pageID] == epoch else { throw CancellationError() }
+      navigationLoads[pageID] = nil
+      navigationTargets[pageID] = nil
     } catch {
+      if navigationEpochs[pageID] == epoch {
+        navigationLoads[pageID] = nil
+        navigationTargets[pageID] = nil
+        if !(error is CancellationError) { navigationErrors[pageID] = String(describing: error) }
+        publishPageStates()
+      }
+      if error is CancellationError { throw error }
       throw BrowserRuntimeError.invalidNavigation(String(describing: error))
     }
     let storage = initialContext.storage.localStorage(for: originKey(loaded.url))
@@ -1955,6 +1990,7 @@ public actor BrowserRuntime {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { return }
+    if page.focused != id { page.textSelection = nil }
     page.focused = id
     page.lastActive = nowSeconds()
     context.pages[pageID] = page
@@ -2103,7 +2139,7 @@ public actor BrowserRuntime {
 
   private func buildLoaded(
     html: String, url: URL, viewport: Size, storage: StoragePartition, network: NetworkSession,
-    page: inout PageRecord, jar: CookieJar
+    page: inout PageRecord, jar: CookieJar, blocker: FilterEngine
   ) -> (LoadedPage, JSRuntime) {
     let totalClock = ContinuousClock()
     let totalStart = totalClock.now
@@ -2190,7 +2226,8 @@ public actor BrowserRuntime {
         ? page.history[page.historyIndex] : URL(string: "https://localhost/")!
       let (loaded, runtime) = buildLoaded(
         html: html, url: url, viewport: page.viewport, storage: context.storage,
-        network: context.network, page: &page, jar: context.network.cookieJar)
+        network: context.network, page: &page, jar: context.network.cookieJar,
+        blocker: context.blocker)
       page.loaded = loaded
       page.javascript = runtime
       page.networkLog.append(
@@ -2214,7 +2251,7 @@ public actor BrowserRuntime {
     throw BrowserRuntimeError.pageNotLoaded(pageID)
   }
 
-  private func refreshPage(_ pageID: PageID) throws {
+  func refreshPage(_ pageID: PageID) throws {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID], var loaded = page.loaded
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
@@ -2253,22 +2290,22 @@ public actor BrowserRuntime {
     )
   }
 
-  private func requirePage(_ id: PageID) throws -> PageRecord {
+  func requirePage(_ id: PageID) throws -> PageRecord {
     guard let contextID = contextID(containing: id), let page = contexts[contextID]?.pages[id]
     else { throw BrowserRuntimeError.pageNotFound(id) }
     return page
   }
 
-  private func requireContext(_ id: ContextID) throws -> ContextRecord {
+  func requireContext(_ id: ContextID) throws -> ContextRecord {
     guard let context = contexts[id] else { throw BrowserRuntimeError.contextNotFound(id) }
     return context
   }
 
-  private func contextID(containing pageID: PageID) -> ContextID? {
+  func contextID(containing pageID: PageID) -> ContextID? {
     contexts.first(where: { $0.value.pages[pageID] != nil })?.key
   }
 
-  private func info(for page: PageRecord) -> BrowserPageInfo {
+  func info(for page: PageRecord) -> BrowserPageInfo {
     BrowserPageInfo(
       id: page.id,
       contextID: page.contextID,
@@ -2329,7 +2366,7 @@ public actor BrowserRuntime {
     document.setAttribute("checked", value: "", on: id)
   }
 
-  private func currentValue(_ id: NodeID, document: DOMDocument) -> String {
+  func currentValue(_ id: NodeID, document: DOMDocument) -> String {
     guard let node = document.node(id) else { return "" }
     if let value = node.attribute("value") { return value }
     if node.tagName == "textarea" || node.attribute("contenteditable") == "true" {
@@ -2338,7 +2375,7 @@ public actor BrowserRuntime {
     return ""
   }
 
-  private func setControlValue(_ value: String, nodeID: NodeID, document: DOMDocument) {
+  func setControlValue(_ value: String, nodeID: NodeID, document: DOMDocument) {
     guard let node = document.node(nodeID) else { return }
     if node.attribute("contenteditable") == "true" {
       if let textNode = node.children.first(where: { child in

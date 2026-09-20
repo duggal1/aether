@@ -1,0 +1,35 @@
+import SwiftUI
+
+public struct FindBarView: View {
+    @Environment(\.aetherTheme) private var theme
+    @BrowserState private var matches: Int?
+    @BrowserState private var message: String?
+    let window: BrowserWindowModel
+    public init(window: BrowserWindowModel) { self.window = window }
+    public var body: some View {
+        HStack(spacing: 8) {
+            AetherField("Find in page", text: Binding(get: { window.findQuery }, set: { window.findQuery = $0 }),
+                        icon: "magnifyingglass", onSubmit: { find(true) })
+                .frame(width: 230)
+            if let matches { Text("\(matches) matches").font(AetherType.body(11)).foregroundStyle(theme.muted) }
+            if let message { Text(message).font(AetherType.body(11)).foregroundStyle(theme.error) }
+            ChromeButton("chevron.up", help: "Previous match") { find(false) }
+            ChromeButton("chevron.down", help: "Next match") { find(true) }
+            ChromeButton("xmark", help: "Close find") { window.showsFind = false }
+        }
+        .padding(8)
+        .background(theme.surface, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(theme.line, lineWidth: 1))
+        .padding(13)
+    }
+    private func find(_ forward: Bool) {
+        guard let page = window.selected?.enginePageID,
+              let provider = window.workspace.engine as? any BrowserFindProviding else {
+            message = "Engine not connected"; return
+        }
+        Task {
+            do { matches = try await provider.find(pageID: page, query: window.findQuery, forward: forward); message = nil }
+            catch { message = error.localizedDescription }
+        }
+    }
+}

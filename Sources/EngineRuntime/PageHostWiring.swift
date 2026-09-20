@@ -123,7 +123,7 @@ enum PageHostWiring {
       let response: HTTPResponse
       do {
         response = try await network.fetch(
-          HTTPRequest(url: url, method: httpMethod, headers: headers, body: body))
+          HTTPRequest(url: url, method: httpMethod, headers: headers, body: body, resourceKind: .xmlhttprequest, documentURL: pageURL))
       } catch {
         throw FetchHostError.transport(String(describing: error))
       }

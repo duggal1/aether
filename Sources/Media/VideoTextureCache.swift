@@ -2,15 +2,24 @@ import CoreVideo
 import Foundation
 import Metal
 
+public struct MediaVideoFrame: @unchecked Sendable {
+  public let texture: MTLTexture
+  private let surface: CVMetalTexture
+  private let buffer: CVPixelBuffer
+  init(texture: MTLTexture, surface: CVMetalTexture, buffer: CVPixelBuffer) {
+    self.texture = texture; self.surface = surface; self.buffer = buffer
+  }
+}
+
 final class VideoTextureCache: @unchecked Sendable {
   private let lock = NSLock()
   private var cache: CVMetalTextureCache?
 
   init() {}
 
-  func texture(
+  func frame(
     for pixelBuffer: CVPixelBuffer, device: MTLDevice
-  ) -> MTLTexture? {
+  ) -> MediaVideoFrame? {
     lock.withLock {
       if cache == nil {
         var created: CVMetalTextureCache?
@@ -31,7 +40,7 @@ final class VideoTextureCache: @unchecked Sendable {
           &surface) == kCVReturnSuccess,
         let surface, let texture = CVMetalTextureGetTexture(surface)
       else { return nil }
-      return texture
+      return MediaVideoFrame(texture: texture, surface: surface, buffer: pixelBuffer)
     }
   }
 
