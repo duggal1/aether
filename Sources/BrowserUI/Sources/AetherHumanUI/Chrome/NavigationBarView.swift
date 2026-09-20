@@ -5,7 +5,11 @@ public struct NavigationBarView: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var showsMore = false
     let window: BrowserWindowModel
-    public init(window: BrowserWindowModel) { self.window = window }
+    let showsChrome: Bool
+    public init(window: BrowserWindowModel, showsChrome: Bool = true) {
+        self.window = window
+        self.showsChrome = showsChrome
+    }
 
     public var body: some View {
         HStack(spacing: 4) {
@@ -39,6 +43,6 @@ public struct NavigationBarView: View {
         }
         .padding(.horizontal, 10)
         .frame(height: AetherMetrics.chromeHeight)
-        .background { AetherChromeBackground(.toolbar) }
+        .background { if showsChrome { AetherChromeBackground(.toolbar) } }
     }
 }

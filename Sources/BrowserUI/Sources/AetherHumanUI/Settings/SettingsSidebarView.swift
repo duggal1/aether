@@ -28,6 +28,8 @@ public struct SettingsSidebarView: View {
                 }
                 .buttonStyle(.plain)
                 .aetherFocusTreatment(radius: 7)
+                .focusEffectDisabled()
+                .aetherPointingCursor()
             }
             Spacer(minLength: 0)
         }

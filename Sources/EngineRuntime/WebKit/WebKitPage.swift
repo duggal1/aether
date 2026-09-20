@@ -38,6 +38,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   private var lastPublished: WebPageState?
   private var observations: [NSKeyValueObservation] = []
   private var pending: [ObjectIdentifier: CheckedContinuation<Void, Error>] = [:]
+  private var commitPending: [ObjectIdentifier: CheckedContinuation<Void, Error>] = [:]
   private var deadlines: [ObjectIdentifier: Task<Void, Never>] = [:]
   private let changed: @Sendable (WebPageState) -> Void
   var dialogs: WebKitDialogs?
@@ -101,13 +102,13 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     changed(value)
   }
 
-  func navigate(_ request: URLRequest) async throws {
+  func navigate(_ request: URLRequest, settle: PageReadiness = .complete) async throws {
     guard let scheme = request.url?.scheme?.lowercased(), ["http", "https", "about"].contains(scheme) else {
       throw BrowserRuntimeError.invalidNavigation("Only HTTP and HTTPS navigation is supported")
     }
     stop()
     lastError = nil
-    try await wait(for: view.load(request))
+    try await wait(for: view.load(request), settle: settle)
   }
 
   func loadHTML(_ html: String, url: URL) async throws {
@@ -123,17 +124,19 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     try await wait(for: bypassCache ? view.reloadFromOrigin() : view.reload())
   }
 
-  private func wait(for navigation: WKNavigation?) async throws {
+  private func wait(for navigation: WKNavigation?, settle: PageReadiness = .complete) async throws {
     guard let navigation else { throw BrowserRuntimeError.historyUnavailable }
     let key = ObjectIdentifier(navigation)
     try await withTaskCancellationHandler {
       try Task.checkCancellation()
       try await withCheckedThrowingContinuation { continuation in
-        pending[key] = continuation
+        if settle == .commit { commitPending[key] = continuation }
+        else { pending[key] = continuation }
         deadlines[key] = Task { [weak self] in
           do { try await Task.sleep(for: .seconds(60)) } catch { return }
-          guard let self, self.pending[key] != nil else { return }
+          guard let self, self.pending[key] != nil || self.commitPending[key] != nil else { return }
           self.finish(key, error: BrowserRuntimeError.timeout("WebKit navigation exceeded 60 seconds"))
+          self.finishCommit(key, error: BrowserRuntimeError.timeout("WebKit navigation exceeded 60 seconds"))
           self.view.stopLoading()
         }
       }
@@ -143,8 +146,9 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   }
 
   private func cancel(_ key: ObjectIdentifier) {
-    guard pending[key] != nil else { return }
+    guard pending[key] != nil || commitPending[key] != nil else { return }
     finish(key, error: CancellationError())
+    finishCommit(key, error: CancellationError())
     view.stopLoading()
   }
 
@@ -155,9 +159,18 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     else { continuation.resume() }
   }
 
+  private func finishCommit(_ key: ObjectIdentifier, error: Error? = nil) {
+    guard commitPending[key] != nil else { return }
+    deadlines.removeValue(forKey: key)?.cancel()
+    guard let continuation = commitPending.removeValue(forKey: key) else { return }
+    if let error { continuation.resume(throwing: error) }
+    else { continuation.resume() }
+  }
+
   func stop() {
     view.stopLoading()
     for key in Array(pending.keys) { finish(key, error: CancellationError()) }
+    for key in Array(commitPending.keys) { finishCommit(key, error: CancellationError()) }
     publish()
   }
 
@@ -179,13 +192,17 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     generation &+= 1
     loaded = true
     publish()
+    if let navigation { finishCommit(ObjectIdentifier(navigation)) }
   }
 
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
     loaded = true
     lastError = nil
     publish()
-    if let navigation { finish(ObjectIdentifier(navigation)) }
+    if let navigation {
+      finishCommit(ObjectIdentifier(navigation))
+      finish(ObjectIdentifier(navigation))
+    }
   }
 
   func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -199,7 +216,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   private func failed(_ navigation: WKNavigation?, error: Error) {
     if (error as NSError).code != NSURLErrorCancelled { lastError = error.localizedDescription }
     publish()
-    if let navigation { finish(ObjectIdentifier(navigation), error: error) }
+    if let navigation {
+      finish(ObjectIdentifier(navigation), error: error)
+      finishCommit(ObjectIdentifier(navigation), error: error)
+    }
   }
 
   func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -207,6 +227,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     let message = "The webpage process stopped. Reload the page to continue."
     lastError = message
     for key in Array(pending.keys) { finish(key, error: BrowserRuntimeError.invalidState(message)) }
+    for key in Array(commitPending.keys) { finishCommit(key, error: BrowserRuntimeError.invalidState(message)) }
     publish()
   }
 

@@ -99,6 +99,22 @@ fleet policy, `Diagnostics` metrics, `Media` registry/bridge, `browserctl` /
 - Next: private experimental helpers in `BrowserRuntime` (still referenced
   by dead tails), then pipeline module deletion in dependency order.
 
+## Perf track (measured)
+
+- `context.blocking` method + `page-snapshot [limit]` + `page-open [commit|complete]`
+  shipped; usage text synced. Runtime WebKit linkage verified: system
+  WebKit 625.1.29, no bundled engine.
+- Sweep byte-estimate: live WebKit views count 8MB default (was 0 =
+  always-discard); `lastActive` now updates on web state publish.
+- Scaling (20 heavy sites, fresh ctx per level): 8 workers is the sweet
+  spot; 20 workers collapses OFF (65.8s makespan) but survives ON (21.9s).
+  Blocking ON: medians -25-40%, compile 30-218ms once. Caveat: conditions
+  ran in fixed order (OFF then ON), so warmth confounds the ON gain —
+  treat as preliminary; interleave to confirm.
+- Settle=commit saves 0.8-2.4s on long-tail pages, ~0 on fast pages.
+- Foreground FCP stays sub-second on award sites; background tabs measure
+  the throttle, not the engine.
+
 ## Rules for every step
 
 - Migrate before deleting. Never break the green build across steps.

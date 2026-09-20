@@ -788,14 +788,14 @@ public actor BrowserRuntime {
   }
 
   @discardableResult
-  public func navigate(pageID: PageID, to url: URL) async throws -> BrowserPageInfo {
-    return try await navigateWeb(pageID: pageID, request: HTTPRequest(url: url))
+  public func navigate(pageID: PageID, to url: URL, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    return try await navigateWeb(pageID: pageID, request: HTTPRequest(url: url), settle: settle)
     return try await performNavigation(pageID: pageID, request: HTTPRequest(url: url), history: .push)
   }
 
   @discardableResult
-  public func navigate(pageID: PageID, request: HTTPRequest) async throws -> BrowserPageInfo {
-    return try await navigateWeb(pageID: pageID, request: request)
+  public func navigate(pageID: PageID, request: HTTPRequest, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    return try await navigateWeb(pageID: pageID, request: request, settle: settle)
     return try await performNavigation(pageID: pageID, request: request, history: .push)
   }
 
@@ -1411,10 +1411,12 @@ public actor BrowserRuntime {
     for context in contexts.values {
       for page in context.pages.values {
         guard page.lifecycle == .active || page.lifecycle == .background else { continue }
+        let measured = estimatedBytes(of: page)
+        let bytes = measured > 0 ? measured : (webPages[page.id] == nil ? 0 : 8 * 1024 * 1024)
         candidates.append(
           FleetCandidate(
             page: page.id.rawValue, importance: importance(of: page), lastActive: page.lastActive,
-            estimatedBytes: estimatedBytes(of: page)))
+            estimatedBytes: bytes))
       }
     }
     let plan = FleetScheduler.plan(

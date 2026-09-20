@@ -63,6 +63,7 @@ public struct InspectorView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .aetherFocusTreatment(radius: 6)
+                                .aetherPointingCursor()
                                 .contextMenu { Button("Copy Element HTML") { copy(node.html) } }
                             }
                         case .styles:

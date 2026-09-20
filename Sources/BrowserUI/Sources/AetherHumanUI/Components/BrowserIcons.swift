@@ -43,7 +43,8 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
 
     public var symbol: AetherSymbol {
         switch self {
-        case .sidebar, .arrowLeft: .sidebarLeft
+        case .sidebar: .sidebarLeft
+        case .arrowLeft: .back
         case .sidebarRight: .sidebarRight
         case .arrowRight: .forward
         case .arrowUp: .discloseUp

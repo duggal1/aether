@@ -16,10 +16,16 @@ public struct AetherChromeBackground: View {
 
     private var isOpaque: Bool { reduceTransparency || contrast == .increased }
 
+    private var veilOpacity: Double { role == .sidebar ? 0.42 : 0.55 }
+
     public var body: some View {
         ZStack {
-            theme.canvas
-            if !isOpaque { AetherChromeBlur(role: role) }
+            if isOpaque {
+                theme.canvas
+            } else {
+                AetherChromeBlur(role: role)
+                theme.canvas.opacity(veilOpacity)
+            }
         }
         .accessibilityHidden(true)
     }
@@ -31,14 +37,23 @@ private struct AetherChromeBlur: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = role == .sidebar ? .sidebar : .titlebar
-        view.blendingMode = .withinWindow
-        view.state = .followsWindowActiveState
-        view.isEmphasized = false
+        apply(to: view)
         return view
     }
 
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+    func updateNSView(_ view: NSVisualEffectView, context: Context) { apply(to: view) }
+
+    private func apply(to view: NSVisualEffectView) {
+        if role == .sidebar {
+            view.material = .sidebar
+            view.blendingMode = .behindWindow
+        } else {
+            view.material = .titlebar
+            view.blendingMode = .withinWindow
+        }
+        view.state = .followsWindowActiveState
+        view.isEmphasized = false
+    }
 }
 
 public struct AetherPopoverBackground: View {
@@ -55,7 +70,7 @@ public struct AetherPopoverBackground: View {
             shape.fill(theme.raised).accessibilityHidden(true)
         } else if #available(macOS 26.0, *) {
             ZStack {
-                shape.fill(theme.raised.opacity(0.55)).accessibilityHidden(true)
+                shape.fill(theme.raised.opacity(0.22)).accessibilityHidden(true)
                 Color.clear
                     .glassEffect(.regular, in: shape)
                     .accessibilityHidden(true)
@@ -92,7 +107,7 @@ public struct AetherLeadingGlassPanel: View {
             shape.fill(theme.raised).accessibilityHidden(true)
         } else if #available(macOS 26.0, *) {
             ZStack {
-                shape.fill(theme.raised.opacity(0.55)).accessibilityHidden(true)
+                shape.fill(theme.raised.opacity(0.22)).accessibilityHidden(true)
                 Color.clear
                     .glassEffect(.regular, in: shape)
                     .accessibilityHidden(true)

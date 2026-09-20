@@ -43,7 +43,8 @@ public final class AgentCommandDispatcher: Sendable {
         guard let raw = request.params["url"]?.string, let url = URL(string: raw) else {
           throw DispatchError.badParameter("url")
         }
-        result = pageJSON(try await engine.runtime.navigate(pageID: page, to: url))
+        let settle = request.params["settle"]?.string.flatMap(PageReadiness.init(rawValue:)) ?? .complete
+        result = pageJSON(try await engine.runtime.navigate(pageID: page, to: url, settle: settle))
       case .pageNavigateInput:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let input = request.params["input"]?.string else {
@@ -469,6 +470,20 @@ public final class AgentCommandDispatcher: Sendable {
       case .contextCheckpoint:
         try await engine.runtime.checkpoint(
           contextID: ContextID(rawValue: try uint64(request, "context")))
+        result = .object(["ok": .bool(true)])
+      case .contextBlocking:
+        var defaults: [String] = []
+        if request.params["blockAds"]?.bool ?? true {
+          defaults += ["||doubleclick.net^", "||googlesyndication.com^"]
+        }
+        if request.params["blockTrackers"]?.bool ?? true {
+          defaults += ["||google-analytics.com^", "||connect.facebook.net^"]
+        }
+        let rules = request.params["rules"]?.string.flatMap { $0.isEmpty ? nil : $0 }
+          ?? defaults.joined(separator: "\n")
+        try await engine.runtime.configureContentBlocking(
+          contextID: ContextID(rawValue: try uint64(request, "context")),
+          rules: rules, enabled: request.params["enabled"]?.bool ?? true)
         result = .object(["ok": .bool(true)])
       case .contextProfileUsage:
         result = profileJSON(

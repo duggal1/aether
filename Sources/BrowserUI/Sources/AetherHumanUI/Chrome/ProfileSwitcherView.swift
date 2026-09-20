@@ -24,6 +24,7 @@ public struct ProfileSwitcherView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
+        .focusEffectDisabled()
         .help("Switch profile")
         .accessibilityLabel("Profile: \(window.workspace.name(for: window.activeProfileID))")
         .popover(isPresented: $showing, arrowEdge: .bottom) {
@@ -57,12 +58,15 @@ public struct ProfileSwitcherView: View {
                         }
                     }
                     .buttonStyle(AetherPressStyle(reduced: reduced))
+                    .focusEffectDisabled()
                 }
                 Divider().padding(.vertical, 6)
                 Button { creating = true } label: { menuLine(.plus, "New Profile") }
                     .buttonStyle(AetherPressStyle(reduced: reduced))
+                    .focusEffectDisabled()
                 Button { showing = false; window.showsSettings = true } label: { menuLine(.gear, "Profile Settings") }
                     .buttonStyle(AetherPressStyle(reduced: reduced))
+                    .focusEffectDisabled()
             }
             .padding(7)
             .frame(width: 232)
@@ -77,6 +81,7 @@ public struct ProfileSwitcherView: View {
                     Button("Cancel") { creating = false }
                         .buttonStyle(.plain)
                         .aetherFocusTreatment(radius: 6)
+                        .focusEffectDisabled()
                     Button("Create Profile") {
                         let profile = window.workspace.createProfile(profileName)
                         window.switchProfile(profile.id)

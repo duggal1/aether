@@ -42,6 +42,7 @@ public struct MoreMenuView: View {
                 menuLabel(.gear, "Settings")
             }
             .buttonStyle(AetherPressStyle(reduced: reduced))
+            .focusEffectDisabled()
         }
         .padding(7)
         .frame(width: 232)
@@ -53,6 +54,7 @@ public struct MoreMenuView: View {
             menuLabel(icon, title)
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
+        .focusEffectDisabled()
     }
 
     private func menuLabel(_ icon: BrowserIcon, _ title: String) -> some View {

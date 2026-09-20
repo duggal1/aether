@@ -1,20 +1,19 @@
-import AppKit
 import SwiftUI
 
 public enum AetherMotion {
-    public static let micro = Animation.spring(duration: 0.16, bounce: 0)
-    public static let standard = Animation.spring(duration: 0.28, bounce: 0.08)
-    public static let large = Animation.spring(duration: 0.42, bounce: 0.12)
+    public static let micro = Animation.spring(duration: 0.10, bounce: 0)
+    public static let standard = Animation.spring(duration: 0.20, bounce: 0.06)
+    public static let large = Animation.spring(duration: 0.32, bounce: 0.08)
     public static let interactive = Animation.interactiveSpring(response: 0.26, dampingFraction: 0.86)
     public static let pressScale: CGFloat = 0.97
 
     public static func hover(_ reduced: Bool) -> Animation? { reduced ? nil : micro }
     public static func focus(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.2, bounce: 0.04) }
-    public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.3, bounce: 0.1) }
-    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.36, bounce: 0.06) }
-    public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.22, bounce: 0.08) }
+    public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.18, bounce: 0.05) }
+    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.24, bounce: 0.04) }
+    public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.18, bounce: 0.05) }
     public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.12, bounce: 0) }
-    public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.3, bounce: 0.1) }
+    public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.22, bounce: 0.06) }
     public static func panel(_ reduced: Bool) -> Animation? { reduced ? nil : large }
 
     public static func glow(_ reduced: Bool, entering: Bool) -> Animation? {
@@ -71,8 +70,20 @@ public extension View {
 public struct AetherPointingCursor: ViewModifier {
     public init() {}
     public func body(content: Content) -> some View {
-        content.onHover { inside in
-            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
+        content.pointerStyle(.link)
+    }
+}
+
+public struct AetherTextCursor: ViewModifier {
+    public init() {}
+    public func body(content: Content) -> some View {
+        content.pointerStyle(.horizontalText)
+    }
+}
+
+public struct AetherColumnResizeCursor: ViewModifier {
+    public init() {}
+    public func body(content: Content) -> some View {
+        content.pointerStyle(.columnResize)
     }
 }

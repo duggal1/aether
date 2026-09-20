@@ -161,6 +161,28 @@ struct NavigationGlowWiringTests {
 }
 
 struct IconSystemTests {
+    @Test func backArrowUsesChevronNotSidebarGlyph() {
+        #expect(BrowserIcon.arrowLeft.symbol == .back)
+        #expect(BrowserIcon.arrowLeft.symbol.rawValue == "chevron.left")
+        #expect(BrowserIcon.sidebar.symbol == .sidebarLeft)
+    }
+
+    @Test func progressPaletteOffersFourHues() {
+        #expect(AetherProgressColor.allCases.count == 4)
+    }
+
+    @MainActor @Test func sidebarResizeDefersPersistence() {
+        let workspace = BrowserWorkspace(engine: DisconnectedEnginePort())
+        let saved = workspace.preferences.sidebarWidth
+        #expect(workspace.preferences.transientSidebarWidth == nil)
+        workspace.preferences.transientSidebarWidth = saved + 20
+        #expect(workspace.preferences.sidebarWidth == saved)
+        workspace.preferences.sidebarWidth = workspace.preferences.transientSidebarWidth ?? saved
+        workspace.preferences.transientSidebarWidth = nil
+        #expect(workspace.preferences.sidebarWidth == saved + 20)
+        #expect(workspace.preferences.transientSidebarWidth == nil)
+    }
+
     @Test func brandMarksRemainRenderable() {
         for mark in AetherBrandMark.allCases {
             let path = AetherBrandMarkShape(mark).path(in: CGRect(x: 0, y: 0, width: 64, height: 64))

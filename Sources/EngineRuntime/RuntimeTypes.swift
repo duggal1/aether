@@ -212,6 +212,11 @@ public enum PageLifecycleState: String, Hashable, Sendable, Codable, CaseIterabl
   case discarded
 }
 
+public enum PageReadiness: String, Hashable, Sendable, Codable {
+  case commit
+  case complete
+}
+
 public struct BrowserSessionInfo: Hashable, Sendable, Codable {
   public var id: SessionID
   public var name: String

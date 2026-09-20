@@ -40,6 +40,7 @@ public struct TabItemView: View {
                 }
                 .buttonStyle(.plain)
                 .aetherFocusTreatment(radius: 5)
+                .focusEffectDisabled()
                 .help("Close tab")
                 .transition(.opacity)
             }
@@ -86,7 +87,7 @@ public struct TabItemView: View {
             }
         } else if hovering {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(theme.hover.opacity(0.55))
+                .fill(theme.hover)
         }
     }
 }

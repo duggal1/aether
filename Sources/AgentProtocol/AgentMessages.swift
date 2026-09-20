@@ -70,6 +70,7 @@ public enum AgentMethod: String, Hashable, Sendable, Codable, CaseIterable {
   case contextClearDownloads = "context.clearDownloads"
   case contextOpenProfile = "context.openProfile"
   case contextCheckpoint = "context.checkpoint"
+  case contextBlocking = "context.blocking"
   case contextProfileUsage = "context.profileUsage"
   case contextSetCheckpoint = "context.setCheckpoint"
   case contextCheckpointValue = "context.checkpointValue"

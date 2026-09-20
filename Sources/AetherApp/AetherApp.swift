@@ -52,7 +52,6 @@ final class AetherApplicationDelegate: NSObject, NSApplicationDelegate {
   static var workspace: BrowserWorkspace?
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.regular)
-    if let icon = AetherAppIconImage.image(side: 512) { NSApp.applicationIconImage = icon }
     NSApp.activate(ignoringOtherApps: true)
   }
   func application(_ application: NSApplication, open urls: [URL]) {

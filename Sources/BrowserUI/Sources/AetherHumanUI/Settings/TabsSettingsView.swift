@@ -52,6 +52,7 @@ public struct TabsSettingsView: View {
                         in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
+        .focusEffectDisabled()
         .foregroundStyle(theme.ink)
     }
 

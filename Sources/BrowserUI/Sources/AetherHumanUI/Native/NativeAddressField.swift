@@ -12,12 +12,19 @@ struct NativeAddressField: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
+    private func addressFont() -> NSFont {
+        if let name = AetherFontRegistry.faceName(for: .regular), let font = NSFont(name: name, size: 13) {
+            return font
+        }
+        return .systemFont(ofSize: 13)
+    }
+
     func makeNSView(context: Context) -> NSTextField {
         let field = AddressTextField()
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = .systemFont(ofSize: 13)
+        field.font = addressFont()
         field.lineBreakMode = .byTruncatingTail
         field.cell?.isScrollable = true
         field.delegate = context.coordinator

@@ -41,6 +41,7 @@ public struct SidebarTabListView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(SidebarRowStyle(reduced: reduced))
+            .focusEffectDisabled()
             .padding(.horizontal, 7)
 
             ScrollView {
@@ -76,10 +77,10 @@ public struct SidebarTabListView: View {
             }
             .padding(.horizontal, 9).padding(.bottom, 8)
         }
-        .frame(width: window.workspace.preferences.sidebarWidth)
+        .frame(width: window.workspace.preferences.transientSidebarWidth ?? window.workspace.preferences.sidebarWidth)
         .background { AetherChromeBackground(.sidebar) }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
-        .animation(AetherMotion.tab(reduced), value: window.selectedID)
+        .animation(AetherMotion.selection(reduced), value: window.selectedID)
         .sheet(isPresented: $addingShortcut) { ShortcutEditor(workspace: window.workspace, shortcut: nil) }
     }
 
@@ -91,6 +92,7 @@ public struct SidebarTabListView: View {
                 .background(theme.raised, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(SidebarTileStyle(reduced: reduced))
+        .focusEffectDisabled()
         .help(item.name)
     }
 
@@ -109,12 +111,11 @@ public struct SidebarTabListView: View {
     }
 
     private func sectionHeader(_ title: String) -> some View {
-        Text(title.uppercased())
+        Text(title)
             .font(AetherType.sectionHeader(10))
-            .tracking(0.4)
             .foregroundStyle(theme.soft)
             .padding(.horizontal, 9)
-            .padding(.top, 12)
+            .padding(.top, 8)
             .padding(.bottom, 4)
     }
 }
@@ -127,7 +128,7 @@ struct SidebarRowStyle: ButtonStyle {
         configuration.label
             .background { AetherFocusedFill(radius: radius) }
             .focusEffectDisabled()
-            .modifier(AetherPointingCursor())
+            .pointerStyle(.link)
             .background(configuration.isPressed ? theme.hover : .clear,
                         in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
@@ -142,7 +143,7 @@ struct SidebarTileStyle: ButtonStyle {
         configuration.label
             .background { AetherFocusedFill(radius: 8) }
             .focusEffectDisabled()
-            .modifier(AetherPointingCursor())
+            .pointerStyle(.link)
             .background(configuration.isPressed ? theme.hover : .clear,
                         in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)

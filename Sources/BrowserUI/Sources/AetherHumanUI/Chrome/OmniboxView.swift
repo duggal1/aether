@@ -7,8 +7,9 @@ public struct OmniboxView: View {
     @BrowserState private var draft = ""
     @BrowserState private var selection = 0
     @BrowserState private var showingSuggestions = false
-    @BrowserState private var progress = -1.0
-    @BrowserState private var progressCycle = 0
+    @BrowserState private var phase: OmniboxProgressPhase = .idle
+    @BrowserState private var sweep = false
+    @BrowserState private var sweepCycle = 0
     let window: BrowserWindowModel
 
     public init(window: BrowserWindowModel) { self.window = window }
@@ -43,6 +44,7 @@ public struct OmniboxView: View {
                 focusRequest: window.addressFocusNonce,
                 onSubmit: { commit() }, onEscape: { showingSuggestions = false })
                 .frame(maxWidth: .infinity)
+                .pointerStyle(.horizontalText)
                 .onChange(of: draft) { _, _ in
                     showingSuggestions = focused && !draft.isEmpty && draft != window.selected?.url
                     selection = 0
@@ -65,6 +67,7 @@ public struct OmniboxView: View {
                 }
                 .buttonStyle(.plain)
                 .aetherFocusTreatment(radius: 6)
+                .focusEffectDisabled()
                 .help("Open Google AI Mode")
                 .accessibilityIdentifier("aether.google-ai")
             }
@@ -74,6 +77,7 @@ public struct OmniboxView: View {
                 }
                 .buttonStyle(.plain)
                 .aetherFocusTreatment(radius: 6)
+                .focusEffectDisabled()
                 .help("Clear address")
             }
             Button {
@@ -87,6 +91,7 @@ public struct OmniboxView: View {
             }
             .buttonStyle(.plain)
             .aetherFocusTreatment(radius: 6)
+            .focusEffectDisabled()
             .help("Bookmark this page")
         }
         .padding(.leading, 12).padding(.trailing, 6)
@@ -94,12 +99,14 @@ public struct OmniboxView: View {
         .background { AetherGlassBackdrop(radius: 8, interactive: true) }
         .overlay(alignment: .bottom) {
             AetherProgressLine(
-                fraction: progress,
+                phase: phase,
+                sweep: sweep,
+                reducedMotion: reduced,
                 color: window.workspace.preferences.progressColor.color
             )
-            .offset(y: 5)
         }
         .animation(AetherMotion.focus(reduced), value: focused)
+        .animation(.snappy(duration: 0.16), value: showingSuggestions)
         .onAppear { draft = displayAddress(window.selected?.url) }
         .overlay(alignment: .topLeading) {
             if showingSuggestions { suggestions }
@@ -152,6 +159,8 @@ public struct OmniboxView: View {
         }
         .buttonStyle(.plain)
         .aetherFocusTreatment(radius: 8)
+        .focusEffectDisabled()
+        .aetherPointingCursor()
     }
 
     private func displayAddress(_ url: String?) -> String {
@@ -172,42 +181,68 @@ public struct OmniboxView: View {
     }
 
     private func startProgress() {
-        progressCycle += 1
-        progress = 0.04
-        withAnimation(.smooth(duration: 1.6)) { progress = 0.78 }
+        sweepCycle += 1
+        phase = .loading
+        sweep = false
+        if reduced {
+            sweep = true
+        } else {
+            withAnimation(.linear(duration: 1.05).repeatForever(autoreverses: false)) { sweep = true }
+        }
     }
 
     private func finishProgress() {
-        guard progress >= 0 else { return }
-        progressCycle += 1
-        let cycle = progressCycle
-        withAnimation(.smooth(duration: 0.25)) { progress = 1.0 }
+        guard phase == .loading else { return }
+        sweepCycle += 1
+        let cycle = sweepCycle
+        sweep = false
+        phase = .finishing
+        withAnimation(.easeOut(duration: 0.3)) { phase = .idle }
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.35))
-            if progressCycle == cycle { progress = -1.0 }
+            if sweepCycle == cycle, phase == .finishing { phase = .idle }
         }
     }
 }
 
+enum OmniboxProgressPhase: Sendable {
+    case idle
+    case loading
+    case finishing
+}
+
 private struct AetherProgressLine: View {
-    let fraction: Double
+    let phase: OmniboxProgressPhase
+    let sweep: Bool
+    let reducedMotion: Bool
     let color: Color
 
     var body: some View {
         GeometryReader { proxy in
-            if fraction >= 0 {
-                LinearGradient(
-                    colors: [color.opacity(0.35), color],
-                    startPoint: .leading, endPoint: .trailing
-                )
-                .frame(width: max(4, proxy.size.width * min(1, fraction)), height: 2)
-                .clipShape(Capsule())
-                .shadow(color: color.opacity(0.45), radius: 3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .transition(.opacity)
+            switch phase {
+            case .idle:
+                EmptyView()
+            case .loading where reducedMotion:
+                Capsule().fill(color).frame(height: 1)
+            case .loading:
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [color.opacity(0.1), color],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: 76, height: 1)
+                    .shadow(color: color.opacity(0.35), radius: 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .offset(x: sweep ? proxy.size.width : -76)
+            case .finishing:
+                Capsule().fill(color).frame(height: 1)
+                    .transition(.opacity)
             }
         }
-        .frame(height: 6)
+        .frame(height: 1)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 1.5)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }

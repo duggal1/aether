@@ -1,7 +1,6 @@
 import SwiftUI
 
 public struct GeneralSettingsView: View {
-    @Environment(\.aetherTheme) private var theme
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
@@ -13,27 +12,14 @@ public struct GeneralSettingsView: View {
         }
         AetherSection("New windows") {
             AetherRow("Open with profile") {
-                Menu {
+                Picker("Open with profile", selection: Binding(get: { workspace.defaultProfileID }, set: { workspace.setDefaultProfile($0) })) {
                     ForEach(workspace.profiles) { profile in
-                        Button(profile.name) { workspace.setDefaultProfile(profile.id) }
+                        Text(profile.name).tag(profile.id)
                     }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(workspace.name(for: workspace.defaultProfileID))
-                            .font(AetherType.body(12)).lineLimit(1)
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(AetherType.symbol(10, weight: .regular))
-                            .foregroundStyle(theme.muted)
-                    }
-                    .foregroundStyle(theme.ink)
-                    .padding(.horizontal, 10)
-                    .frame(width: 160, height: 28)
-                    .background(theme.hover, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    .contentShape(Rectangle())
                 }
-                .menuStyle(.borderlessButton)
-                .aetherFocusTreatment(radius: 6)
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 160)
                 .help("Choose the profile for new windows")
                 .accessibilityLabel("Open new windows with profile")
             }

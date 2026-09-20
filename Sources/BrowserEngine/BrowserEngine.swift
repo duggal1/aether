@@ -25,8 +25,8 @@ public final class NativeBrowserEngine: Sendable {
     try await runtime.createPage(contextID: contextID, viewport: viewport)
   }
 
-  public func navigate(pageID: PageID, url: URL) async throws -> BrowserPageInfo {
-    try await runtime.navigate(pageID: pageID, to: url)
+  public func navigate(pageID: PageID, url: URL, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    try await runtime.navigate(pageID: pageID, to: url, settle: settle)
   }
 
   public func back(pageID: PageID) async throws -> BrowserPageInfo {

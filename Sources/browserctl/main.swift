@@ -85,8 +85,9 @@ struct BrowserControl {
         AgentRequest(method: .pageCreate, params: ["context": .number(context)]))
       try printResponse(create)
       guard let page = create.result?.object?["id"]?.number else { return }
-      request = AgentRequest(
-        method: .pageNavigate, params: ["page": .number(page), "url": .string(args[2])])
+      var navigateParams: [String: JSONValue] = ["page": .number(page), "url": .string(args[2])]
+      if args.count > 3 { navigateParams["settle"] = .string(args[3]) }
+      request = AgentRequest(method: .pageNavigate, params: navigateParams)
     case "page-navigate-input":
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
@@ -432,6 +433,13 @@ struct BrowserControl {
     case "context-checkpoint":
       guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .contextCheckpoint, params: ["context": .number(context)])
+    case "context-blocking":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      var blockingParams: [String: JSONValue] = [
+        "context": .number(context), "enabled": .bool(args[2].lowercased() != "off"),
+      ]
+      if args.count > 3 { blockingParams["rules"] = .string(args[3...].joined(separator: "\n")) }
+      request = AgentRequest(method: .contextBlocking, params: blockingParams)
     case "context-profile-usage":
       guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .contextProfileUsage, params: ["context": .number(context)])
@@ -678,10 +686,10 @@ struct BrowserControl {
     browserctl --socket <path> ping
     browserctl --socket <path> context-create <name>
     browserctl --socket <path> context-list
-    browserctl --socket <path> page-open <context> <url>
+    browserctl --socket <path> page-open <context> <url> [commit|complete]
     browserctl --socket <path> page-navigate-input <page> <url-or-search-terms>
     browserctl --socket <path> page-inspect <page>
-    browserctl --socket <path> page-snapshot <page>
+    browserctl --socket <path> page-snapshot <page> [limit]
     browserctl --socket <path> page-query <page> <selector>
     browserctl --socket <path> page-query-all <page> <selector>
     browserctl --socket <path> page-find <page> <text>
@@ -743,6 +751,7 @@ struct BrowserControl {
     browserctl --socket <path> context-clear-downloads <context>
     browserctl --socket <path> context-open-profile <context> <directory>
     browserctl --socket <path> context-checkpoint <context>
+    browserctl --socket <path> context-blocking <context> <on|off> [rules...]
     browserctl --socket <path> context-profile-usage <context>
     browserctl --socket <path> context-bookmark-add <context> <url> [title]
     browserctl --socket <path> context-bookmarks <context>

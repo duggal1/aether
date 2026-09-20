@@ -73,6 +73,7 @@ extension BrowserRuntime {
       state.sequence > (webStates[pageID]?.sequence ?? 0) else { return }
     webStates[pageID] = state
     page.viewport = state.viewport
+    page.lastActive = Date().timeIntervalSince1970
     if !state.history.isEmpty {
       page.history = state.history
       page.historyIndex = state.historyIndex
@@ -87,14 +88,14 @@ extension BrowserRuntime {
     return try pageInfo(id)
   }
 
-  func navigateWeb(pageID: PageID, request: HTTPRequest) async throws -> BrowserPageInfo {
+  func navigateWeb(pageID: PageID, request: HTTPRequest, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
     let page = try await webPage(pageID)
     var native = URLRequest(url: request.url)
     native.httpMethod = request.method.rawValue
     native.allHTTPHeaderFields = request.headers
     native.httpBody = request.body
     if request.cachePolicy == .reloadIgnoringCache { native.cachePolicy = .reloadIgnoringLocalCacheData }
-    do { try await page.navigate(native) }
+    do { try await page.navigate(native, settle: settle) }
     catch {
       receiveWebState(await page.state(), pageID: pageID)
       throw error

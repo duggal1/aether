@@ -5,13 +5,17 @@ public struct TopTabStripView: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @Namespace private var tabGlass
     let window: BrowserWindowModel
-    public init(window: BrowserWindowModel) { self.window = window }
+    let showsChrome: Bool
+    public init(window: BrowserWindowModel, showsChrome: Bool = true) {
+        self.window = window
+        self.showsChrome = showsChrome
+    }
 
     public var body: some View {
-        HStack(spacing: 9) {
+        HStack(spacing: 6) {
             ProfileSwitcherView(window: window)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     ForEach(window.tabs.filter(\.isPinned)) { tab in
                         TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: true,
                                     window: window, namespace: tabGlass)
@@ -19,7 +23,7 @@ public struct TopTabStripView: View {
                     ForEach(window.tabs.filter { !$0.isPinned }) { tab in
                         TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
                                     window: window, namespace: tabGlass)
-                            .frame(width: 168)
+                            .frame(width: 156)
                     }
                 }
                 .padding(.vertical, 2)
@@ -28,10 +32,10 @@ public struct TopTabStripView: View {
                 ChromeButton(.plus, help: "New tab \u{2318}T") { _ = window.newTab() }
             }
         }
-        .padding(.horizontal, 11)
-        .frame(height: 43)
-        .background { AetherChromeBackground(.toolbar) }
+        .padding(.horizontal, 8)
+        .frame(height: 40)
+        .background { if showsChrome { AetherChromeBackground(.toolbar) } }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
-        .animation(AetherMotion.tab(reduced), value: window.selectedID)
+        .animation(AetherMotion.selection(reduced), value: window.selectedID)
     }
 }

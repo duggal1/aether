@@ -63,5 +63,6 @@ public struct AppearanceSettingsView: View {
                         in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
+        .focusEffectDisabled()
     }
 }

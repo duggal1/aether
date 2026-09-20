@@ -6,10 +6,11 @@ public struct AetherAppIcon: View {
     public init(side: CGFloat) { self.side = side }
     public var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: side * 0.2237, style: .continuous)
+            RoundedRectangle(cornerRadius: side * 185 / 1024, style: .continuous)
                 .fill(AetherAppIconPalette.tile)
+                .frame(width: side * 824 / 1024, height: side * 824 / 1024)
             AetherLogo()
-                .frame(width: side * 0.66, height: side * 0.66)
+                .frame(width: side * 824 / 1024 * 0.66, height: side * 824 / 1024 * 0.66)
                 .environment(\.colorScheme, .dark)
         }
         .frame(width: side, height: side)

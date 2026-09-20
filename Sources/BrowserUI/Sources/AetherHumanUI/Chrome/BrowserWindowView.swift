@@ -10,7 +10,14 @@ public struct BrowserWindowView: View {
     public var body: some View {
         ZStack(alignment: .trailing) {
             VStack(spacing: 0) {
-                if window.arrangement == .top { TopTabStripView(window: window) }
+                if window.arrangement == .top {
+                    VStack(spacing: 0) {
+                        TopTabStripView(window: window, showsChrome: false)
+                        NavigationBarView(window: window, showsChrome: false).zIndex(1)
+                    }
+                    .background { AetherChromeBackground(.toolbar) }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
                 HStack(spacing: 0) {
                     if window.arrangement == .sidebar && !window.sidebarCollapsed {
                         SidebarTabListView(window: window)
@@ -20,7 +27,9 @@ public struct BrowserWindowView: View {
                             }
                     }
                     VStack(spacing: 0) {
-                        NavigationBarView(window: window).zIndex(1)
+                        if window.arrangement == .sidebar {
+                            NavigationBarView(window: window).zIndex(1)
+                        }
                         BrowserContentView(window: window, surfaces: window.surfaces)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -42,6 +51,7 @@ public struct BrowserWindowView: View {
         .preferredColorScheme(window.workspace.preferences.appearance.colorScheme)
         .animation(AetherMotion.panel(reduced), value: window.showsTabSearch)
         .animation(AetherMotion.sidebar(reduced), value: window.sidebarCollapsed)
+        .animation(AetherMotion.sidebar(reduced), value: window.arrangement)
         .sheet(isPresented: Binding(get: { window.showsHistory }, set: { window.showsHistory = $0 })) {
             HistoryView(window: window)
         }

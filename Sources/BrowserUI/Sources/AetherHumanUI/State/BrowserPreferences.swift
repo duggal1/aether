@@ -11,6 +11,7 @@ public final class BrowserPreferences {
     public var showFavorites: Bool { didSet { save() } }
     public var showFullAddress: Bool { didSet { save() } }
     public var sidebarWidth: Double { didSet { save() } }
+    public var transientSidebarWidth: Double?
     public var downloadFolder: String { didSet { save() } }
     public var privacy: BrowserPrivacyPolicy { didSet { save() } }
     public var progressColor: AetherProgressColor { didSet { save() } }

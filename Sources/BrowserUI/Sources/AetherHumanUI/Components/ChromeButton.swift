@@ -29,6 +29,7 @@ public struct ChromeButton: View {
                 }
         }
         .buttonStyle(AetherPressStyle(reduced: reduceMotion))
+        .focusEffectDisabled()
         .disabled(!enabled)
         .help(help)
         .accessibilityLabel(help)

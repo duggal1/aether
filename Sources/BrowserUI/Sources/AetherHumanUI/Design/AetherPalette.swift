@@ -72,9 +72,9 @@ public enum AetherShadow {
         (Color.black.opacity(dark ? 0.22 : 0.08), 6, 1)
     }
     public static func floating(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
-        (Color.black.opacity(dark ? 0.30 : 0.12), 16, 8)
+        (Color.black.opacity(dark ? 0.30 : 0.12), 12, 5)
     }
     public static func sheet(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
-        (Color.black.opacity(dark ? 0.36 : 0.14), 24, 12)
+        (Color.black.opacity(dark ? 0.36 : 0.14), 18, 9)
     }
 }

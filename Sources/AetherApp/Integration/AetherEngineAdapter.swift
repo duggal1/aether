@@ -89,7 +89,7 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   }
 
   func navigate(pageID: String, url: URL) async throws {
-    _ = try await engine.navigate(pageID: page(pageID), url: url)
+    _ = try await engine.navigate(pageID: page(pageID), url: url, settle: .commit)
     try await persist(pageID)
   }
   func goBack(pageID: String) async throws {
