@@ -50,6 +50,12 @@ public actor BrowserRuntime {
     var ledger = ResourceLedger()
     var raster = RetainedRaster()
     var surfaceID: UUID?
+    var controlSequence: UInt64 = 0
+    var controlLog: [ControlEvent] = []
+    var inputHolder: ControlActor?
+    var pausedBy: ControlActor?
+    var approvalArmedBy: ControlActor?
+    var approvalGrant: ControlActor?
   }
 
   private struct DialogRecord: Sendable {
@@ -356,46 +362,54 @@ public actor BrowserRuntime {
   }
 
   @discardableResult
-  public func navigate(pageID: PageID, to url: URL) async throws -> BrowserPageInfo {
-    try await performNavigation(pageID: pageID, request: HTTPRequest(url: url), history: .push)
+  public func navigate(pageID: PageID, actor: ControlActor? = nil, to url: URL) async throws
+    -> BrowserPageInfo
+  {
+    try await performNavigation(
+      pageID: pageID, actor: actor, request: HTTPRequest(url: url), history: .push)
   }
 
   @discardableResult
-  public func navigate(pageID: PageID, request: HTTPRequest) async throws -> BrowserPageInfo {
-    try await performNavigation(pageID: pageID, request: request, history: .push)
+  public func navigate(pageID: PageID, actor: ControlActor? = nil, request: HTTPRequest) async throws
+    -> BrowserPageInfo
+  {
+    try await performNavigation(pageID: pageID, actor: actor, request: request, history: .push)
   }
 
   @discardableResult
-  public func goBack(pageID: PageID) async throws -> BrowserPageInfo {
+  public func goBack(pageID: PageID, actor: ControlActor? = nil) async throws -> BrowserPageInfo {
     let page = try requirePage(pageID)
     let targetIndex = page.historyIndex - 1
     guard page.history.indices.contains(targetIndex) else {
       throw BrowserRuntimeError.historyUnavailable
     }
     return try await performNavigation(
-      pageID: pageID, request: HTTPRequest(url: page.history[targetIndex]),
+      pageID: pageID, actor: actor, request: HTTPRequest(url: page.history[targetIndex]),
       history: .move(targetIndex))
   }
 
   @discardableResult
-  public func goForward(pageID: PageID) async throws -> BrowserPageInfo {
+  public func goForward(pageID: PageID, actor: ControlActor? = nil) async throws -> BrowserPageInfo {
     let page = try requirePage(pageID)
     let targetIndex = page.historyIndex + 1
     guard page.history.indices.contains(targetIndex) else {
       throw BrowserRuntimeError.historyUnavailable
     }
     return try await performNavigation(
-      pageID: pageID, request: HTTPRequest(url: page.history[targetIndex]),
+      pageID: pageID, actor: actor, request: HTTPRequest(url: page.history[targetIndex]),
       history: .move(targetIndex))
   }
 
   @discardableResult
-  public func reload(pageID: PageID, bypassCache: Bool = false) async throws -> BrowserPageInfo {
+  public func reload(pageID: PageID, actor: ControlActor? = nil, bypassCache: Bool = false) async throws
+    -> BrowserPageInfo
+  {
     let page = try requirePage(pageID)
     guard let url = page.loaded?.url else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     var request = HTTPRequest(url: url)
     if bypassCache { request.cachePolicy = .reloadIgnoringCache }
-    return try await performNavigation(pageID: pageID, request: request, history: .preserve)
+    return try await performNavigation(
+      pageID: pageID, actor: actor, request: request, history: .preserve)
   }
 
   public func inspect(pageID: PageID) throws -> PageInspection {
@@ -480,19 +494,30 @@ public actor BrowserRuntime {
   }
 
   @discardableResult
-  public func click(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
+  public func click(pageID: PageID, actor: ControlActor? = nil, nodeID: NodeID) async throws
+    -> BrowserPageInfo
+  {
+    var gated = try pageContextRecord(pageID)
+    guard let loaded = gated.page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    guard loaded.document.node(nodeID) != nil else {
+      throw BrowserRuntimeError.nodeNotFound(nodeID)
+    }
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "click",
+      node: nodeID, secret: false)
     let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let node = loaded.document.node(nodeID) else {
+    guard let reloaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    let loadedAlias = reloaded
+    guard let node = loadedAlias.document.node(nodeID) else {
       throw BrowserRuntimeError.nodeNotFound(nodeID)
     }
     guard node.attribute("disabled") == nil else { return info(for: page) }
 
     if let runtime = page.javascript {
-      let before = loaded.document.mutationVersion
+      let before = loadedAlias.document.mutationVersion
       do {
         let dispatch = try runtime.dispatchEvent(type: "click", target: nodeID)
-        if loaded.document.mutationVersion != before { try refreshPage(pageID) }
+        if loadedAlias.document.mutationVersion != before { try refreshPage(pageID) }
         if dispatch.defaultPrevented { return info(for: try requirePage(pageID)) }
       } catch {
         throw BrowserRuntimeError.javascript(String(describing: error))
@@ -502,39 +527,43 @@ public actor BrowserRuntime {
     if node.tagName == "input" {
       let type = node.attribute("type")?.lowercased() ?? "text"
       if type == "checkbox" {
-        toggleCheckbox(nodeID, document: loaded.document)
-        try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loaded.document)
+        toggleCheckbox(nodeID, document: loadedAlias.document)
+        try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loadedAlias.document)
         try refreshPage(pageID)
         return info(for: try requirePage(pageID))
       }
       if type == "radio" {
-        toggleRadio(nodeID, document: loaded.document)
-        try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loaded.document)
+        toggleRadio(nodeID, document: loadedAlias.document)
+        try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loadedAlias.document)
         try refreshPage(pageID)
         return info(for: try requirePage(pageID))
       }
     }
 
-    if let anchor = ancestor(named: "a", from: nodeID, document: loaded.document),
-      let href = loaded.document.node(anchor)?.attribute("href"),
-      let target = URL(string: href, relativeTo: loaded.url)?.absoluteURL
+    if let anchor = ancestor(named: "a", from: nodeID, document: loadedAlias.document),
+      let href = loadedAlias.document.node(anchor)?.attribute("href"),
+      let target = URL(string: href, relativeTo: loadedAlias.url)?.absoluteURL
     {
-      return try await navigate(pageID: pageID, to: target)
+      return try await navigate(pageID: pageID, actor: actor, to: target)
     }
 
     if isSubmitControl(node),
-      let form = ancestor(named: "form", from: nodeID, document: loaded.document)
+      let form = ancestor(named: "form", from: nodeID, document: loadedAlias.document)
     {
-      let request = try formRequest(formID: form, activatedNodeID: nodeID, page: loaded)
-      return try await performNavigation(pageID: pageID, request: request, history: .push)
+      let request = try formRequest(formID: form, activatedNodeID: nodeID, page: loadedAlias)
+      return try await performNavigation(
+        pageID: pageID, actor: actor, request: request, history: .push)
     }
 
     return info(for: page)
   }
 
-  public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) throws {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+  public func type(
+    pageID: PageID, actor: ControlActor? = nil, nodeID: NodeID, text: String,
+    append: Bool = false
+  ) throws {
+    var gated = try pageContextRecord(pageID)
+    guard let loaded = gated.page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let node = loaded.document.node(nodeID) else {
       throw BrowserRuntimeError.nodeNotFound(nodeID)
     }
@@ -542,14 +571,21 @@ public actor BrowserRuntime {
     guard role == "textbox" || node.attribute("contenteditable") == "true" else {
       throw BrowserRuntimeError.nodeNotEditable(nodeID)
     }
-    let existing = append ? currentValue(nodeID, document: loaded.document) : ""
-    setControlValue(existing + text, nodeID: nodeID, document: loaded.document)
-    try dispatchMutationEvent("input", page: page, nodeID: nodeID, document: loaded.document)
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "type",
+      node: nodeID, secret: isSecretField(nodeID, in: loaded.document))
+    let page = try requirePage(pageID)
+    guard let current = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    let existing = append ? currentValue(nodeID, document: current.document) : ""
+    setControlValue(existing + text, nodeID: nodeID, document: current.document)
+    try dispatchMutationEvent("input", page: page, nodeID: nodeID, document: current.document)
     try refreshPage(pageID)
   }
 
-  public func setValue(pageID: PageID, nodeID: NodeID, value: String) throws {
-    try type(pageID: pageID, nodeID: nodeID, text: value, append: false)
+  public func setValue(
+    pageID: PageID, actor: ControlActor? = nil, nodeID: NodeID, value: String
+  ) throws {
+    try type(pageID: pageID, actor: actor, nodeID: nodeID, text: value, append: false)
   }
 
   public func evaluate(pageID: PageID, source: String) throws -> JavaScriptResult {
@@ -611,12 +647,14 @@ public actor BrowserRuntime {
     return try nodeAtPoint(pageID: surface.pageID, x: x, y: y)
   }
 
-  public func clickSurface(_ surface: PageSurface, x: Double, y: Double) async throws -> BrowserPageInfo {
+  public func clickSurface(
+    _ surface: PageSurface, actor: ControlActor? = nil, x: Double, y: Double
+  ) async throws -> BrowserPageInfo {
     try validateSurface(surface)
     guard let node = try nodeAtPoint(pageID: surface.pageID, x: x, y: y) else {
       return try pageInfo(surface.pageID)
     }
-    return try await click(pageID: surface.pageID, nodeID: node.id)
+    return try await click(pageID: surface.pageID, actor: actor, nodeID: node.id)
   }
 
   public func requestFrame(_ surface: PageSurface, after revision: UInt64? = nil) throws -> PageFrame {
@@ -636,6 +674,230 @@ public actor BrowserRuntime {
   private func validateSurface(_ surface: PageSurface) throws {
     let page = try requirePage(surface.pageID)
     guard page.surfaceID == surface.attachmentID else { throw PageSurfaceError.detached }
+  }
+
+  public func controlEvents(pageID: PageID, after sequence: UInt64? = nil) throws -> [ControlEvent]
+  {
+    let page = try requirePage(pageID)
+    guard let cursor = sequence else { return page.controlLog }
+    return page.controlLog.filter { $0.sequence > cursor }
+  }
+
+  public func acquireInput(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    if let holder = gated.page.inputHolder, holder != actor {
+      appendControlEvent(
+        page: &gated.page, contextID: gated.context, actor: actor, operation: "acquire",
+        node: nil, outcome: "denied", error: "input-held", detail: holder.label)
+      commitControl(gated.page, contextID: gated.context)
+      throw PageControlError.inputHeld(holder)
+    }
+    gated.page.inputHolder = actor
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "acquire",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func releaseInput(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    guard let holder = gated.page.inputHolder else { return }
+    guard holder == actor else {
+      appendControlEvent(
+        page: &gated.page, contextID: gated.context, actor: actor, operation: "release",
+        node: nil, outcome: "denied", error: "input-held", detail: holder.label)
+      commitControl(gated.page, contextID: gated.context)
+      throw PageControlError.inputHeld(holder)
+    }
+    gated.page.inputHolder = nil
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "release",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func takeoverInput(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    let previous = gated.page.inputHolder
+    gated.page.inputHolder = actor
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "takeover",
+      node: nil, outcome: "success", error: nil, detail: previous?.label)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func handoffInput(pageID: PageID, from: ControlActor, to: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    guard let holder = gated.page.inputHolder else {
+      throw BrowserRuntimeError.invalidState("No input lease to hand off")
+    }
+    guard holder == from else {
+      appendControlEvent(
+        page: &gated.page, contextID: gated.context, actor: to, operation: "handoff",
+        node: nil, outcome: "denied", error: "input-held", detail: holder.label)
+      commitControl(gated.page, contextID: gated.context)
+      throw PageControlError.inputHeld(holder)
+    }
+    gated.page.inputHolder = to
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: to, operation: "handoff",
+      node: nil, outcome: "success", error: nil, detail: from.label)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func pausePage(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    gated.page.pausedBy = actor
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "pause",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func resumePage(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    guard let pauser = gated.page.pausedBy else {
+      throw BrowserRuntimeError.invalidState("Page is not paused")
+    }
+    guard pauser == actor else {
+      appendControlEvent(
+        page: &gated.page, contextID: gated.context, actor: actor, operation: "resume",
+        node: nil, outcome: "denied", error: "input-held", detail: pauser.label)
+      commitControl(gated.page, contextID: gated.context)
+      throw PageControlError.inputHeld(pauser)
+    }
+    gated.page.pausedBy = nil
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "resume",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func abortPage(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    gated.page.inputHolder = nil
+    gated.page.pausedBy = actor
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "abort",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func requireNavigationApproval(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    gated.page.approvalArmedBy = actor
+    gated.page.approvalGrant = nil
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "approval-armed",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func approveNavigation(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    guard gated.page.approvalArmedBy != nil else {
+      throw BrowserRuntimeError.invalidState("Navigation approval is not armed")
+    }
+    gated.page.approvalGrant = actor
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "approval-grant",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  public func clearNavigationApproval(pageID: PageID, actor: ControlActor) throws {
+    var gated = try pageContextRecord(pageID)
+    gated.page.approvalArmedBy = nil
+    gated.page.approvalGrant = nil
+    appendControlEvent(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "approval-cleared",
+      node: nil, outcome: "success", error: nil, detail: nil)
+    commitControl(gated.page, contextID: gated.context)
+  }
+
+  private func pageContextRecord(_ pageID: PageID) throws -> (
+    context: ContextID, page: PageRecord
+  ) {
+    guard let contextID = contextID(containing: pageID),
+      let page = contexts[contextID]?.pages[pageID]
+    else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    return (contextID, page)
+  }
+
+  private func commitControl(_ page: PageRecord, contextID: ContextID) {
+    contexts[contextID]?.pages[page.id] = page
+  }
+
+  private func appendControlEvent(
+    page: inout PageRecord, contextID: ContextID, actor: ControlActor?, operation: String,
+    node: NodeID?, outcome: String, error: String?, detail: String?
+  ) {
+    page.controlSequence &+= 1
+    page.controlLog.append(
+      ControlEvent(
+        sequence: page.controlSequence, timestamp: nowSeconds(),
+        actorKind: actor?.kind.rawValue ?? "system", actorLabel: actor?.label ?? "system",
+        operation: operation, nodeID: node, outcome: outcome, error: error, detail: detail))
+    if page.controlLog.count > 512 {
+      page.controlLog.removeFirst(page.controlLog.count - 512)
+    }
+    commitControl(page, contextID: contextID)
+  }
+
+  private func gateInput(
+    page: inout PageRecord, contextID: ContextID, actor: ControlActor?, operation: String,
+    node: NodeID?, secret: Bool
+  ) throws {
+    if page.pausedBy != nil {
+      appendControlEvent(
+        page: &page, contextID: contextID, actor: actor, operation: operation, node: node,
+        outcome: "denied", error: "paused", detail: nil)
+      throw PageControlError.paused
+    }
+    if let holder = page.inputHolder, holder != actor {
+      appendControlEvent(
+        page: &page, contextID: contextID, actor: actor, operation: operation, node: node,
+        outcome: "denied", error: "input-held", detail: holder.label)
+      throw PageControlError.inputHeld(holder)
+    }
+    appendControlEvent(
+      page: &page, contextID: contextID, actor: actor, operation: operation, node: node,
+      outcome: "admitted", error: nil, detail: secret ? "redacted" : nil)
+  }
+
+  private func gateNavigation(
+    page: inout PageRecord, contextID: ContextID, actor: ControlActor?, operation: String,
+    detail: String?
+  ) throws {
+    if page.pausedBy != nil {
+      appendControlEvent(
+        page: &page, contextID: contextID, actor: actor, operation: operation, node: nil,
+        outcome: "denied", error: "paused", detail: nil)
+      throw PageControlError.paused
+    }
+    if let holder = page.inputHolder, holder != actor {
+      appendControlEvent(
+        page: &page, contextID: contextID, actor: actor, operation: operation, node: nil,
+        outcome: "denied", error: "input-held", detail: holder.label)
+      throw PageControlError.inputHeld(holder)
+    }
+    if page.approvalArmedBy != nil {
+      guard page.approvalGrant != nil else {
+        appendControlEvent(
+          page: &page, contextID: contextID, actor: actor, operation: operation, node: nil,
+          outcome: "denied", error: "approval-required", detail: nil)
+        throw PageControlError.approvalRequired(operation)
+      }
+      page.approvalGrant = nil
+    }
+    appendControlEvent(
+      page: &page, contextID: contextID, actor: actor, operation: operation, node: nil,
+      outcome: "admitted", error: nil, detail: detail)
+  }
+
+  private func isSecretField(_ node: NodeID, in document: DOMDocument) -> Bool {
+    guard let element = document.node(node), element.tagName == "input" else { return false }
+    return element.attribute("type")?.lowercased() == "password"
   }
 
   private func rasterFrame(pageID: PageID, origin: Point, after revision: UInt64?) throws -> PageFrame {
@@ -1080,12 +1342,18 @@ public actor BrowserRuntime {
     return makeInspectedNode(nodeID, loaded: loaded)
   }
 
-  public func focus(pageID: PageID, nodeID: NodeID) throws -> BrowserPageInfo {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+  public func focus(pageID: PageID, actor: ControlActor? = nil, nodeID: NodeID) throws
+    -> BrowserPageInfo
+  {
+    var gated = try pageContextRecord(pageID)
+    guard let loaded = gated.page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard loaded.document.node(nodeID) != nil else {
       throw BrowserRuntimeError.nodeNotFound(nodeID)
     }
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "focus",
+      node: nodeID, secret: false)
+    let page = try requirePage(pageID)
     if let previous = page.focused, previous != nodeID, let runtime = page.javascript {
       do { _ = try runtime.dispatchEvent(type: "blur", target: previous) } catch {
         throw BrowserRuntimeError.javascript(String(describing: error))
@@ -1100,9 +1368,13 @@ public actor BrowserRuntime {
     return info(for: try requirePage(pageID))
   }
 
-  public func blur(pageID: PageID) throws -> BrowserPageInfo {
+  public func blur(pageID: PageID, actor: ControlActor? = nil) throws -> BrowserPageInfo {
+    var gated = try pageContextRecord(pageID)
+    guard gated.page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "blur",
+      node: nil, secret: false)
     let page = try requirePage(pageID)
-    guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     if let previous = page.focused, let runtime = page.javascript {
       do { _ = try runtime.dispatchEvent(type: "blur", target: previous) } catch {
         throw BrowserRuntimeError.javascript(String(describing: error))
@@ -1126,13 +1398,20 @@ public actor BrowserRuntime {
     return makeInspectedNode(hovered, loaded: loaded)
   }
 
-  public func scrollTo(pageID: PageID, x: Double, y: Double) throws -> Point {
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+  public func scrollTo(pageID: PageID, actor: ControlActor? = nil, x: Double, y: Double) throws
+    -> Point
+  {
+    var gated = try pageContextRecord(pageID)
+    guard gated.page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard x.isFinite, y.isFinite, abs(x) <= 1_000_000_000, abs(y) <= 1_000_000_000 else {
       throw RendererError.renderingFailed
+    }
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "scroll",
+      node: nil, secret: false)
+    var page = try requirePage(pageID)
+    guard let contextID = contextID(containing: pageID), var context = contexts[contextID] else {
+      throw BrowserRuntimeError.pageNotFound(pageID)
     }
     page.scroll = Point(x: max(0, x), y: max(0, y))
     page.pipeline.markDirty(.composite, mutationVersion: page.loaded?.document.mutationVersion ?? 0)
@@ -1148,13 +1427,16 @@ public actor BrowserRuntime {
     return page.scroll
   }
 
-  public func scrollIntoView(pageID: PageID, nodeID: NodeID) throws -> Point {
+  public func scrollIntoView(pageID: PageID, actor: ControlActor? = nil, nodeID: NodeID) throws
+    -> Point
+  {
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let box = loaded.layout.boxes[nodeID] else {
       throw BrowserRuntimeError.nodeNotFound(nodeID)
     }
-    return try scrollTo(pageID: pageID, x: max(0, box.frame.minX), y: max(0, box.frame.minY))
+    return try scrollTo(
+      pageID: pageID, actor: actor, x: max(0, box.frame.minX), y: max(0, box.frame.minY))
   }
 
   public func nodeAtPoint(pageID: PageID, x: Double, y: Double) throws -> InspectedNode? {
@@ -1165,91 +1447,114 @@ public actor BrowserRuntime {
     return makeInspectedNode(id, loaded: loaded)
   }
 
-  public func pressKey(pageID: PageID, key: String) async throws -> String {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let focused = page.focused,
-      let node = loaded.document.node(focused)
+  public func pressKey(pageID: PageID, actor: ControlActor? = nil, key: String) async throws
+    -> String
+  {
+    var gated = try pageContextRecord(pageID)
+    guard let loaded = gated.page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    guard let focused = gated.page.focused,
+      loaded.document.node(focused) != nil
     else {
       throw BrowserRuntimeError.invalidState("No focused node for keyboard input")
     }
-    let role = DOMSemantics.role(for: node)
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "press",
+      node: focused, secret: isSecretField(focused, in: loaded.document))
+    let page = try requirePage(pageID)
+    guard let current = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    guard let currentNode = current.document.node(focused) else {
+      throw BrowserRuntimeError.nodeNotFound(focused)
+    }
+    let nodeAlias = currentNode
+    let role = DOMSemantics.role(for: nodeAlias)
     switch key {
     case "Escape":
-      _ = try blur(pageID: pageID)
+      _ = try blur(pageID: pageID, actor: actor)
       return ""
     case "Tab":
       advanceFocus(pageID: pageID)
       return ""
     default: break
     }
-    guard role == "textbox" || node.attribute("contenteditable") == "true" else {
+    guard role == "textbox" || nodeAlias.attribute("contenteditable") == "true" else {
       throw BrowserRuntimeError.nodeNotEditable(focused)
     }
-    if key == "Enter", node.tagName != "textarea",
-      node.attribute("contenteditable") == nil,
-      let form = ancestor(named: "form", from: focused, document: loaded.document)
+    if key == "Enter", nodeAlias.tagName != "textarea",
+      nodeAlias.attribute("contenteditable") == nil,
+      let form = ancestor(named: "form", from: focused, document: current.document)
     {
       if let runtime = page.javascript {
         try dispatchAll(["keydown", "keypress", "keyup"], runtime: runtime, target: focused)
       }
-      let request = try formRequest(formID: form, activatedNodeID: focused, page: loaded)
-      _ = try await performNavigation(pageID: pageID, request: request, history: .push)
+      let request = try formRequest(formID: form, activatedNodeID: focused, page: current)
+      _ = try await performNavigation(
+        pageID: pageID, actor: actor, request: request, history: .push)
       return ""
     }
-    let current = currentValue(focused, document: loaded.document)
+    let currentValueText = currentValue(focused, document: current.document)
     let updated: String
     if key == "Backspace" || key == "Delete" {
-      updated = current.isEmpty ? current : String(current.dropLast())
+      updated = currentValueText.isEmpty ? currentValueText : String(currentValueText.dropLast())
     } else if key == "Enter" {
-      guard node.tagName == "textarea" || node.attribute("contenteditable") != nil else {
+      guard nodeAlias.tagName == "textarea" || nodeAlias.attribute("contenteditable") != nil else {
         throw BrowserRuntimeError.invalidState("Unsupported key: Enter")
       }
-      updated = current + "\n"
+      updated = currentValueText + "\n"
     } else if key.count == 1 {
-      updated = current + key
+      updated = currentValueText + key
     } else {
       throw BrowserRuntimeError.invalidState("Unsupported key: \(key)")
     }
     if let runtime = page.javascript {
       try dispatchAll(["keydown", "keypress", "keyup"], runtime: runtime, target: focused)
     }
-    setControlValue(updated, nodeID: focused, document: loaded.document)
-    try dispatchMutationEvent("input", page: page, nodeID: focused, document: loaded.document)
+    setControlValue(updated, nodeID: focused, document: current.document)
+    try dispatchMutationEvent("input", page: page, nodeID: focused, document: current.document)
     try refreshPage(pageID)
     return updated
   }
 
-  public func selectOption(pageID: PageID, selectNodeID: NodeID, value: String) throws {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let select = loaded.document.node(selectNodeID), select.tagName == "select" else {
+  public func selectOption(
+    pageID: PageID, actor: ControlActor? = nil, selectNodeID: NodeID, value: String
+  ) throws {
+    var gated = try pageContextRecord(pageID)
+    guard let loaded = gated.page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    guard loaded.document.node(selectNodeID) != nil else {
       throw BrowserRuntimeError.invalidState("Node is not a select element")
     }
-    let options = loaded.document.depthFirst(from: selectNodeID).filter {
-      loaded.document.node($0)?.tagName == "option"
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "select",
+      node: selectNodeID, secret: false)
+    let page = try requirePage(pageID)
+    guard let current = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    guard let select = current.document.node(selectNodeID), select.tagName == "select" else {
+      throw BrowserRuntimeError.invalidState("Node is not a select element")
+    }
+    let options = current.document.depthFirst(from: selectNodeID).filter {
+      current.document.node($0)?.tagName == "option"
     }
     let matches = options.filter {
-      guard let option = loaded.document.node($0) else { return false }
-      return (option.attribute("value") ?? loaded.document.textContent(of: $0)) == value
+      guard let option = current.document.node($0) else { return false }
+      return (option.attribute("value") ?? current.document.textContent(of: $0)) == value
     }
     guard !matches.isEmpty else {
       throw BrowserRuntimeError.invalidState("No option with value: \(value)")
     }
     if select.attribute("multiple") == nil {
-      for option in options { loaded.document.removeAttribute("selected", from: option) }
-      loaded.document.setAttribute("selected", value: "", on: matches[0])
+      for option in options { current.document.removeAttribute("selected", from: option) }
+      current.document.setAttribute("selected", value: "", on: matches[0])
     } else {
-      for match in matches { loaded.document.setAttribute("selected", value: "", on: match) }
+      for match in matches { current.document.setAttribute("selected", value: "", on: match) }
     }
-    try dispatchMutationEvent("input", page: page, nodeID: selectNodeID, document: loaded.document)
-    try dispatchMutationEvent("change", page: page, nodeID: selectNodeID, document: loaded.document)
+    try dispatchMutationEvent("input", page: page, nodeID: selectNodeID, document: current.document)
+    try dispatchMutationEvent("change", page: page, nodeID: selectNodeID, document: current.document)
     try refreshPage(pageID)
   }
 
-  public func fill(pageID: PageID, nodeID: NodeID, value: String) throws {
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+  public func fill(pageID: PageID, actor: ControlActor? = nil, nodeID: NodeID, value: String) throws
+  {
+    var gated = try pageContextRecord(pageID)
+    guard let loaded = gated.page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let node = loaded.document.node(nodeID) else {
       throw BrowserRuntimeError.nodeNotFound(nodeID)
     }
@@ -1257,20 +1562,28 @@ public actor BrowserRuntime {
     guard role == "textbox" || node.attribute("contenteditable") == "true" else {
       throw BrowserRuntimeError.nodeNotEditable(nodeID)
     }
-    setControlValue(value, nodeID: nodeID, document: loaded.document)
-    try dispatchMutationEvent("input", page: page, nodeID: nodeID, document: loaded.document)
-    try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loaded.document)
+    try gateInput(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "fill",
+      node: nodeID, secret: isSecretField(nodeID, in: loaded.document))
+    let page = try requirePage(pageID)
+    guard let current = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+    setControlValue(value, nodeID: nodeID, document: current.document)
+    try dispatchMutationEvent("input", page: page, nodeID: nodeID, document: current.document)
+    try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: current.document)
     try refreshPage(pageID)
   }
 
-  public func submitForm(pageID: PageID, formNodeID: NodeID) async throws -> BrowserPageInfo {
+  public func submitForm(pageID: PageID, actor: ControlActor? = nil, formNodeID: NodeID) async throws
+    -> BrowserPageInfo
+  {
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let form = loaded.document.node(formNodeID), form.tagName == "form" else {
       throw BrowserRuntimeError.invalidForm("Node is not a form element")
     }
     let request = try formRequest(formID: formNodeID, activatedNodeID: formNodeID, page: loaded)
-    return try await performNavigation(pageID: pageID, request: request, history: .push)
+    return try await performNavigation(
+      pageID: pageID, actor: actor, request: request, history: .push)
   }
 
   public func historyEntries(pageID: PageID) throws -> [HistoryEntry] {
@@ -1523,10 +1836,16 @@ public actor BrowserRuntime {
     }
   }
 
-  private func performNavigation(pageID: PageID, request: HTTPRequest, history: HistoryUpdate)
+  private func performNavigation(
+    pageID: PageID, actor: ControlActor? = nil, request: HTTPRequest, history: HistoryUpdate
+  )
     async throws -> BrowserPageInfo
   {
-    guard let contextID = contextID(containing: pageID), let initialContext = contexts[contextID],
+    var gated = try pageContextRecord(pageID)
+    try gateNavigation(
+      page: &gated.page, contextID: gated.context, actor: actor, operation: "navigate",
+      detail: request.url.absoluteString)
+    guard let initialContext = contexts[gated.context],
       let initialPage = initialContext.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
     let pipeline = NavigationPipeline(
@@ -1541,7 +1860,7 @@ public actor BrowserRuntime {
     let mutationVersion = loaded.document.mutationVersion
     let host = PageScriptHost(
       document: loaded.document, localStorage: storage, network: initialContext.network)
-    guard var context = contexts[contextID], var page = context.pages[pageID] else {
+    guard var context = contexts[gated.context], var page = context.pages[pageID] else {
       throw BrowserRuntimeError.pageNotFound(pageID)
     }
     configureRuntime(
@@ -1587,7 +1906,12 @@ public actor BrowserRuntime {
       page.historyIndex = index
     }
     context.pages[pageID] = page
-    contexts[contextID] = context
+    contexts[gated.context] = context
+    var finished = try pageContextRecord(pageID)
+    appendControlEvent(
+      page: &finished.page, contextID: finished.context, actor: actor, operation: "navigate",
+      node: nil, outcome: "success", error: nil, detail: loaded.url.absoluteString)
+    commitControl(finished.page, contextID: finished.context)
     return info(for: page)
   }
 
