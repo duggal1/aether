@@ -22,7 +22,7 @@ import Testing
   #expect(matches.count == 3)
   #expect(matches.map(\.characterOffset) == [0, 7, 0])
   #expect(matches.map(\.text) == ["Needle", "needle", "Needle"])
-  #expect(PageTextSearch.find(in: snapshot, query: "needle", caseSensitive: true).count == 2)
+  #expect(PageTextSearch.find(in: snapshot, query: "needle", caseSensitive: true).count == 1)
   #expect(PageTextSearch.find(in: snapshot, query: "needle", maximumMatches: 1).count == 1)
   #expect(PageTextSearch.find(in: snapshot, query: "", maximumMatches: 100).isEmpty)
 }
