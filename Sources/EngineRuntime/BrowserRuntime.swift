@@ -1871,7 +1871,8 @@ public actor BrowserRuntime {
     navigationEpochs[pageID] = epoch
     navigationTargets[pageID] = request.url
     navigationErrors[pageID] = nil
-    let load = Task { try await pipeline.load(request, viewport: initialPage.viewport) }
+    let viewport = initialPage.viewport
+    let load = Task { try await pipeline.load(request, viewport: viewport) }
     navigationLoads[pageID] = load
     publishPageStates()
     var loaded: LoadedPage
