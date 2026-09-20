@@ -35,6 +35,12 @@ public struct SearchProvider: Hashable, Sendable {
 
   public static let defaultProvider = SearchProvider(
     endpoint: URL(string: "https://www.google.com/search")!)
+
+  public static func validated(endpoint: URL, queryParameter: String) throws -> SearchProvider {
+    let provider = SearchProvider(endpoint: endpoint, queryParameter: queryParameter)
+    _ = try provider.searchURL(for: "validation")
+    return provider
+  }
 }
 
 public struct NavigationResolution: Sendable {

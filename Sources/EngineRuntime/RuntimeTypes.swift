@@ -289,6 +289,30 @@ public struct HistoryEntry: Hashable, Sendable, Codable {
   }
 }
 
+public struct BookmarkInfo: Hashable, Sendable, Codable {
+  public var url: String
+  public var title: String
+  public var createdAt: Double
+
+  public init(url: String, title: String, createdAt: Double) {
+    self.url = url
+    self.title = title
+    self.createdAt = createdAt
+  }
+}
+
+public struct NavigationSuggestion: Hashable, Sendable, Codable {
+  public var kind: String
+  public var url: String
+  public var title: String?
+
+  public init(kind: String, url: String, title: String? = nil) {
+    self.kind = kind
+    self.url = url
+    self.title = title
+  }
+}
+
 public struct NetworkLogEntry: Hashable, Sendable, Codable {
   public var request: RequestID
   public var navigation: NavigationID?

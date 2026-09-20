@@ -50,13 +50,14 @@ public final class AgentCommandDispatcher: Sendable {
         }
         let provider: SearchProvider
         if let raw = request.params["providerURL"]?.string {
-          guard let endpoint = URL(string: raw) else {
-            throw DispatchError.badParameter("providerURL")
-          }
-          provider = SearchProvider(
-            endpoint: endpoint, queryParameter: request.params["queryParameter"]?.string ?? "q")
+          guard let endpoint = URL(string: raw),
+            let validated = try? SearchProvider.validated(
+              endpoint: endpoint, queryParameter: request.params["queryParameter"]?.string ?? "q")
+          else { throw DispatchError.badParameter("providerURL") }
+          provider = validated
         } else {
-          provider = .defaultProvider
+          let owner = try await engine.runtime.pageInfo(page)
+          provider = try await engine.runtime.searchProvider(contextID: owner.contextID)
         }
         let resolution = try NavigationInputResolver.resolve(input, provider: provider)
         let navigated = try await engine.runtime.navigate(pageID: page, to: resolution.url)
@@ -471,6 +472,55 @@ public final class AgentCommandDispatcher: Sendable {
           try await engine.runtime.checkpointValue(
             contextID: ContextID(rawValue: try uint64(request, "context")), key: key
           ).map { .string($0.base64EncodedString()) } ?? .null
+      case .contextBookmarkAdd:
+        guard let raw = request.params["url"]?.string, let url = URL(string: raw) else {
+          throw DispatchError.badParameter("url")
+        }
+        result = bookmarkJSON(
+          try await engine.runtime.addBookmark(
+            contextID: ContextID(rawValue: try uint64(request, "context")), url: url,
+            title: request.params["title"]?.string ?? ""))
+      case .contextBookmarks:
+        result = .array(
+          try await engine.runtime.listBookmarks(
+            contextID: ContextID(rawValue: try uint64(request, "context"))
+          ).map(bookmarkJSON))
+      case .contextBookmarkRemove:
+        guard let raw = request.params["url"]?.string, let url = URL(string: raw) else {
+          throw DispatchError.badParameter("url")
+        }
+        result = .object([
+          "removed": .bool(
+            try await engine.runtime.removeBookmark(
+              contextID: ContextID(rawValue: try uint64(request, "context")), url: url))
+        ])
+      case .contextSuggest:
+        guard let prefix = request.params["prefix"]?.string else {
+          throw DispatchError.badParameter("prefix")
+        }
+        let limit = request.params["limit"] == nil ? 8 : try integer(request.params, "limit")
+        guard limit >= 1 && limit <= 50 else { throw DispatchError.badParameter("limit") }
+        result = .array(
+          try await engine.runtime.suggestNavigation(
+            contextID: ContextID(rawValue: try uint64(request, "context")), prefix: prefix,
+            limit: limit
+          ).map(suggestionJSON))
+      case .contextSearchProvider:
+        result = providerJSON(
+          try await engine.runtime.searchProvider(
+            contextID: ContextID(rawValue: try uint64(request, "context"))))
+      case .contextSetSearchProvider:
+        guard let raw = request.params["endpoint"]?.string, let endpoint = URL(string: raw) else {
+          throw DispatchError.badParameter("endpoint")
+        }
+        do {
+          result = providerJSON(
+            try await engine.runtime.setSearchProvider(
+              contextID: ContextID(rawValue: try uint64(request, "context")), endpoint: endpoint,
+              queryParameter: request.params["queryParameter"]?.string ?? "q"))
+        } catch is NavigationInputError {
+          throw DispatchError.badParameter("endpoint")
+        }
       case .sessionCreate:
         result = sessionJSON(
           await engine.runtime.createSession(name: request.params["name"]?.string ?? ""))
@@ -690,6 +740,28 @@ public final class AgentCommandDispatcher: Sendable {
     .object([
       "origin": .string(permission.origin), "permission": .string(permission.permission),
       "decision": .string(permission.decision),
+    ])
+  }
+
+  private func bookmarkJSON(_ bookmark: BookmarkInfo) -> JSONValue {
+    .object([
+      "url": .string(bookmark.url), "title": .string(bookmark.title),
+      "createdAt": .number(bookmark.createdAt),
+    ])
+  }
+
+  private func suggestionJSON(_ suggestion: NavigationSuggestion) -> JSONValue {
+    var object: [String: JSONValue] = [
+      "kind": .string(suggestion.kind), "url": .string(suggestion.url),
+    ]
+    if let title = suggestion.title { object["title"] = .string(title) }
+    return .object(object)
+  }
+
+  private func providerJSON(_ provider: SearchProvider) -> JSONValue {
+    .object([
+      "endpoint": .string(provider.endpoint.absoluteString),
+      "queryParameter": .string(provider.queryParameter),
     ])
   }
 

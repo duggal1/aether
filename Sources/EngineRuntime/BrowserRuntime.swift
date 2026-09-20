@@ -84,6 +84,12 @@ public actor BrowserRuntime {
     var profile: ProfileStore?
     var pages: [PageID: PageRecord]
     var downloads: [DownloadID: DownloadRecord]
+    var bookmarks: [BookmarkInfo]
+  }
+
+  private struct StoredSearchProvider: Codable {
+    var endpoint: String
+    var queryParameter: String
   }
 
   private let contextCounter = AtomicCounter()
@@ -113,7 +119,8 @@ public actor BrowserRuntime {
       permissions: PermissionStore(),
       profile: nil,
       pages: [:],
-      downloads: [:]
+      downloads: [:],
+      bookmarks: []
     )
     contexts[id] = record
     return BrowserContextInfo(id: id, name: record.name, pageCount: 0)
@@ -133,10 +140,22 @@ public actor BrowserRuntime {
   }
 
   public func openProfile(contextID: ContextID, directory: URL) async throws {
-    guard let context = contexts[contextID] else {
+    guard contexts[contextID] != nil else {
       throw BrowserRuntimeError.contextNotFound(contextID)
     }
     let profile = try ProfileStore.open(directory: directory)
+    do {
+      try await attachProfile(profile, contextID: contextID)
+    } catch {
+      profile.close()
+      throw error
+    }
+  }
+
+  private func attachProfile(_ profile: ProfileStore, contextID: ContextID) async throws {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
     let name = context.name
     let cookies = try profile.loadCookies().map { row in
       Cookie(
@@ -178,6 +197,10 @@ public actor BrowserRuntime {
       decisions[origin, default: [:]][permission] = decision
     }
     await context.permissions.restore(decisions)
+    let bookmarks = try profile.loadBookmarks().map { row in
+      BookmarkInfo(
+        url: row.url, title: row.title, createdAt: row.createdAt.timeIntervalSince1970)
+    }
     let sessionPages = try profile.loadSessionPages().filter { $0.context == name }
     let historyRows = try profile.loadHistory().filter { $0.context == name }
     guard var current = contexts[contextID] else {
@@ -186,6 +209,7 @@ public actor BrowserRuntime {
     }
     if let existing = current.profile { existing.close() }
     current.profile = profile
+    current.bookmarks = bookmarks
     if current.pages.isEmpty {
       for slot in sessionPages.sorted(by: { $0.slot < $1.slot }) {
         let urls = historyRows.filter { $0.slot == slot.slot }.sorted(by: { $0.index < $1.index })
@@ -267,6 +291,12 @@ public actor BrowserRuntime {
             decision: $0.value.rawValue)
         }
       })
+    try profile.saveBookmarks(
+      context.bookmarks.map { bookmark in
+        BookmarkRow(
+          url: bookmark.url, title: bookmark.title,
+          createdAt: Date(timeIntervalSince1970: bookmark.createdAt))
+      })
     try persistDownloads(context)
   }
 
@@ -293,6 +323,120 @@ public actor BrowserRuntime {
       throw BrowserRuntimeError.profileNotConfigured(contextID)
     }
     return try profile.getKV(scope: "checkpoints", key: key)
+  }
+
+  public func addBookmark(contextID: ContextID, url: URL, title: String) throws -> BookmarkInfo {
+    guard var context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    guard bookmarkable(url) else {
+      throw BrowserRuntimeError.invalidNavigation("Bookmarks require an http(s) URL")
+    }
+    if let index = context.bookmarks.firstIndex(where: { $0.url == url.absoluteString }) {
+      context.bookmarks[index].title = title
+    } else {
+      context.bookmarks.append(
+        BookmarkInfo(url: url.absoluteString, title: title, createdAt: nowSeconds()))
+    }
+    contexts[contextID] = context
+    guard let bookmark = context.bookmarks.first(where: { $0.url == url.absoluteString }) else {
+      throw BrowserRuntimeError.invalidState("Bookmark was not stored")
+    }
+    return bookmark
+  }
+
+  public func listBookmarks(contextID: ContextID) throws -> [BookmarkInfo] {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    return context.bookmarks.sorted { $0.createdAt < $1.createdAt }
+  }
+
+  public func removeBookmark(contextID: ContextID, url: URL) throws -> Bool {
+    guard var context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    guard
+      let index = context.bookmarks.firstIndex(where: { $0.url == url.absoluteString })
+    else { return false }
+    context.bookmarks.remove(at: index)
+    contexts[contextID] = context
+    return true
+  }
+
+  public func suggestNavigation(
+    contextID: ContextID, prefix: String, limit: Int = 8
+  ) throws -> [NavigationSuggestion] {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    let needle = prefix.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard !needle.isEmpty else {
+      throw BrowserRuntimeError.invalidNavigation("A suggestion prefix is required")
+    }
+    guard limit >= 1 && limit <= 50 else {
+      throw BrowserRuntimeError.invalidNavigation("Suggestion limit must be 1 through 50")
+    }
+    var suggestions: [NavigationSuggestion] = []
+    var seen = Set<String>()
+    for bookmark in context.bookmarks
+      where bookmark.url.lowercased().contains(needle)
+        || bookmark.title.lowercased().contains(needle)
+    {
+      suggestions.append(
+        NavigationSuggestion(kind: "bookmark", url: bookmark.url, title: bookmark.title))
+      seen.insert(bookmark.url)
+      if suggestions.count >= limit { return suggestions }
+    }
+    let recent = context.pages.values.sorted { $0.lastActive > $1.lastActive }
+    for page in recent {
+      for url in page.history.reversed() {
+        let absolute = url.absoluteString
+        guard !seen.contains(absolute), absolute.lowercased().contains(needle) else { continue }
+        seen.insert(absolute)
+        suggestions.append(NavigationSuggestion(kind: "history", url: absolute))
+        if suggestions.count >= limit { return suggestions }
+      }
+    }
+    return suggestions
+  }
+
+  public func searchProvider(contextID: ContextID) throws -> SearchProvider {
+    guard let context = contexts[contextID] else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    guard let profile = context.profile,
+      let data = try profile.getKV(scope: "search", key: "provider"),
+      let stored = try? JSONDecoder().decode(StoredSearchProvider.self, from: data),
+      let endpoint = URL(string: stored.endpoint),
+      let provider = try? SearchProvider.validated(
+        endpoint: endpoint, queryParameter: stored.queryParameter)
+    else { return .defaultProvider }
+    return provider
+  }
+
+  public func setSearchProvider(
+    contextID: ContextID, endpoint: URL, queryParameter: String = "q"
+  ) throws -> SearchProvider {
+    guard contexts[contextID] != nil else {
+      throw BrowserRuntimeError.contextNotFound(contextID)
+    }
+    let provider = try SearchProvider.validated(
+      endpoint: endpoint, queryParameter: queryParameter)
+    guard let profile = try requireContext(contextID).profile else {
+      throw BrowserRuntimeError.profileNotConfigured(contextID)
+    }
+    let stored = StoredSearchProvider(
+      endpoint: endpoint.absoluteString, queryParameter: provider.queryParameter)
+    try profile.setKV(scope: "search", key: "provider", value: try JSONEncoder().encode(stored))
+    return provider
+  }
+
+  private func bookmarkable(_ url: URL) -> Bool {
+    guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+      let host = url.host, !host.isEmpty
+    else { return false }
+    return true
   }
 
   public func createPage(contextID: ContextID, viewport: Size = Size(width: 1280, height: 800))

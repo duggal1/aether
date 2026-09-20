@@ -415,6 +415,35 @@ struct BrowserControl {
     case "context-profile-usage":
       guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .contextProfileUsage, params: ["context": .number(context)])
+    case "context-bookmark-add":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      var bookmarkParams: [String: JSONValue] = [
+        "context": .number(context), "url": .string(args[2]),
+      ]
+      if args.count > 3 { bookmarkParams["title"] = .string(args[3]) }
+      request = AgentRequest(method: .contextBookmarkAdd, params: bookmarkParams)
+    case "context-bookmarks":
+      guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .contextBookmarks, params: ["context": .number(context)])
+    case "context-bookmark-remove":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextBookmarkRemove,
+        params: ["context": .number(context), "url": .string(args[2])])
+    case "context-suggest":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextSuggest,
+        params: ["context": .number(context), "prefix": .string(args[2])])
+    case "context-search-provider":
+      guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextSearchProvider, params: ["context": .number(context)])
+    case "context-set-search-provider":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .contextSetSearchProvider,
+        params: ["context": .number(context), "endpoint": .string(args[2])])
     case "session-create":
       request = AgentRequest(
         method: .sessionCreate, params: ["name": .string(args.count > 1 ? args[1] : "")])
@@ -693,6 +722,12 @@ struct BrowserControl {
     browserctl --socket <path> context-open-profile <context> <directory>
     browserctl --socket <path> context-checkpoint <context>
     browserctl --socket <path> context-profile-usage <context>
+    browserctl --socket <path> context-bookmark-add <context> <url> [title]
+    browserctl --socket <path> context-bookmarks <context>
+    browserctl --socket <path> context-bookmark-remove <context> <url>
+    browserctl --socket <path> context-suggest <context> <prefix>
+    browserctl --socket <path> context-search-provider <context>
+    browserctl --socket <path> context-set-search-provider <context> <endpoint>
     browserctl --socket <path> session-create <name>
     browserctl --socket <path> session-list
     browserctl --socket <path> session-destroy <session>

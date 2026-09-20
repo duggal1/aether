@@ -85,6 +85,18 @@ public struct PermissionRow: Hashable, Sendable, Codable {
   }
 }
 
+public struct BookmarkRow: Hashable, Sendable, Codable {
+  public var url: String
+  public var title: String
+  public var createdAt: Date
+
+  public init(url: String, title: String, createdAt: Date) {
+    self.url = url
+    self.title = title
+    self.createdAt = createdAt
+  }
+}
+
 public struct CacheEntry: Hashable, Sendable, Codable {
   public var url: String
   public var status: Int
@@ -123,7 +135,7 @@ public enum ProfileError: Error, Sendable, CustomStringConvertible {
 }
 
 public final class ProfileStore: Sendable {
-  public static let schemaVersion = 2
+  public static let schemaVersion = 3
 
   public let directory: URL
   public let blobs: DiskCache
@@ -285,6 +297,28 @@ public final class ProfileStore: Sendable {
     }
   }
 
+  public func saveBookmarks(_ rows: [BookmarkRow]) throws {
+    try database.withTransaction { connection in
+      try connection.exec("DELETE FROM bookmarks;")
+      for row in rows {
+        try connection.execute(
+          "INSERT INTO bookmarks(url,title,created_at) VALUES(?,?,?);",
+          [
+            .text(row.url), .text(row.title),
+            .real(row.createdAt.timeIntervalSince1970),
+          ])
+      }
+    }
+  }
+
+  public func loadBookmarks() throws -> [BookmarkRow] {
+    try database.query("SELECT url,title,created_at FROM bookmarks ORDER BY created_at;").compactMap
+      { row in
+        guard let createdAt = row[2].dateValueOrNil else { return nil }
+        return BookmarkRow(url: row[0].textValue, title: row[1].textValue, createdAt: createdAt)
+      }
+  }
+
   public func saveCacheEntries(_ entries: [CacheEntry]) throws {
     try database.withTransaction { connection in
       try connection.exec("DELETE FROM cache_entries;")
@@ -376,6 +410,12 @@ public final class ProfileStore: Sendable {
           "ALTER TABLE cookies ADD COLUMN host_only INTEGER NOT NULL DEFAULT 1;")
       }
       try database.exec("PRAGMA user_version=2;")
+    }
+    if version < 3 {
+      try database.exec(
+        "CREATE TABLE IF NOT EXISTS bookmarks(url TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL);"
+      )
+      try database.exec("PRAGMA user_version=3;")
     }
   }
 }
