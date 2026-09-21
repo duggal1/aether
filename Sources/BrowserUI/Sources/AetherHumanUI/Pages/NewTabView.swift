@@ -77,15 +77,25 @@ public struct NewTabView: View {
         }
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(LinearGradient(colors: [
-                    Color(red: 0.60, green: 0.40, blue: 0.96),
-                    Color(red: 0.98, green: 0.55, blue: 0.28),
-                    Color(red: 0.30, green: 0.76, blue: 0.49)
-                ], startPoint: .leading, endPoint: .trailing))
+                .fill(LinearGradient(colors: accentColors,
+                                     startPoint: .leading, endPoint: .trailing))
                 .frame(height: askFocused ? 2 : 1)
                 .padding(.horizontal, 11)
         }
         .animation(AetherMotion.focus(reduced), value: askFocused)
+    }
+
+    // Neutral shell, chromatic 1–2px accent only. Theme changes reorder the gradient.
+    private var accentColors: [Color] {
+        let violet = Color(red: 0.60, green: 0.40, blue: 0.96)
+        let orange = Color(red: 0.98, green: 0.55, blue: 0.28)
+        let green = Color(red: 0.30, green: 0.76, blue: 0.49)
+        switch window.workspace.preferences.progressColor {
+        case .violet: return [violet, orange, green]
+        case .orange: return [orange, green, violet]
+        case .green: return [green, violet, orange]
+        case .neutral: return [theme.muted, theme.ink]
+        }
     }
 
     private func submitAsk() {
