@@ -123,7 +123,8 @@ public struct OmniboxView: View {
         .onAppear { draft = displayAddress(window.selected?.url) }
         .overlay(alignment: .topLeading) {
             if showsSuggestions {
-                OmniboxSuggestionsView(model: window.suggestions, prefix: draft) { row in
+                OmniboxSuggestionsView(model: window.suggestions, prefix: draft,
+                                       provider: window.workspace.preferences.provider) { row in
                     choose(row)
                 }
             }
