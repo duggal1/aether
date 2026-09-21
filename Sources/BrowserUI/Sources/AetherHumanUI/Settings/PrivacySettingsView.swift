@@ -6,16 +6,15 @@ public struct PrivacySettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Blocking runs in the engine, not the interface.")
         AetherSection("Content blocking", footer: workspace.engine.isConnected ? "Changes are submitted to the connected engine." : "Preview only. Connect the engine before content blocking can protect actual requests.") {
-            SettingsToggle("Block ads", subtitle: "Filter known advertising requests.", value: toggle(\.blockAds))
+            SettingsToggle("Block ads", symbol: "hand.raised", value: toggle(\.blockAds))
             SettingsDivider()
-            SettingsToggle("Block trackers", subtitle: "Reduce cross-site tracking requests.", value: toggle(\.blockTrackers))
+            SettingsToggle("Block trackers", symbol: "shield", value: toggle(\.blockTrackers))
             SettingsDivider()
-            SettingsToggle("Handle cookie banners", subtitle: "Apply supported site-specific rules.", customIcon: .cookie, value: toggle(\.handleCookieBanners))
+            SettingsToggle("Handle cookie banners", symbol: "checkmark.shield", value: toggle(\.handleCookieBanners))
         }
         AetherSection("Browsing data") {
-            AetherRow("History", subtitle: "Clear locally recorded browsing history for a profile.", symbol: "clock") {
+            AetherRow("History", symbol: "clock") {
                 Text("Manage from History").font(AetherType.body(11)).foregroundStyle(theme.muted)
             }
         }
