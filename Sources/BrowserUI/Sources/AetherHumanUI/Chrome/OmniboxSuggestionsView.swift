@@ -27,7 +27,7 @@ public struct OmniboxSuggestionsView: View {
             }
         }
         .padding(9)
-        .frame(maxWidth: 760)
+        .frame(maxWidth: 656)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(theme.card)
@@ -37,7 +37,7 @@ public struct OmniboxSuggestionsView: View {
                 .strokeBorder(theme.hairline, lineWidth: 0.5)
         }
             
-        .offset(y: 38)
+        .offset(y: 37)
         .zIndex(2)
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(AetherMotion.dropdown(reduced), value: model.rows.count)
@@ -101,7 +101,7 @@ private struct OmniboxSuggestionRow: View {
         switch row.kind {
         case .open:
             BrowserIconView(icon: row.url == nil ? .search : .globe, tint: theme.muted)
-                .iconSize(12)
+                .iconSize(15)
                 .frame(width: 16, alignment: .center)
         case .completion:
             BrowserIconView(icon: .search, tint: theme.muted)
@@ -142,7 +142,7 @@ private struct OmniboxSuggestionRow: View {
     @ViewBuilder private var trailing: some View {
         switch row.kind {
         case .completion:
-            if selected { hint("⇥") }
+            if selected { Image(systemName: "arrow.right").font(AetherType.symbol(13)).foregroundStyle(theme.muted) }
         case .tab, .bookmark, .history:
             HStack(spacing: 7) {
                 if let host = row.host, !row.title.localizedCaseInsensitiveContains(host) {
@@ -152,12 +152,12 @@ private struct OmniboxSuggestionRow: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                BrowserIconView(icon: kindIcon, tint: theme.soft).iconSize(11)
+                BrowserIconView(icon: kindIcon, tint: theme.soft).iconSize(13)
             }
         case .open:
             EmptyView()
         }
-        if selected, row.kind == .open { hint("↩") }
+        if selected, row.kind == .open { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(theme.muted) }
     }
 
     private var kindIcon: BrowserIcon {
