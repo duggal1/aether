@@ -16,6 +16,11 @@ public struct BrowserCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     public init() {}
     public var body: some Commands {
+        CommandGroup(after: .sidebar) {
+            Button("Toggle Sidebar") { window?.toggleSidebar() }
+                .keyboardShortcut("b")
+                .disabled(window == nil)
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Tab") { window?.newTab() }.keyboardShortcut("t").disabled(window == nil)
             Button("New Window") { openWindow(id: "browser") }.keyboardShortcut("n")

@@ -65,9 +65,8 @@ public final class PlayerBackend: @unchecked Sendable {
         $0.volume = self.player?.volume.double ?? 1
         $0.muted = self.player?.isMuted ?? false
       }
-      let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
-        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-      ])
+      let output = AVPlayerItemVideoOutput(pixelBufferAttributes: CVPixelBufferAttributes(
+        pixelFormatTypes: [CVPixelFormatType(rawValue: kCVPixelFormatType_32BGRA)]))
       let item = AVPlayerItem(url: url)
       item.add(output)
       let player: AVPlayer
@@ -95,7 +94,7 @@ public final class PlayerBackend: @unchecked Sendable {
   }
 
   public func seek(to seconds: Double, completion: (@Sendable (Bool) -> Void)? = nil) {
-    onMain {
+    onMain { [self] in
       guard let player = self.player, let item = player.currentItem else {
         completion?(false)
         return
@@ -151,18 +150,20 @@ public final class PlayerBackend: @unchecked Sendable {
   private func pollFrameOnMain() {
     assertMain()
     guard let output = videoOutput, let item = player?.currentItem,
-      output.hasNewPixelBuffer(forItemTime: item.currentTime()),
-      let buffer = output.copyPixelBuffer(
-        forItemTime: item.currentTime(), itemTimeForDisplay: nil)
+      output.hasNewPixelBuffer(forItemTime: item.currentTime())
     else { return }
+    let frame = output.pixelBufferAndDisplayTime(forItemTime: item.currentTime())
+    guard frame.pixelBuffer != nil else { return }
     let time = item.currentTime().seconds
-    let handler = lock.withLock { () -> (@Sendable (CVPixelBuffer, CMTime) -> Void)? in
-      latestPixelBuffer = buffer
-      deliveredFrames += 1
-      lastFrameTime = time.isFinite ? time : nil
-      return onFrame
+    frame.pixelBuffer?.withUnsafeBuffer { buffer in
+      let handler = lock.withLock { () -> (@Sendable (CVPixelBuffer, CMTime) -> Void)? in
+        latestPixelBuffer = buffer
+        deliveredFrames += 1
+        lastFrameTime = time.isFinite ? time : nil
+        return onFrame
+      }
+      handler?(buffer, item.currentTime())
     }
-    handler?(buffer, item.currentTime())
   }
 
   public func currentVideoFrame(device: MTLDevice) -> MediaVideoFrame? {
@@ -195,6 +196,20 @@ public final class PlayerBackend: @unchecked Sendable {
     lock.withLock { latestPixelBuffer = nil }
   }
 
+  private static func trackKinds(of item: AVPlayerItem) -> [String] {
+    let tracks = item.tracks
+    if Thread.isMainThread {
+      return MainActor.assumeIsolated {
+        tracks.compactMap { $0.assetTrack?.mediaType.rawValue }
+      }
+    }
+    return DispatchQueue.main.sync {
+      MainActor.assumeIsolated {
+        tracks.compactMap { $0.assetTrack?.mediaType.rawValue }
+      }
+    }
+  }
+
   private func observe(item: AVPlayerItem, player: AVPlayer) {
     assertMain()
     observations = [
@@ -202,10 +217,11 @@ public final class PlayerBackend: @unchecked Sendable {
         let status = observed.status
         let duration = observed.duration.seconds
         let size = observed.presentationSize
-        let kinds = observed.tracks.compactMap { $0.assetTrack?.mediaType.rawValue }
+        let kinds = Self.trackKinds(of: observed)
         let failure = observed.error.map { String(describing: $0) }
-        self?.callbacks.async {
-          self?.itemStatusChanged(
+        guard let self else { return }
+        self.callbacks.async {
+          self.itemStatusChanged(
             status: status, duration: duration, size: size, trackKinds: kinds,
             failure: failure)
         }
@@ -213,22 +229,26 @@ public final class PlayerBackend: @unchecked Sendable {
       player.observe(\.status, options: [.new]) { [weak self] observed, _ in
         let failed = observed.status == .failed
         let message = observed.error.map { String(describing: $0) }
-        self?.callbacks.async { self?.playerStatusChanged(failed: failed, message: message) }
+        guard let self else { return }
+        self.callbacks.async { self.playerStatusChanged(failed: failed, message: message) }
       },
       player.observe(\.rate, options: [.new]) { [weak self] observed, _ in
         let rate = Double(observed.rate)
-        self?.callbacks.async { self?.rateChanged(rate: rate) }
+        guard let self else { return }
+        self.callbacks.async { self.rateChanged(rate: rate) }
       },
       item.observe(\.isPlaybackBufferEmpty, options: [.new]) { [weak self] observed, _ in
         let empty = observed.isPlaybackBufferEmpty
-        self?.callbacks.async {
-          if empty { self?.emit(.waiting) }
+        guard let self else { return }
+        self.callbacks.async {
+          if empty { self.emit(.waiting) }
         }
       },
       item.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] observed, _ in
         let keepUp = observed.isPlaybackLikelyToKeepUp
-        self?.callbacks.async {
-          if keepUp { self?.emit(.canplaythrough) }
+        guard let self else { return }
+        self.callbacks.async {
+          if keepUp { self.emit(.canplaythrough) }
         }
       },
     ]
@@ -239,20 +259,22 @@ public final class PlayerBackend: @unchecked Sendable {
     }
     notifications = [
       NotificationCenter.default.addObserver(
-        forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: nil
+        forName: AVPlayerItem.didPlayToEndTimeNotification, object: item, queue: nil
       ) { [weak self] _ in
-        self?.callbacks.async { self?.emit(.ended) }
+        guard let self else { return }
+        self.callbacks.async { self.emit(.ended) }
       },
       NotificationCenter.default.addObserver(
-        forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: nil
+        forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: item, queue: nil
       ) { [weak self] note in
         let message = (note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error)
           .map { String(describing: $0) } ?? "playback failed"
-        self?.callbacks.async {
-          self?.mutate {
+        guard let self else { return }
+        self.callbacks.async {
+          self.mutate {
             $0.error = MediaErrorInfo(code: .decode, message: message)
           }
-          self?.emit(.error)
+          self.emit(.error)
         }
       },
     ]

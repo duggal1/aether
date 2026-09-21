@@ -10,6 +10,7 @@ public final class BrowserTab: Identifiable {
     public var url: String?
     public var isPinned: Bool = false
     public var loadState: TabLoadState = .newTab
+    public var loadProgress: Double = 0
     public var canGoBack = false
     public var canGoForward = false
     public var isSecure = true

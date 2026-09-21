@@ -17,6 +17,9 @@ public enum AetherAppearance: String, CaseIterable, Codable, Identifiable {
 public struct AetherTheme {
     public let dark: Bool
     public init(_ scheme: ColorScheme) { dark = scheme == .dark }
+    public var base: Color { AetherPalette.base(dark) }
+    public var panel: Color { AetherPalette.panel(dark) }
+    public var control: Color { AetherPalette.control(dark) }
     public var canvas: Color { AetherPalette.canvas(dark) }
     public var surface: Color { AetherPalette.surface(dark) }
     public var raised: Color { AetherPalette.raised(dark) }
@@ -36,6 +39,15 @@ public struct AetherTheme {
     public var primary: Color { AetherPalette.primary(dark) }
     public var error: Color { AetherPalette.error(dark) }
     public var errorBackground: Color { AetherPalette.errorBackground(dark) }
+    public var accent: Color { AetherPalette.accent(dark) }
+    public var composer: Color { AetherPalette.composer(dark) }
+    public var omnibox: Color { AetherPalette.omnibox(dark) }
+    public var settingsCanvas: Color { AetherPalette.settingsCanvas(dark) }
+    public var settingsCard: Color { AetherPalette.settingsCard(dark) }
+    public var settingsRaised: Color { AetherPalette.settingsRaised(dark) }
+    public var inputFocus: Color { AetherPalette.inputFocus(dark) }
+    public var suggestionSelected: Color { AetherPalette.suggestionSelected(dark) }
+    public var modal: Color { AetherPalette.modal(dark) }
     public var active: Color { AetherPalette.active(dark) }
     public var focus: Color { AetherPalette.focus(dark) }
 }

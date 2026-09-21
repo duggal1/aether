@@ -165,7 +165,7 @@ enum JSBigInt {
 
   static func shift(_ lhs: String, _ rhs: String, right: Bool) throws -> String {
     let value = normalize(lhs)
-    var amount = normalize(rhs)
+    let amount = normalize(rhs)
     if amount.hasPrefix("-") {
       if right { return try shift(strip(value) == "0" ? "0" : value, negate(amount), right: false) }
       return "0"

@@ -1,31 +1,29 @@
 # Aether brand typeface
 
-Drop the licensed **Scto Grotesk A** font files in this directory and Aether picks them up
+Drop the **Instrument Sans variable font** in this directory and Aether picks it up
 automatically. No code change is required.
 
 ## Expected files
 
-| File | Weight | Aether role |
+| File | Axis | Aether role |
 |---|---|---|
-| `SctoGroteskA-Regular.otf` | 400 | `AetherTextWeight.regular` — every chrome/body role |
-| `SctoGroteskA-Medium.otf` | 500 (resolved for 450) | `AetherTextWeight.emphasis` — row titles, panel titles, emphasis |
-| `SctoGroteskA-RegularItalic.otf` | 400 italic | optional |
-| `SctoGroteskA-MediumItalic.otf` | 500 italic | optional |
+| `InstrumentSans-Variable.ttf` | wght 400–700 | exact 400 / 450 / 500 instances via the variation axis |
 
-Exact filenames do not matter; the file *names inside* the font do. `AetherFontRegistry`
-enumerates the family `Scto Grotesk A` through `NSFontManager.availableMembers(ofFontFamily:)`
-and reads each face's real `kCTFontWeightTrait` through CoreText.
+`AetherFontRegistry` enumerates the family `Instrument Sans` through
+`NSFontManager.availableMembers(ofFontFamily:)`, resolves the `Weight` variation
+axis identifier at runtime, and instantiates exact `wght` values with
+`CTFontCreateCopyWithAttributes`. No synthetic emboldening is used.
 
 ## Weight contract
 
-Aether's browser chrome supports **two weights only**:
+Aether's browser chrome supports **three weights only**:
 
-* **400** — regular
-* **450** — emphasis
+* **400** — regular: body copy, list rows, URLs, placeholders, labels
+* **450** — emphasis: row titles, tab titles (interpolated variable instance)
+* **500** — medium: panel headings, active states, primary buttons
 
-Scto Grotesk A ships Thin/Light/Regular/Medium/Bold/Black, so `emphasis` (450) resolves to the
-first registered face at or above 450 — in practice **Medium**. No synthetic emboldening is used,
-and no chrome surface may request 500, 600, or 700. The `AetherType` API cannot express them.
+No chrome surface may request 600 or 700. The `AetherType` API cannot express them.
+Symbols always render in SF Symbols, never in this face.
 
 ## Where the files are found
 
@@ -38,4 +36,4 @@ and no chrome surface may request 500, 600, or 700. The `AetherType` API cannot 
 The files are registered for the process with `CTFontManagerRegisterFontsForURL`. If no file is
 present the app renders with the system face at the same numeric weights (Mac `systemFont(ofSize:weight:)`
 with an interpolated weight from Apple's own `NSFont.Weight` anchors), so type stays correct
-without the brand face. Licensing the font is a human decision; this repository does not ship it.
+without the brand face. Instrument Sans is OFL-licensed and ships in this repository.

@@ -4,9 +4,8 @@ import Foundation
 extension JSDOMEvents {
   public static func locationFor(context: JSDOMContext) -> JSObject {
     let object = JSObject()
-    weak var weakObject = object
-    object.nativeGet = { [weak context] key in
-      guard let context, let object = weakObject else { return nil }
+    object.nativeGet = { [weak context, weak object] key in
+      guard let context, let object else { return nil }
       let urlString = currentURL(object: object, context: context)
       guard let url = URL(string: urlString) else {
         if key == "href" { return .string(urlString) }
@@ -32,16 +31,16 @@ extension JSDOMEvents {
       default: return nil
       }
     }
-    object.nativeSet = { [weak context] key, value in
-      guard let context, let object = weakObject else { return false }
+    object.nativeSet = { [weak context, weak object] key, value in
+      guard let context, let object else { return false }
       if key == "href" {
         navigate(object: object, context: context, url: value.description)
         return true
       }
       return false
     }
-    object.defineNative("assign") { [weak context] args in
-      guard let context, let object = weakObject,
+    object.defineNative("assign") { [weak context, weak object] args in
+      guard let context, let object,
         case .string(let url) = args.first
       else {
         return .undefined
@@ -49,8 +48,8 @@ extension JSDOMEvents {
       navigate(object: object, context: context, url: url)
       return .undefined
     }
-    object.defineNative("replace") { [weak context] args in
-      guard let context, let object = weakObject,
+    object.defineNative("replace") { [weak context, weak object] args in
+      guard let context, let object,
         case .string(let url) = args.first
       else {
         return .undefined
@@ -58,14 +57,14 @@ extension JSDOMEvents {
       navigate(object: object, context: context, url: url)
       return .undefined
     }
-    object.defineNative("reload") { [weak context] _ in
-      guard let context, let object = weakObject else { return .undefined }
+    object.defineNative("reload") { [weak context, weak object] _ in
+      guard let context, let object else { return .undefined }
       let current = currentURL(object: object, context: context)
       context.hooks().navigate?(current)
       return .undefined
     }
-    object.defineNative("toString") { [weak context] _ in
-      guard let context, let object = weakObject else { return .string("") }
+    object.defineNative("toString") { [weak context, weak object] _ in
+      guard let context, let object else { return .string("") }
       return .string(currentURL(object: object, context: context))
     }
     return object
@@ -103,22 +102,21 @@ extension JSDOMEvents {
     object.set("length", .number(1))
     object.set("state", .null)
     object.set("scrollRestoration", .string("auto"))
-    weak var weakLocation = location
-    object.defineNative("pushState") { args in
+    object.defineNative("pushState") { [weak location] args in
       if let first = args.first { object.set("__state", first) }
       else { object.set("__state", .null) }
       object.set("state", object.get("__state"))
       if args.count > 2, case .string(let url) = args[2] {
-        weakLocation?.properties["__url"] = .string(url)
+        location?.properties["__url"] = .string(url)
       }
       return .undefined
     }
-    object.defineNative("replaceState") { args in
+    object.defineNative("replaceState") { [weak location] args in
       if let first = args.first { object.set("__state", first) }
       else { object.set("__state", .null) }
       object.set("state", object.get("__state"))
       if args.count > 2, case .string(let url) = args[2] {
-        weakLocation?.properties["__url"] = .string(url)
+        location?.properties["__url"] = .string(url)
       }
       return .undefined
     }

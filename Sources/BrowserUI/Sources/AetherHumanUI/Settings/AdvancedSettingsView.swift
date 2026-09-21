@@ -5,7 +5,7 @@ public struct AdvancedSettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Engine diagnostics and security boundaries cannot be substituted with a SwiftUI toggle.")
+        SettingsHelp("Limited to what the engine can verify directly.")
         AetherSection("Runtime") {
             AetherRow("Engine connection", subtitle: "Same runtime for humans and external agents.", symbol: "cpu") {
                 Text(workspace.engine.isConnected ? "Connected" : "Not connected")

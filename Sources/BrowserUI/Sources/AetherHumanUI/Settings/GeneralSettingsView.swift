@@ -12,16 +12,11 @@ public struct GeneralSettingsView: View {
         }
         AetherSection("New windows") {
             AetherRow("Open with profile") {
-                Picker("Open with profile", selection: Binding(get: { workspace.defaultProfileID }, set: { workspace.setDefaultProfile($0) })) {
-                    ForEach(workspace.profiles) { profile in
-                        Text(profile.name).tag(profile.id)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(width: 160)
-                .help("Choose the profile for new windows")
-                .accessibilityLabel("Open new windows with profile")
+                AetherDropdown(
+                    selection: Binding(get: { workspace.defaultProfileID }, set: { workspace.setDefaultProfile($0) }),
+                    options: workspace.profiles.map { AetherDropdownOption(value: $0.id, title: $0.name) },
+                    help: "Choose the profile for new windows",
+                    label: "Open new windows with profile")
             }
         }
     }

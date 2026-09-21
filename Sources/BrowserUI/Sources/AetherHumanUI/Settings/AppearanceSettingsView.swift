@@ -7,22 +7,23 @@ public struct AppearanceSettingsView: View {
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
 
     public var body: some View {
-        SettingsHelp("Websites follow Aether's appearance. Sites with a native dark theme use it; light pages receive a dark color adjustment that preserves images and video.")
         AetherSection("Appearance") {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ForEach(AetherAppearance.allCases) { option in appearanceCard(option) }
             }
-            .padding(12)
+            .padding(10)
         }
-        SettingsHelp("System mode follows macOS appearance changes. Focus rings, Reduce Motion, Reduce Transparency and Increase Contrast stay managed by the system.")
         AetherSection("Loading indicator") {
-            AetherRow("Progress line color", subtitle: "Thin loading line under the address bar.") {
-                Picker("Progress line color", selection: Binding(get: { workspace.preferences.progressColor }, set: { workspace.preferences.progressColor = $0 })) {
-                    ForEach(AetherProgressColor.allCases) { Text($0.rawValue).tag($0) }
+            AetherRow("Progress line color") {
+                HStack(spacing: 4) {
+                    ForEach(AetherProgressColor.allCases) { option in
+                        AetherColorChoice(title: option.rawValue,
+                                          color: option.color,
+                                          selected: workspace.preferences.progressColor == option) {
+                            workspace.preferences.progressColor = option
+                        }
+                    }
                 }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-                .frame(width: 280)
             }
         }
     }
@@ -30,7 +31,7 @@ public struct AppearanceSettingsView: View {
     private func appearanceCard(_ option: AetherAppearance) -> some View {
         let selected = workspace.preferences.appearance == option
         return Button { workspace.preferences.appearance = option } label: {
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 ZStack {
                     AetherPalette.canvas(option == .dark)
                     VStack(spacing: 5) {
@@ -47,29 +48,30 @@ public struct AppearanceSettingsView: View {
                     }
                     .padding(9)
                 }
-                .frame(height: 77)
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                HStack {
-                    Text(option.rawValue).font(AetherType.rowTitle(12))
-                    Spacer(minLength: 6)
-                    Image(systemName: selected ? AetherSymbol.selected.rawValue : AetherSymbol.unselected.rawValue)
-                        .font(AetherType.symbol(12))
-                        .foregroundStyle(selected ? theme.ink : theme.soft)
+                .frame(height: 70)
+                .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+                        .strokeBorder(selected ? theme.ink.opacity(0.55) : theme.hairline, lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(selected ? theme.ink : .clear)
+                        .frame(width: 5, height: 5)
+                        .overlay { Circle().strokeBorder(theme.muted, lineWidth: selected ? 0 : 1) }
+                    Text(option.rawValue).font(AetherType.body(12))
+                    Spacer(minLength: 4)
                 }
             }
             .foregroundStyle(theme.ink)
-            .padding(10)
-            .background(selected ? theme.hover : theme.canvas,
-                        in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .overlay {
-                if !selected {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .strokeBorder(theme.faintLine, lineWidth: 0.5)
-                        .allowsHitTesting(false)
-                }
-            }
+            .padding(9)
+            .background(selected ? theme.settingsRaised : theme.canvas,
+                        in: RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
+            .contentShape(Rectangle())
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
+        .aetherPointingCursor()
         .focusEffectDisabled()
     }
 }

@@ -5,16 +5,24 @@ import SwiftUI
 public enum AetherTextWeight: String, CaseIterable, Sendable {
     case regular
     case emphasis
+    case medium
 
-    public var usWeightClass: Double { self == .regular ? 400 : 450 }
+    public var usWeightClass: Double {
+        switch self {
+        case .regular: 400
+        case .emphasis: 450
+        case .medium: 500
+        }
+    }
 }
 
 public enum AetherFontRegistry {
-    public static let families = ["Scto Grotesk A", "Scto Grotesk", "SctoGroteskA"]
+    public static let families = ["Instrument Sans"]
     public static let fontExtensions = ["otf", "ttf", "ttc"]
 
     private static var installed = false
-    private static var faces: [AetherTextWeight: String] = [:]
+    private static var baseFace: String?
+    private static var weightAxisID: Int?
 
     public static func install() {
         guard !installed else { return }
@@ -23,16 +31,17 @@ public enum AetherFontRegistry {
             var error: Unmanaged<CFError>?
             CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
         }
-        for weight in AetherTextWeight.allCases {
-            if let face = resolveFace(weight) { faces[weight] = face }
-        }
+        resolveVariableBase()
     }
 
-    public static var hasBrandTypeface: Bool { faceName(for: .regular) != nil }
+    public static var hasBrandTypeface: Bool {
+        install()
+        return baseFace != nil
+    }
 
     public static func faceName(for weight: AetherTextWeight) -> String? {
         install()
-        return faces[weight]
+        return baseFace
     }
 
     public static var registeredFamily: String? {
@@ -41,11 +50,14 @@ public enum AetherFontRegistry {
     }
 
     public static func font(_ size: CGFloat, _ weight: AetherTextWeight) -> Font {
-        if let name = faceName(for: weight) { return .custom(name, size: size).weight(.regular) }
+        install()
+        if let varied = variedFont(size: size, wght: weight.usWeightClass) { return varied }
         return Font(NSFont.systemFont(ofSize: size, weight: systemWeight(for: weight.usWeightClass)))
     }
 
-    public static func symbolFont(_ size: CGFloat) -> Font { .system(size: size, weight: .regular) }
+    public static func symbolFont(_ size: CGFloat) -> Font {
+        .system(size: size, weight: AetherIconStyle.weight)
+    }
 
     private static func bundledFontURLs() -> [URL] {
         let manager = FileManager.default
@@ -79,23 +91,36 @@ public enum AetherFontRegistry {
         return directories
     }
 
-    private static func resolveFace(_ weight: AetherTextWeight) -> String? {
-        let target = systemWeight(for: weight.usWeightClass).rawValue
+    private static func resolveVariableBase() {
         for family in families {
-            guard let members = NSFontManager.shared.availableMembers(ofFontFamily: family) else { continue }
-            let candidates = members.compactMap { member -> (name: String, trait: CGFloat)? in
-                guard let name = member.first as? String,
-                      let font = NSFont(name: name, size: 12) else { return nil }
-                let traits = CTFontCopyTraits(font as CTFont) as NSDictionary
-                guard let value = traits[kCTFontWeightTrait] as? NSNumber else { return nil }
-                return (name, CGFloat(value.doubleValue))
-            }
-            guard !candidates.isEmpty else { continue }
-            if weight == .emphasis,
-               let next = candidates.filter({ $0.trait >= target }).min(by: { $0.trait < $1.trait }) {
-                return next.name
-            }
-            return candidates.min { abs($0.trait - target) < abs($1.trait - target) }?.name
+            guard let members = NSFontManager.shared.availableMembers(ofFontFamily: family),
+                  let name = members.first?.first as? String,
+                  let base = NSFont(name: name, size: 12) else { continue }
+            baseFace = name
+            weightAxisID = weightAxisIdentifier(of: base as CTFont)
+            return
+        }
+        baseFace = nil
+        weightAxisID = nil
+    }
+
+    private static func variedFont(size: CGFloat, wght: Double) -> Font? {
+        guard let name = baseFace, let axis = weightAxisID,
+              let base = NSFont(name: name, size: size) else { return nil }
+        let baseDescriptor = CTFontCopyFontDescriptor(base as CTFont)
+        let variation = [kCTFontVariationAttribute as String: [axis: wght]] as CFDictionary
+        let descriptor = CTFontDescriptorCreateCopyWithAttributes(baseDescriptor, variation)
+        let varied = CTFontCreateWithFontDescriptor(descriptor, size, nil)
+        return Font(varied as NSFont)
+    }
+
+    private static func weightAxisIdentifier(of font: CTFont) -> Int? {
+        guard let axes = CTFontCopyVariationAxes(font) as? [[String: Any]] else { return nil }
+        for axis in axes {
+            guard let name = axis[kCTFontVariationAxisNameKey as String] as? String,
+                  name == "Weight",
+                  let identifier = axis[kCTFontVariationAxisIdentifierKey as String] as? Int else { continue }
+            return identifier
         }
         return nil
     }

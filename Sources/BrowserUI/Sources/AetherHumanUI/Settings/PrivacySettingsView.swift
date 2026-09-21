@@ -6,13 +6,13 @@ public struct PrivacySettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Content blocking is enforced in Aether's engine, not by changing how websites look in SwiftUI.")
+        SettingsHelp("Blocking runs in the engine, not the interface.")
         AetherSection("Content blocking", footer: workspace.engine.isConnected ? "Changes are submitted to the connected engine." : "Preview only. Connect the engine before content blocking can protect actual requests.") {
             SettingsToggle("Block ads", subtitle: "Filter known advertising requests.", value: toggle(\.blockAds))
             SettingsDivider()
             SettingsToggle("Block trackers", subtitle: "Reduce cross-site tracking requests.", value: toggle(\.blockTrackers))
             SettingsDivider()
-            SettingsToggle("Handle cookie banners", subtitle: "Apply supported site-specific rules.", value: toggle(\.handleCookieBanners))
+            SettingsToggle("Handle cookie banners", subtitle: "Apply supported site-specific rules.", customIcon: .cookie, value: toggle(\.handleCookieBanners))
         }
         AetherSection("Browsing data") {
             AetherRow("History", subtitle: "Clear locally recorded browsing history for a profile.", symbol: "clock") {

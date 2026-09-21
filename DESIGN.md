@@ -36,23 +36,25 @@ Aether is a native-feeling macOS browser. The bar is: **a person who has never s
 
 ### 2.1 Dark mode — the only palette you may use
 
-| Token | Hex | Tailwind ref | Use for |
-|---|---|---|---|
-| `--stone-950` | `#0c0a09` | stone-950 | Optional true-black window background behind everything (fullscreen video, etc.) |
-| `--surface-base` | `#1c1917` | stone-900 | **App window background.** Sidebar background, content-area background. |
-| `--surface-raised` | `#231f1d`¹ | stone-850 (custom) | **Cards, panels, menus, sheets, popovers, tiles at rest.** This is the ONE overlay tone. |
-| `--surface-hover` | `#292524` | stone-800 | Hover / pressed state for anything on `--surface-raised`. Also the default fill for **buttons**. |
-| `--surface-hover-strong` | `#231f1d`→`#292524` blend | stone-850→800 | Use `--surface-hover` (800) unless the element's resting state is *already* 800 (e.g. a button) — then hover goes to `--surface-raised` (850) mixed 10% lighter, never to 700. |
-| ~~`--stone-750`~~ | ~~`#37322f`~~ | stone-750 | **BANNED.** Do not use. |
-| ~~`--stone-700`~~ | ~~`#44403c`~~ | stone-700 | **BANNED.** This is the single biggest color bug in the current build — see `ISSUE-DESIGN.md` #004. Too light, reads as a washed-out gray panel, breaks the near-black look everywhere it appears. |
-| `--text-primary` | `#f5f5f4` | stone-100 | Titles, primary labels, active tab text |
-| `--text-secondary` | `#a8a29e` | stone-400 | URLs, timestamps, section labels, placeholder text |
-| `--text-tertiary` | `#78716c` | stone-500 | Disabled text, sublabels |
-| `--divider` | `rgba(245,245,244,0.08)` | white 8% | The *only* line you're allowed to draw — a hairline divider inside a menu, never a box border around a component. See §2.4. |
+| Token | Hex | Use for |
+|---|---|---|
+| `--surface-window` | `#15161d` | Window background behind everything |
+| `--surface-base` | `#17181e` | Content-area background, page surface |
+| `--surface-raised` | `#333544` | **Cards, panels, menus, sheets, popovers at rest.** This is the ONE overlay tone. |
+| `--surface-active-tab` | `#1b1b23` | Selected tab row — darker inset, never lighter than chrome |
+| `--surface-hover` | `rgba(255,255,255,0.08)` | Hover / pressed state on anything (translucent, works over glass) |
+| `--surface-selected` | `rgba(255,255,255,0.11)` | Selected menu/palette row |
+| `--surface-tile` | `#404253` | Pinned shortcut tiles |
+| `--surface-pill` | `#3c3e56` | Profile/pins capsule in top-tab mode |
+| `--surface-composer` | `#1b1c21` | New-tab ask card |
+| ~~`--stone-750`~~ | | **BANNED.** Do not use. |
+| ~~`--stone-700`~~ | | **BANNED.** Reads as washed-out gray, breaks the near-black look. |
+| `--text-primary` | `#fafafa` | neutral-50. Titles, primary labels, active tab text |
+| `--text-secondary` | `#a3a3a3` | neutral-400. URLs, timestamps, section labels, placeholder text |
+| `--text-tertiary` | `#737373` | neutral-500. Disabled text, sublabels |
+| `--divider` | `rgba(255,255,255,0.08)` | The *only* line you're allowed to draw — a hairline divider inside a menu, never a box border around a component. See §2.4. |
 
-¹ `#231f1d` is the midpoint between Tailwind `stone-800` (`#292524`) and `stone-900` (`#1c1917`) — Tailwind has no native 850 step, so this is a defined custom token. Add it to the design-token file as `stone-850`; do not approximate it ad hoc per-component.
-
-**Background/overlay rule, restated exactly as specified:** window and sidebar = `--surface-base` (stone-900). Any card, tile, menu, popover, or panel floating above that = `--surface-raised` (stone-850). Hover state on raised surfaces = `--surface-hover` (stone-800). If a component's resting state is *already* stone-800 (buttons), its hover goes one step toward stone-850, never toward stone-700/750.
+**Background/overlay rule:** window = `--surface-window`. Content = `--surface-base`. Anything floating above (card, tile, menu, popover, sheet) = `--surface-raised`. Hover/pressed = `--surface-hover` (translucent white, safe over glass). The selected tab row is the one exception that goes darker: `--surface-active-tab`.
 
 ### 2.2 Light mode
 
@@ -94,21 +96,24 @@ If you find yourself writing `border: 1px solid` or `.stroke(.gray)` anywhere el
 ### 3.1 Family
 
 ```css
---font-ui: -apple-system, "SF Pro Text", "SF Pro Display", "Inter Variable", "Inter", system-ui, sans-serif;
---font-mono: "SF Mono", ui-monospace, "JetBrains Mono", monospace;
+--font-ui: "Instrument Sans", -apple-system, system-ui, sans-serif;
+--font-mono: "Instrument Sans", ui-monospace, "SF Mono", monospace;
 ```
 
-Aether is a native Mac app — prefer the literal system font (`-apple-system` / SF Pro) over shipping a bundled webfont. If the shell is Electron/Tauri and SF Pro isn't licensed for embedding, `Inter Variable` is the correct fallback: it's metrically close, ships a true variable weight axis (see 3.2), and reads Apple-native in a way that the current default UI font does not.
+Aether chrome renders exclusively in Instrument Sans (variable face, wght 400–700,
+bundled under `AetherHumanUI/Resources/Fonts/`). `AetherFontRegistry` instantiates exact
+400 / 450 / 500 weights through the variation axis — never synthetic bolding. SF Symbols
+remain the only icon face; SF Pro is not used for chrome text.
 
 ### 3.2 Weight — hard limit
 
-**Only three weights exist in browser chrome: 400 (normal), 450 (medium-light, optional), 500 (medium).** Nothing heavier. This is a hard rule, not a preference — semibold/bold headings are what makes the current Settings and History panels feel like a generic web app instead of a native one (`ISSUE-DESIGN.md` #006).
+**Only three weights exist in browser chrome: 400 (normal), 450 (medium-light, variable-axis interpolation), 500 (medium).** Nothing heavier. This is a hard rule, not a preference — semibold/bold headings are what makes the current Settings and History panels feel like a generic web app instead of a native one (`ISSUE-DESIGN.md` #006).
 
 | Token | Weight | Use for |
 |---|---|---|
 | `--weight-normal` | 400 | Body copy, list rows, URLs, most labels |
-| `--weight-medium-light` | 450 | Optional in-between step — only reachable with a variable font (`font-variation-settings: "wght" 450` on Inter Variable, or SF Pro's optical weight via `font-weight: 450` which macOS resolves natively). Use for row **titles** where 400 feels too quiet and 500 feels too heavy — e.g. history entry titles, tab titles. |
-| `--weight-medium` | 500 | Panel headings ("History", "Downloads", "Aether Settings"), the active tab label, primary buttons, section labels |
+| `--weight-medium-light` | 450 | Row **titles** and tab titles — the exact variable instance, never a faked weight |
+| `--weight-medium` | 500 | Panel headings ("History", "Downloads", "Aether Settings"), primary buttons, section labels |
 
 Rendered website content inside the webview is exempt — a page can use whatever weights it wants. This rule governs **Aether's own chrome only.**
 

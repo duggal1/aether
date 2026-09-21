@@ -1,0 +1,291 @@
+{
+  "metric": "dispatch-to-title, 0.5s polls, no eval/snapshot/screenshot during timing",
+  "browser": "safari",
+  "summary": {
+    "count_ok": 40,
+    "count_total": 40,
+    "median_observed_title_ms": 1151.22
+  },
+  "results": [
+    {
+      "url": "https://www.see-for-yourself.com/",
+      "status": "OK",
+      "observed_title_ms": 2390.4,
+      "title": "See for Yourself",
+      "trial": 1
+    },
+    {
+      "url": "https://www.dontlookup.app/",
+      "status": "OK",
+      "observed_title_ms": 2690.88,
+      "title": "Don't Look Up \u2014 a game about keeping everyone looking down",
+      "trial": 1
+    },
+    {
+      "url": "https://wisprflow.ai/",
+      "status": "OK",
+      "observed_title_ms": 1166.14,
+      "title": "Wispr Flow | Effortless Voice Dictation",
+      "trial": 1
+    },
+    {
+      "url": "https://tryclico.com/",
+      "status": "OK",
+      "observed_title_ms": 13524.94,
+      "title": "Free AI Image, Video Generator & Deep Research Studio | Clico",
+      "trial": 1
+    },
+    {
+      "url": "https://www.boonglobal.io/",
+      "status": "OK",
+      "observed_title_ms": 1456.46,
+      "title": "Boon \u2022 Cause The Effect",
+      "trial": 1
+    },
+    {
+      "url": "https://www.moremedia.at/",
+      "status": "OK",
+      "observed_title_ms": 2216.23,
+      "title": "MOREMEDIA\u00ae \u00b7 Digitalagentur Linz: Webdesign, Marke &\u00a0KI",
+      "trial": 1
+    },
+    {
+      "url": "https://www.corndel.com/",
+      "status": "OK",
+      "observed_title_ms": 791.26,
+      "title": "Corndel: Transforming Workplaces with Skills & Leadership",
+      "trial": 1
+    },
+    {
+      "url": "https://www.podiumautomation.com/",
+      "status": "OK",
+      "observed_title_ms": 845.37,
+      "title": "Podium Automation | UL 508A Control Panels Built in 4 Weeks",
+      "trial": 1
+    },
+    {
+      "url": "https://usealia.com/",
+      "status": "OK",
+      "observed_title_ms": 1136.31,
+      "title": "Alia - Agentic team coordination",
+      "trial": 1
+    },
+    {
+      "url": "https://calendly.com/",
+      "status": "OK",
+      "observed_title_ms": 980.26,
+      "title": "Meeting Scheduling Software and AI Meeting Tools | Calendly",
+      "trial": 1
+    },
+    {
+      "url": "https://www.clay.com/",
+      "status": "OK",
+      "observed_title_ms": 1724.73,
+      "title": "Clay | Build systems to grow revenue",
+      "trial": 1
+    },
+    {
+      "url": "https://www.apollo.io/",
+      "status": "OK",
+      "observed_title_ms": 1097.2,
+      "title": "The AI GTM System for Go-to-Market Teams | Apollo",
+      "trial": 1
+    },
+    {
+      "url": "https://instantly.ai/",
+      "status": "OK",
+      "observed_title_ms": 1100.2,
+      "title": "Sales Engagement and Lead Intelligence | Instantly",
+      "trial": 1
+    },
+    {
+      "url": "https://eatsnackish.com/",
+      "status": "OK",
+      "observed_title_ms": 2734.8,
+      "title": "Snackish\u2122 US",
+      "trial": 1
+    },
+    {
+      "url": "https://playfolly.com/",
+      "status": "OK",
+      "observed_title_ms": 1407.08,
+      "title": "Playfolly - Play beautiful.",
+      "trial": 1
+    },
+    {
+      "url": "https://www.lyleandscott.com/",
+      "status": "OK",
+      "observed_title_ms": 4786.74,
+      "title": "Lyle & Scott\u2122 Official Site | Premium British Menswear",
+      "trial": 1
+    },
+    {
+      "url": "https://land-book.com/",
+      "status": "OK",
+      "observed_title_ms": 1107.5,
+      "title": "Landbook - website design inspiration gallery",
+      "trial": 1
+    },
+    {
+      "url": "https://www.awwwards.com/",
+      "status": "OK",
+      "observed_title_ms": 1835.63,
+      "title": "Awwwards - Website Awards - Best Web Design Trends",
+      "trial": 1
+    },
+    {
+      "url": "https://openai.com/codex/",
+      "status": "OK",
+      "observed_title_ms": 3406.97,
+      "title": "Codex | AI Coding Partner from OpenAI | OpenAI",
+      "trial": 1
+    },
+    {
+      "url": "https://www.trysapphire.today/",
+      "status": "OK",
+      "observed_title_ms": 1691.07,
+      "title": "Sapphire \u2014 AI-Native B2B Customer Acquisition",
+      "trial": 1
+    },
+    {
+      "url": "https://www.see-for-yourself.com/",
+      "status": "OK",
+      "observed_title_ms": 2136.37,
+      "title": "See for Yourself",
+      "trial": 2
+    },
+    {
+      "url": "https://www.dontlookup.app/",
+      "status": "OK",
+      "observed_title_ms": 12863.02,
+      "title": "Don't Look Up \u2014 a game about keeping everyone looking down",
+      "trial": 2
+    },
+    {
+      "url": "https://wisprflow.ai/",
+      "status": "OK",
+      "observed_title_ms": 851.49,
+      "title": "Wispr Flow | Effortless Voice Dictation",
+      "trial": 2
+    },
+    {
+      "url": "https://tryclico.com/",
+      "status": "OK",
+      "observed_title_ms": 14924.87,
+      "title": "Free AI Image, Video Generator & Deep Research Studio | Clico",
+      "trial": 2
+    },
+    {
+      "url": "https://www.boonglobal.io/",
+      "status": "OK",
+      "observed_title_ms": 729.76,
+      "title": "Boon \u2022 Cause The Effect",
+      "trial": 2
+    },
+    {
+      "url": "https://www.moremedia.at/",
+      "status": "OK",
+      "observed_title_ms": 648.39,
+      "title": "MOREMEDIA\u00ae \u00b7 Digitalagentur Linz: Webdesign, Marke &\u00a0KI",
+      "trial": 2
+    },
+    {
+      "url": "https://www.corndel.com/",
+      "status": "OK",
+      "observed_title_ms": 12865.36,
+      "title": "Corndel: Transforming Workplaces with Skills & Leadership",
+      "trial": 2
+    },
+    {
+      "url": "https://www.podiumautomation.com/",
+      "status": "OK",
+      "observed_title_ms": 762.71,
+      "title": "Podium Automation | UL 508A Control Panels Built in 4 Weeks",
+      "trial": 2
+    },
+    {
+      "url": "https://usealia.com/",
+      "status": "OK",
+      "observed_title_ms": 727.56,
+      "title": "Alia - Agentic team coordination",
+      "trial": 2
+    },
+    {
+      "url": "https://calendly.com/",
+      "status": "OK",
+      "observed_title_ms": 1432.9,
+      "title": "Meeting Scheduling Software and AI Meeting Tools | Calendly",
+      "trial": 2
+    },
+    {
+      "url": "https://www.clay.com/",
+      "status": "OK",
+      "observed_title_ms": 810.09,
+      "title": "Clay | Build systems to grow revenue",
+      "trial": 2
+    },
+    {
+      "url": "https://www.apollo.io/",
+      "status": "OK",
+      "observed_title_ms": 700.77,
+      "title": "The AI GTM System for Go-to-Market Teams | Apollo",
+      "trial": 2
+    },
+    {
+      "url": "https://instantly.ai/",
+      "status": "OK",
+      "observed_title_ms": 819.3,
+      "title": "Sales Engagement and Lead Intelligence | Instantly",
+      "trial": 2
+    },
+    {
+      "url": "https://eatsnackish.com/",
+      "status": "OK",
+      "observed_title_ms": 809.61,
+      "title": "Snackish\u2122 US",
+      "trial": 2
+    },
+    {
+      "url": "https://playfolly.com/",
+      "status": "OK",
+      "observed_title_ms": 1021.03,
+      "title": "Playfolly - Play beautiful.",
+      "trial": 2
+    },
+    {
+      "url": "https://www.lyleandscott.com/",
+      "status": "OK",
+      "observed_title_ms": 1329.53,
+      "title": "Lyle & Scott\u2122 Official Site | Premium British Menswear",
+      "trial": 2
+    },
+    {
+      "url": "https://land-book.com/",
+      "status": "OK",
+      "observed_title_ms": 838.93,
+      "title": "Landbook - website design inspiration gallery",
+      "trial": 2
+    },
+    {
+      "url": "https://www.awwwards.com/",
+      "status": "OK",
+      "observed_title_ms": 1622.77,
+      "title": "Awwwards - Website Awards - Best Web Design Trends",
+      "trial": 2
+    },
+    {
+      "url": "https://openai.com/codex/",
+      "status": "OK",
+      "observed_title_ms": 820.41,
+      "title": "Codex | AI Coding Partner from OpenAI | OpenAI",
+      "trial": 2
+    },
+    {
+      "url": "https://www.trysapphire.today/",
+      "status": "OK",
+      "observed_title_ms": 752.34,
+      "title": "Sapphire \u2014 AI-Native B2B Customer Acquisition",
+      "trial": 2
+    }
+  ]
+}

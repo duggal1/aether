@@ -31,10 +31,11 @@ struct SymbolContractTests {
 }
 
 struct TypographyContractTests {
-    @Test func chromeWeightsAreOnly400And450() {
+    @Test func chromeWeightsAreOnly400450And500() {
         #expect(AetherTextWeight.regular.usWeightClass == 400)
         #expect(AetherTextWeight.emphasis.usWeightClass == 450)
-        #expect(AetherTextWeight.allCases.count == 2)
+        #expect(AetherTextWeight.medium.usWeightClass == 500)
+        #expect(AetherTextWeight.allCases.count == 3)
     }
 
     @Test func systemWeightInterpolatesBetweenAppleAnchors() {
@@ -144,9 +145,9 @@ struct PaletteContractTests {
 
     @Test func metricsFollowTheSpecifiedGrid() {
         #expect(AetherMetrics.chromeHeight == 42)
-        #expect(AetherMetrics.tabHeight == 33)
+        #expect(AetherMetrics.tabHeight == 40)
         #expect(AetherMetrics.tapTarget == 44)
-        #expect(AetherMetrics.panelRadius == 16)
+        #expect(AetherMetrics.panelRadius == 8)
     }
 }
 
@@ -187,7 +188,7 @@ struct IconSystemTests {
         let rect = CGRect(x: 0, y: 0, width: 171, height: 39)
         let bounds = FusedTopTabShape().path(in: rect).boundingRect
         #expect(!FusedTopTabShape().path(in: rect).isEmpty)
-        #expect(abs(bounds.width - 201) < 0.5)
+        #expect(abs(bounds.width - (171 + 2 * 12)) < 0.5)
         #expect(abs(bounds.height - 39) < 0.5)
     }
 

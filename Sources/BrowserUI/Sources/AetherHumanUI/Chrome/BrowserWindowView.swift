@@ -7,9 +7,15 @@ public struct BrowserWindowView: View {
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
-    public var body: some View {
-        ZStack(alignment: .topTrailing) {
-            HStack(spacing: 0) {
+    private var activeSurface: Color {
+        if let url = window.selected?.url, !url.isEmpty, url != "about:blank" {
+            AetherPalette.activeSite(theme.dark)
+        } else {
+            AetherPalette.activeNewTab(theme.dark)
+        }
+    }
+
+    public var body: some View {        ZStack(alignment: .topTrailing) {            HStack(spacing: 0) {
                 if window.arrangement == .sidebar && !window.sidebarCollapsed {
                     SidebarTabListView(window: window)
                         .transition(.move(edge: .leading).combined(with: .opacity))
@@ -26,12 +32,13 @@ public struct BrowserWindowView: View {
                         NavigationBarView(window: window, showsChrome: false).zIndex(10)
                         BrowserContentView(window: window, surfaces: window.surfaces)
                     }
-                    .background(theme.canvas)
+                    .background(activeSurface)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .padding(.leading, window.arrangement == .top ? 6 : 0)
                     .padding(.trailing, 6)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, window.arrangement == .top ? 5 : 6)
                     .padding(.top, window.arrangement == .sidebar ? 6 : 0)
+                    .offset(y: window.arrangement == .top ? -1 : 0)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

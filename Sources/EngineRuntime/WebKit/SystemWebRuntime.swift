@@ -26,13 +26,25 @@ extension BrowserRuntime {
     if let page = webPages[id] { return page }
     if let task = webPageTasks[id] { return await task.value }
     let identifier = webProfileIdentifiers[record.contextID]
+    let wantEphemeral = webEphemeral.contains(record.contextID)
     let context: WebKitContext
-    if let existing = webContexts[record.contextID] { context = existing }
-    else {
-      let candidate = await WebKitContext(identifier: identifier)
-      context = webContexts[record.contextID] ?? candidate
+    if let existing = webContexts[record.contextID], existing.isEphemeral == wantEphemeral {
+      context = existing
+    } else if let raced = webContexts[record.contextID], raced.isEphemeral == wantEphemeral {
+      context = raced
+    } else {
+      let fresh: WebKitContext
+      if wantEphemeral {
+        fresh = await WebKitContext.ephemeral()
+        webEphemeralStores[record.contextID] = fresh.store
+      } else {
+        fresh = await WebKitContext(identifier: identifier)
+      }
+      let stored = webContextRules[record.contextID] as? WKContentRuleList
+      await MainActor.run { fresh.rules = stored }
+      webContexts[record.contextID] = fresh
+      context = fresh
     }
-    webContexts[record.contextID] = context
     if let page = webPages[id] { return page }
     if let pending = webPageTasks[id] { return await pending.value }
     let viewport = record.viewport
@@ -117,15 +129,44 @@ extension BrowserRuntime {
   }
 
   func configureWebBlocking(contextID: ContextID, rules: String, enabled: Bool) async throws {
+    let wantEphemeral = webEphemeral.contains(contextID)
     let context: WebKitContext
-    if let existing = webContexts[contextID] { context = existing }
-    else {
-      context = await WebKitContext(identifier: webProfileIdentifiers[contextID])
+    if let existing = webContexts[contextID], existing.isEphemeral == wantEphemeral {
+      context = existing
+    } else {
+      if wantEphemeral {
+        context = await WebKitContext.ephemeral()
+        webEphemeralStores[contextID] = context.store
+      } else {
+        context = await WebKitContext(identifier: webProfileIdentifiers[contextID])
+      }
       webContexts[contextID] = context
     }
     try await context.configure(rules: rules, enabled: enabled)
+    if let snapshot = await context.rules { webContextRules[contextID] = snapshot }
+    else { webContextRules[contextID] = nil }
+    let applied = await context.rules
     for (id, page) in webPages where self.contextID(containing: id) == contextID {
-      await page.applyRules(context.rules)
+      await page.applyRules(applied)
+    }
+  }
+
+  public func setContextEphemeral(contextID: ContextID, enabled: Bool) async throws {
+    _ = try requireContext(contextID)
+    if enabled {
+      webEphemeral.insert(contextID)
+      if webContexts[contextID]?.isEphemeral != true { webContexts[contextID] = nil }
+    } else {
+      webEphemeral.remove(contextID)
+      await purgeEphemeralStore(for: contextID)
+      if webContexts[contextID]?.isEphemeral == true { webContexts[contextID] = nil }
+    }
+  }
+
+  func purgeEphemeralStore(for contextID: ContextID) async {
+    guard let store = webEphemeralStores.removeValue(forKey: contextID) as? WKWebsiteDataStore else { return }
+    await MainActor.run {
+      store.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {}
     }
   }
 }
@@ -133,19 +174,33 @@ extension BrowserRuntime {
 extension WebKitContext {
   func configure(rules source: String, enabled: Bool) async throws {
     guard enabled else { rules = nil; return }
-    let domains = source.split(separator: "\n").filter { $0.hasPrefix("||") && $0.hasSuffix("^") }
-      .map { String($0.dropFirst(2).dropLast()) }
-    guard domains.count == source.split(separator: "\n").count else {
-      throw BrowserRuntimeError.invalidState("WebKit content rules currently support domain blocking only")
+    let json = try AggressiveBlockFilter.compile(source: source)
+    guard let data = json.data(using: .utf8),
+      let decoded = try? JSONDecoder().decode([[String: [String: String]]].self, from: data),
+      !decoded.isEmpty else { rules = nil; return }
+    guard let store = WKContentRuleListStore.default() else {
+      throw BrowserRuntimeError.invalidState("Content rule store is unavailable")
     }
-    guard !domains.isEmpty else { rules = nil; return }
-    let content = domains.map { domain in
-      ["trigger": ["url-filter": "^https?://([^/]+\\.)?" + NSRegularExpression.escapedPattern(for: domain) + "[/:]"],
-       "action": ["type": "block"]]
+    let identifier = "aether-\(String(format: "%016llx", WebKitContext.stableHash(json)))"
+    if let cached: WKContentRuleList = try await withCheckedThrowingContinuation({ continuation in
+      store.lookUpContentRuleList(forIdentifier: identifier) { list, _ in
+        continuation.resume(returning: list)
+      }
+    }) {
+      rules = cached
+      return
     }
-    let json = String(decoding: try JSONEncoder().encode(content), as: UTF8.self)
-    rules = try await WKContentRuleListStore.default().compileContentRuleList(
-      forIdentifier: "aether-" + UUID().uuidString, encodedContentRuleList: json)
+    rules = try await store.compileContentRuleList(
+      forIdentifier: identifier, encodedContentRuleList: json)
+  }
+
+  static func stableHash(_ value: String) -> UInt64 {
+    var hash: UInt64 = 14_695_901_793_932_658_723
+    for byte in value.utf8 {
+      hash ^= UInt64(byte)
+      hash &*= 1_096_221_680_031_431_921
+    }
+    return hash
   }
 }
 

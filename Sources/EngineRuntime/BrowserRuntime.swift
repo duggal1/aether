@@ -135,6 +135,9 @@ public actor BrowserRuntime {
   var webContexts: [ContextID: WebKitContext] = [:]
   var webStates: [PageID: WebPageState] = [:]
   var webProfileIdentifiers: [ContextID: UUID] = [:]
+  var webEphemeral: Set<ContextID> = []
+  var webEphemeralStores: [ContextID: AnyObject] = [:]
+  var webContextRules: [ContextID: AnyObject] = [:]
 
   public init() {}
 
@@ -142,7 +145,7 @@ public actor BrowserRuntime {
     let id = ContextID(rawValue: contextCounter.next())
     let bridge = JSMediaBridge()
     let mirror = MediaMirror()
-    var record = ContextRecord(
+    let record = ContextRecord(
       id: id,
       name: name.isEmpty ? "context-\(id.rawValue)" : name,
       network: NetworkSession(),
@@ -209,6 +212,9 @@ public actor BrowserRuntime {
     }
     webContexts[id] = nil
     webProfileIdentifiers[id] = nil
+    webEphemeral.remove(id)
+    webContextRules[id] = nil
+    await purgeEphemeralStore(for: id)
     for pageID in removed.pages.keys {
       await removed.media.removePage(pageID)
     }
@@ -451,7 +457,7 @@ public actor BrowserRuntime {
       let pageID = await context.media.page(containing: node),
       let runtime = context.pages[pageID]?.javascript
     else { return }
-    try? runtime.dispatchEvent(type: event.rawValue, target: node)
+    _ = try? runtime.dispatchEvent(type: event.rawValue, target: node)
   }
 
   private func requestPlay(
@@ -794,52 +800,29 @@ public actor BrowserRuntime {
   @discardableResult
   public func navigate(pageID: PageID, to url: URL, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
     return try await navigateWeb(pageID: pageID, request: HTTPRequest(url: url), settle: settle)
-    return try await performNavigation(pageID: pageID, request: HTTPRequest(url: url), history: .push)
   }
 
   @discardableResult
   public func navigate(pageID: PageID, request: HTTPRequest, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
     return try await navigateWeb(pageID: pageID, request: request, settle: settle)
-    return try await performNavigation(pageID: pageID, request: request, history: .push)
   }
 
   @discardableResult
   public func goBack(pageID: PageID) async throws -> BrowserPageInfo {
     try await webPage(pageID).back()
     return try await synchronizedWebInfo(pageID)
-    let page = try requirePage(pageID)
-    let targetIndex = page.historyIndex - 1
-    guard page.history.indices.contains(targetIndex) else {
-      throw BrowserRuntimeError.historyUnavailable
-    }
-    return try await performNavigation(
-      pageID: pageID, request: HTTPRequest(url: page.history[targetIndex]),
-      history: .move(targetIndex))
   }
 
   @discardableResult
   public func goForward(pageID: PageID) async throws -> BrowserPageInfo {
     try await webPage(pageID).forward()
     return try await synchronizedWebInfo(pageID)
-    let page = try requirePage(pageID)
-    let targetIndex = page.historyIndex + 1
-    guard page.history.indices.contains(targetIndex) else {
-      throw BrowserRuntimeError.historyUnavailable
-    }
-    return try await performNavigation(
-      pageID: pageID, request: HTTPRequest(url: page.history[targetIndex]),
-      history: .move(targetIndex))
   }
 
   @discardableResult
   public func reload(pageID: PageID, bypassCache: Bool = false) async throws -> BrowserPageInfo {
     try await webPage(pageID).reload(bypassCache: bypassCache)
     return try await synchronizedWebInfo(pageID)
-    let page = try requirePage(pageID)
-    guard let url = page.loaded?.url else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    var request = HTTPRequest(url: url)
-    if bypassCache { request.cachePolicy = .reloadIgnoringCache }
-    return try await performNavigation(pageID: pageID, request: request, history: .preserve)
   }
 
   public func inspect(pageID: PageID) async throws -> PageInspection {
@@ -849,49 +832,14 @@ public actor BrowserRuntime {
 
   public func snapshot(pageID: PageID, limit: Int = 20000) async throws -> PageSnapshot {
     return try await webPage(pageID).snapshot(info: pageInfo(pageID), limit: limit)
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    let dom = loaded.document.snapshot()
-    let nodes = dom.nodes.map { node -> PageNodeSnapshot in
-      let source = loaded.document.node(node.id)
-      let style = loaded.styledDocument.style(for: node.id)
-      let role = source.flatMap(DOMSemantics.role(for:))
-      return PageNodeSnapshot(
-        id: node.id,
-        parent: node.parent,
-        children: node.children,
-        kind: node.kind,
-        tag: node.tag,
-        text: node.text,
-        attributes: node.attributes,
-        role: role,
-        name: node.name,
-        visible: style.display != .none && source?.attribute("hidden") == nil,
-        enabled: source?.attribute("disabled") == nil,
-        editable: role == "textbox" || source?.attribute("contenteditable") == "true",
-        bounds: loaded.layout.boxes[node.id]?.frame
-      )
-    }
-    return PageSnapshot(
-      page: info(for: page), documentID: dom.documentID, mutationVersion: dom.mutationVersion,
-      nodes: nodes)
   }
 
   public func query(pageID: PageID, selector: String) async throws -> InspectedNode? {
     return try await webPage(pageID).query(selector).first
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let id = loaded.document.querySelector(selector) else { return nil }
-    return makeInspectedNode(id, loaded: loaded)
   }
 
   public func queryAll(pageID: PageID, selector: String) async throws -> [InspectedNode] {
     return try await webPage(pageID).query(selector)
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    return loaded.document.querySelectorAll(selector).compactMap {
-      makeInspectedNode($0, loaded: loaded)
-    }
   }
 
   public func waitForSelector(
@@ -926,72 +874,10 @@ public actor BrowserRuntime {
   public func click(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
     try await webPage(pageID).nodeAction(nodeID, body: "n.scrollIntoView({block:'center'}); n.focus(); n.click();")
     return try await synchronizedWebInfo(pageID)
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let node = loaded.document.node(nodeID) else {
-      throw BrowserRuntimeError.nodeNotFound(nodeID)
-    }
-    guard node.attribute("disabled") == nil else { return info(for: page) }
-
-    if let runtime = page.javascript {
-      let before = loaded.document.mutationVersion
-      do {
-        let dispatch = try runtime.dispatchEvent(type: "click", target: nodeID)
-        if loaded.document.mutationVersion != before { try refreshPage(pageID) }
-        if dispatch.defaultPrevented { return info(for: try requirePage(pageID)) }
-      } catch {
-        throw BrowserRuntimeError.javascript(String(describing: error))
-      }
-    }
-
-    if node.tagName == "input" {
-      let type = node.attribute("type")?.lowercased() ?? "text"
-      if type == "checkbox" {
-        toggleCheckbox(nodeID, document: loaded.document)
-        try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loaded.document)
-        try refreshPage(pageID)
-        return info(for: try requirePage(pageID))
-      }
-      if type == "radio" {
-        toggleRadio(nodeID, document: loaded.document)
-        try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loaded.document)
-        try refreshPage(pageID)
-        return info(for: try requirePage(pageID))
-      }
-    }
-
-    if let anchor = ancestor(named: "a", from: nodeID, document: loaded.document),
-      let href = loaded.document.node(anchor)?.attribute("href"),
-      let target = URL(string: href, relativeTo: loaded.url)?.absoluteURL
-    {
-      return try await navigate(pageID: pageID, to: target)
-    }
-
-    if isSubmitControl(node),
-      let form = ancestor(named: "form", from: nodeID, document: loaded.document)
-    {
-      let request = try formRequest(formID: form, activatedNodeID: nodeID, page: loaded)
-      return try await performNavigation(pageID: pageID, request: request, history: .push)
-    }
-
-    return info(for: page)
   }
 
   public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) async throws {
-    try await webPage(pageID).fill(nodeID, value: text, append: append); return
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let node = loaded.document.node(nodeID) else {
-      throw BrowserRuntimeError.nodeNotFound(nodeID)
-    }
-    let role = DOMSemantics.role(for: node)
-    guard role == "textbox" || node.attribute("contenteditable") == "true" else {
-      throw BrowserRuntimeError.nodeNotEditable(nodeID)
-    }
-    let existing = append ? currentValue(nodeID, document: loaded.document) : ""
-    setControlValue(existing + text, nodeID: nodeID, document: loaded.document)
-    try dispatchMutationEvent("input", page: page, nodeID: nodeID, document: loaded.document)
-    try refreshPage(pageID)
+    try await webPage(pageID).fill(nodeID, value: text, append: append)
   }
 
   public func setValue(pageID: PageID, nodeID: NodeID, value: String) async throws {
@@ -1000,34 +886,6 @@ public actor BrowserRuntime {
 
   public func evaluate(pageID: PageID, source: String) async throws -> JavaScriptResult {
     return try await webPage(pageID).evaluate(source)
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    let runtime: JSRuntime
-    if let existing = page.javascript {
-      runtime = existing
-    } else {
-      let storage = context.storage.localStorage(for: originKey(loaded.url))
-      runtime = JSRuntime(document: loaded.document, localStorage: storage)
-    }
-    runtime.mediaHost = context.mediaBridge
-    wireScriptRuntime(runtime, network: context.network)
-    let before = loaded.document.mutationVersion
-    do {
-      let value = try runtime.evaluate(source)
-      runtime.pumpTimers()
-      page.javascript = runtime
-      context.pages[pageID] = page
-      contexts[contextID] = context
-      if loaded.document.mutationVersion != before { try refreshPage(pageID) }
-      if let current = contexts[contextID]?.pages[pageID]?.loaded {
-        await syncMedia(contextID: contextID, pageID: pageID, loaded: current)
-      }
-      return JavaScriptResult(value: value.description, console: runtime.consoleOutput)
-    } catch {
-      throw BrowserRuntimeError.javascript(String(describing: error))
-    }
   }
 
   public func render(pageID: PageID, origin: Point = .zero) async throws -> PixelBuffer {
@@ -1048,12 +906,6 @@ public actor BrowserRuntime {
 
   public func captureState(pageID: PageID) async throws -> CapturePageState {
     return try await webPage(pageID).captureState()
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    return CapturePageState(
-      url: loaded.url, title: loaded.title, viewport: page.viewport,
-      documentSize: loaded.layout.contentSize, scroll: page.scroll,
-      statusCode: loaded.statusCode)
   }
 
   public func cachedResourceBytes(contextID: ContextID, url: URL, maximumBytes: Int)
@@ -1071,179 +923,6 @@ public actor BrowserRuntime {
     pageID: PageID, includeComputedStyles: Bool, redactSensitive: Bool
   ) async throws -> CaptureDocumentData {
     return try await webPage(pageID).captureDocument(includeComputedStyles: includeComputedStyles, redactSensitive: redactSensitive)
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let contextID = contextID(containing: pageID), let context = contexts[contextID] else {
-      throw BrowserRuntimeError.pageNotFound(pageID)
-    }
-    let document = loaded.document
-    var issues: [CaptureIssue] = []
-    var stylesheets: [CapturedStylesheet] = []
-    var resources: [CapturedResource] = []
-    var seenResources = Set<String>()
-    var redacted = false
-
-    func addResource(_ url: URL, kind: String) {
-      let key = url.absoluteString
-      guard seenResources.insert(key).inserted else { return }
-      resources.append(CapturedResource(url: key, kind: kind))
-    }
-
-    for id in document.depthFirst() {
-      guard let node = document.node(id), let tag = node.tagName else { continue }
-      switch tag {
-      case "style":
-        stylesheets.append(
-          CapturedStylesheet(
-            sourceURL: nil, media: node.attribute("media"),
-            css: document.textContent(of: id)))
-      case "link":
-        let tokens =
-          (node.attribute("rel") ?? "").lowercased().split(whereSeparator: { $0.isWhitespace })
-          .map(String.init)
-        guard let href = node.attribute("href"),
-          let url = URL(string: href, relativeTo: loaded.url)?.absoluteURL
-        else { continue }
-        if tokens.contains("stylesheet") {
-          if let response = await context.network.cache.response(for: url),
-            let css = String(data: response.body, encoding: .utf8)
-          {
-            stylesheets.append(
-              CapturedStylesheet(
-                sourceURL: url.absoluteString, media: node.attribute("media"), css: css))
-            addResource(url, kind: "css")
-          } else {
-            issues.append(
-              CaptureIssue(code: "uncached-css", detail: url.absoluteString))
-          }
-        } else if tokens.contains("icon") {
-          addResource(url, kind: "image")
-        } else if tokens.contains("font") || tokens.contains("preload") {
-          addResource(url, kind: "font")
-        }
-      case "img":
-        if let src = node.attribute("src"),
-          let url = URL(string: src, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: url.pathExtension.lowercased() == "svg" ? "svg" : "image")
-        } else if node.attribute("src") != nil {
-          issues.append(CaptureIssue(code: "unresolvable-url", detail: "img src is not a URL"))
-        }
-        for candidate in srcsetCandidates(node.attribute("srcset"), baseURL: loaded.url) {
-          addResource(
-            candidate, kind: candidate.pathExtension.lowercased() == "svg" ? "svg" : "image")
-        }
-      case "script":
-        if let src = node.attribute("src"),
-          let url = URL(string: src, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: "script")
-        }
-      case "source":
-        if let src = node.attribute("src"),
-          let url = URL(string: src, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: "media")
-        }
-        for candidate in srcsetCandidates(node.attribute("srcset"), baseURL: loaded.url) {
-          addResource(candidate, kind: "media")
-        }
-      case "video", "audio":
-        if let src = node.attribute("src"),
-          let url = URL(string: src, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: "media")
-        }
-        if let poster = node.attribute("poster"),
-          let url = URL(string: poster, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: "image")
-        }
-        issues.append(
-          CaptureIssue(
-            code: tag == "video" ? "video-content" : "audio-content",
-            detail: "Media element pixels are captured in screenshots; markup is not replayable"))
-      case "track":
-        if let src = node.attribute("src"),
-          let url = URL(string: src, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: "media")
-        }
-      case "input":
-        if node.attribute("type")?.lowercased() == "image",
-          let src = node.attribute("src"),
-          let url = URL(string: src, relativeTo: loaded.url)?.absoluteURL
-        {
-          addResource(url, kind: "image")
-        }
-        if redactSensitive, node.attribute("type")?.lowercased() == "password" {
-          redacted = true
-        }
-      case "canvas":
-        issues.append(
-          CaptureIssue(
-            code: "canvas-content",
-            detail: "Canvas pixels are captured in screenshots; drawing commands are not recoverable"
-          ))
-      case "iframe":
-        issues.append(
-          CaptureIssue(
-            code: "frame-content",
-            detail: "Cross-origin frame DOM is not accessible; pixels are captured when rendered"))
-      case "object", "embed":
-        issues.append(
-          CaptureIssue(
-            code: "embedded-content",
-            detail: "<\(tag)> content is not recoverable as editable markup"))
-      default:
-        break
-      }
-      if redactSensitive, isRedactedNode(id, in: document) { redacted = true }
-    }
-
-    var sensitiveAncestors = Set<NodeID>()
-    if redactSensitive {
-      for id in document.depthFirst() where isRedactedNode(id, in: document) {
-        var parent = document.node(id)?.parent
-        while let ancestor = parent, sensitiveAncestors.insert(ancestor).inserted {
-          parent = document.node(ancestor)?.parent
-        }
-      }
-    }
-    var nodes: [CapturedNode] = []
-    for id in document.depthFirst() {
-      guard let node = document.node(id), let tag = node.tagName,
-        let box = loaded.layout.boxes[id], isCapturable(box.frame),
-        loaded.styledDocument.style(for: id).display != .none
-      else { continue }
-      if nodes.count >= 20_000 {
-        issues.append(
-          CaptureIssue(
-            code: "node-limit", detail: "Node list truncated at 20000 entries"))
-        break
-      }
-      var text: String? = cappedText(document.textContent(of: id))
-      if text?.isEmpty == true { text = nil }
-      if redactSensitive,
-        isRedactedNode(id, in: document) || sensitiveAncestors.contains(id)
-      {
-        text = nil
-        redacted = true
-      }
-      nodes.append(
-        CapturedNode(
-          selector: selectorFor(id, in: document), tag: tag,
-          role: DOMSemantics.role(for: node), text: text, bounds: box.frame,
-          computedStyles: includeComputedStyles
-            ? computedStyleMap(loaded.styledDocument.style(for: id)) : [:]))
-    }
-    if redacted {
-      issues.append(
-        CaptureIssue(code: "redaction-applied", detail: "Sensitive values were redacted"))
-    }
-    let html = HTMLSerialization.serialize(document, redactSensitive: redactSensitive)
-    return CaptureDocumentData(
-      html: html, stylesheets: stylesheets, nodes: nodes, resources: resources, issues: issues)
   }
 
   public func pageInfo(_ pageID: PageID) throws -> BrowserPageInfo {
@@ -1254,50 +933,11 @@ public actor BrowserRuntime {
     let size = normalized(viewport)
     try await webPage(pageID).resize(size)
     return try await synchronizedWebInfo(pageID)
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    page.viewport = normalized(viewport)
-    context.pages[pageID] = page
-    contexts[contextID] = context
-    if page.loaded != nil { try refreshPage(pageID) }
-    return info(for: try requirePage(pageID))
   }
 
   public func loadHTML(pageID: PageID, html: String, url: URL) async throws -> BrowserPageInfo {
     try await webPage(pageID).loadHTML(html, url: url)
     return try await synchronizedWebInfo(pageID)
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    let (loaded, runtime) = buildLoaded(
-      html: html, url: url, viewport: page.viewport, storage: context.storage,
-      network: context.network, page: &page, jar: context.network.cookieJar,
-      blocker: context.blocker)
-    runtime.mediaHost = context.mediaBridge
-    page.loaded = loaded
-    page.javascript = runtime
-    if page.historyIndex + 1 < page.history.count {
-      page.history.removeSubrange((page.historyIndex + 1)..<page.history.count)
-    }
-    page.history.append(url)
-    page.historyIndex = page.history.count - 1
-    page.lifecycle = .active
-    page.lastActive = nowSeconds()
-    page.lastHTML = html
-    page.scroll = Point()
-    page.focused = nil
-    page.hovered = nil
-    page.networkLog.append(
-      NetworkLogEntry(
-        request: RequestID(rawValue: requestCounter.next()), navigation: loaded.navigationID,
-        url: url.absoluteString, statusCode: loaded.statusCode,
-        durationMilliseconds: loaded.metrics.totalMilliseconds, fromCache: false))
-    page.networkLog = Array(page.networkLog.suffix(32))
-    context.pages[pageID] = page
-    contexts[contextID] = context
-    await syncMedia(contextID: contextID, pageID: pageID, loaded: loaded)
-    return info(for: page)
   }
 
   public func lifecycleState(pageID: PageID) throws -> PageLifecycleState {
@@ -1316,48 +956,6 @@ public actor BrowserRuntime {
     if let view = webPages.removeValue(forKey: pageID) { await view.close() }
     contexts[record.contextID]?.pages[pageID]?.lifecycle = state
     return try pageInfo(pageID)
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    if page.loaded == nil && state != .discarded {
-      contexts[contextID] = context
-      try await restoreDiscarded(pageID: pageID)
-      guard let refreshed = contexts[contextID]?.pages[pageID] else {
-        throw BrowserRuntimeError.pageNotFound(pageID)
-      }
-      page = refreshed
-      context = contexts[contextID] ?? context
-    }
-    switch state {
-    case .active, .background:
-      page.lifecycle = state
-    case .suspended:
-      page.javascript = nil
-      page.lifecycle = .suspended
-    case .frozen:
-      page.javascript = nil
-      if var loaded = page.loaded {
-        loaded.images = [:]
-        page.loaded = loaded
-        context.pages[pageID] = page
-        contexts[contextID] = context
-        try refreshPage(pageID)
-        guard let rebuilt = contexts[contextID]?.pages[pageID] else {
-          throw BrowserRuntimeError.pageNotFound(pageID)
-        }
-        page = rebuilt
-        context = contexts[contextID] ?? context
-      }
-      page.lifecycle = .frozen
-    case .discarded:
-      page.loaded = nil
-      page.javascript = nil
-      page.lifecycle = .discarded
-    }
-    page.lastActive = nowSeconds()
-    context.pages[pageID] = page
-    contexts[contextID] = context
-    return info(for: page)
   }
 
   public func restorePage(pageID: PageID) async throws -> BrowserPageInfo {
@@ -1463,45 +1061,15 @@ public actor BrowserRuntime {
   public func focus(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
     try await webPage(pageID).nodeAction(nodeID, body: "n.focus()")
     return try pageInfo(pageID)
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard loaded.document.node(nodeID) != nil else {
-      throw BrowserRuntimeError.nodeNotFound(nodeID)
-    }
-    if let previous = page.focused, previous != nodeID, let runtime = page.javascript {
-      do { _ = try runtime.dispatchEvent(type: "blur", target: previous) } catch {
-        throw BrowserRuntimeError.javascript(String(describing: error))
-      }
-    }
-    storeFocused(nodeID, pageID: pageID)
-    if let runtime = page.javascript {
-      let before = loaded.document.mutationVersion
-      try dispatchAll(["focus", "focusin"], runtime: runtime, target: nodeID)
-      if loaded.document.mutationVersion != before { try refreshPage(pageID) }
-    }
-    return info(for: try requirePage(pageID))
   }
 
   public func blur(pageID: PageID) async throws -> BrowserPageInfo {
     _ = try await webPage(pageID).script("document.activeElement?.blur()")
     return try pageInfo(pageID)
-    let page = try requirePage(pageID)
-    guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    if let previous = page.focused, let runtime = page.javascript {
-      do { _ = try runtime.dispatchEvent(type: "blur", target: previous) } catch {
-        throw BrowserRuntimeError.javascript(String(describing: error))
-      }
-    }
-    storeFocused(nil, pageID: pageID)
-    return info(for: try requirePage(pageID))
   }
 
   public func focusedNode(pageID: PageID) async throws -> InspectedNode? {
     return try await webPage(pageID).query(":focus").first
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let focused = page.focused else { return nil }
-    return makeInspectedNode(focused, loaded: loaded)
   }
 
   public func hoveredNode(pageID: PageID) throws -> InspectedNode? {
@@ -1513,22 +1081,10 @@ public actor BrowserRuntime {
 
   public func scrollTo(pageID: PageID, x: Double, y: Double) async throws -> Point {
     return try await webPage(pageID).scroll(x: x, y: y)
-    guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
-      var page = context.pages[pageID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    page.scroll = Point(x: max(0, x), y: max(0, y))
-    page.lastActive = nowSeconds()
-    context.pages[pageID] = page
-    contexts[contextID] = context
-    return page.scroll
   }
 
   public func scrollOffset(pageID: PageID) async throws -> Point {
     return try await webPage(pageID).scrollPosition()
-    let page = try requirePage(pageID)
-    guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    return page.scroll
   }
 
   public func scrollIntoView(pageID: PageID, nodeID: NodeID) async throws -> Point {
@@ -1601,60 +1157,16 @@ public actor BrowserRuntime {
   }
 
   public func selectOption(pageID: PageID, selectNodeID: NodeID, value: String) async throws {
-    try await webPage(pageID).fill(selectNodeID, value: value, append: false); return
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let select = loaded.document.node(selectNodeID), select.tagName == "select" else {
-      throw BrowserRuntimeError.invalidState("Node is not a select element")
-    }
-    let options = loaded.document.depthFirst(from: selectNodeID).filter {
-      loaded.document.node($0)?.tagName == "option"
-    }
-    let matches = options.filter {
-      guard let option = loaded.document.node($0) else { return false }
-      return (option.attribute("value") ?? loaded.document.textContent(of: $0)) == value
-    }
-    guard !matches.isEmpty else {
-      throw BrowserRuntimeError.invalidState("No option with value: \(value)")
-    }
-    if select.attribute("multiple") == nil {
-      for option in options { loaded.document.removeAttribute("selected", from: option) }
-      loaded.document.setAttribute("selected", value: "", on: matches[0])
-    } else {
-      for match in matches { loaded.document.setAttribute("selected", value: "", on: match) }
-    }
-    try dispatchMutationEvent("input", page: page, nodeID: selectNodeID, document: loaded.document)
-    try dispatchMutationEvent("change", page: page, nodeID: selectNodeID, document: loaded.document)
-    try refreshPage(pageID)
+    try await webPage(pageID).fill(selectNodeID, value: value, append: false)
   }
 
   public func fill(pageID: PageID, nodeID: NodeID, value: String) async throws {
-    try await webPage(pageID).fill(nodeID, value: value, append: false); return
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let node = loaded.document.node(nodeID) else {
-      throw BrowserRuntimeError.nodeNotFound(nodeID)
-    }
-    let role = DOMSemantics.role(for: node)
-    guard role == "textbox" || node.attribute("contenteditable") == "true" else {
-      throw BrowserRuntimeError.nodeNotEditable(nodeID)
-    }
-    setControlValue(value, nodeID: nodeID, document: loaded.document)
-    try dispatchMutationEvent("input", page: page, nodeID: nodeID, document: loaded.document)
-    try dispatchMutationEvent("change", page: page, nodeID: nodeID, document: loaded.document)
-    try refreshPage(pageID)
+    try await webPage(pageID).fill(nodeID, value: value, append: false)
   }
 
   public func submitForm(pageID: PageID, formNodeID: NodeID) async throws -> BrowserPageInfo {
     try await webPage(pageID).nodeAction(formNodeID, body: "n.requestSubmit()")
     return try await synchronizedWebInfo(pageID)
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    guard let form = loaded.document.node(formNodeID), form.tagName == "form" else {
-      throw BrowserRuntimeError.invalidForm("Node is not a form element")
-    }
-    let request = try formRequest(formID: formNodeID, activatedNodeID: formNodeID, page: loaded)
-    return try await performNavigation(pageID: pageID, request: request, history: .push)
   }
 
   public func historyEntries(pageID: PageID) throws -> [HistoryEntry] {
@@ -1687,52 +1199,48 @@ public actor BrowserRuntime {
     return []
   }
 
-  public func listCookies(contextID: ContextID) async throws -> [CookieInfo] {
-    let context = try requireContext(contextID)
-    return context.network.snapshotCookies().map(cookieInfo).sorted {
-      if $0.domain != $1.domain { return $0.domain < $1.domain }
-      return $0.name < $1.name
+  public func storageOrigins(contextID cid: ContextID) async throws -> [String] {
+    _ = try requireContext(cid)
+    var origins: [String] = []
+    for id in webStates.keys where contextID(containing: id) == cid {
+      guard let host = webStates[id]?.url?.host else { continue }
+      let page = try await webPage(id)
+      let count = try? await page.decode(Int.self, "JSON.stringify(localStorage.length)")
+      if (count ?? 0) > 0 { origins.append(host) }
     }
+    return origins.sorted()
   }
 
-  public func setCookie(contextID: ContextID, cookie: CookieInfo) async throws {
-    let context = try requireContext(contextID)
-    context.network.cookieJar.store(
-      Cookie(
-        name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path,
-        secure: cookie.secure, httpOnly: cookie.httpOnly, sameSite: cookie.sameSite))
+  private func storagePage(contextID cid: ContextID, origin: String) async throws -> WebKitPage {
+    let trimmed = origin.trimmingCharacters(in: .whitespacesAndNewlines)
+    let want = (URL(string: trimmed)?.host ?? trimmed).lowercased()
+    for id in webStates.keys where contextID(containing: id) == cid {
+      if webStates[id]?.url?.host?.lowercased() == want { return try await webPage(id) }
+    }
+    throw BrowserRuntimeError.invalidState("No live page for origin \(origin)")
   }
 
-  public func removeCookie(contextID: ContextID, name: String, domain: String, path: String = "/")
-    async throws
-  {
-    let context = try requireContext(contextID)
-    context.network.cookieJar.remove(name: name, domain: domain, path: path)
+  public func storageValues(contextID: ContextID, origin: String) async throws -> [String: String] {
+    let page = try await storagePage(contextID: contextID, origin: origin)
+    return try await page.decode([String: String].self, "JSON.stringify(Object.assign({},localStorage))")
   }
 
-  public func clearCookies(contextID: ContextID) async throws {
-    let context = try requireContext(contextID)
-    context.network.cookieJar.clear()
+  public func storageSet(contextID: ContextID, origin: String, key: String, value: String) async throws {
+    let page = try await storagePage(contextID: contextID, origin: origin)
+    _ = try await page.script(
+      "localStorage.setItem(\(try WebKitPage.literal(key)),\(try WebKitPage.literal(value)))",
+      isolated: false)
   }
 
-  public func storageOrigins(contextID: ContextID) throws -> [String] {
-    try requireContext(contextID).storage.origins()
+  public func storageRemove(contextID: ContextID, origin: String, key: String) async throws {
+    let page = try await storagePage(contextID: contextID, origin: origin)
+    _ = try await page.script(
+      "localStorage.removeItem(\(try WebKitPage.literal(key)))", isolated: false)
   }
 
-  public func storageValues(contextID: ContextID, origin: String) throws -> [String: String] {
-    try requireContext(contextID).storage.localStorage(for: origin).snapshot()
-  }
-
-  public func storageSet(contextID: ContextID, origin: String, key: String, value: String) throws {
-    try requireContext(contextID).storage.localStorage(for: origin).set(key, value: value)
-  }
-
-  public func storageRemove(contextID: ContextID, origin: String, key: String) throws {
-    try requireContext(contextID).storage.localStorage(for: origin).remove(key)
-  }
-
-  public func storageClear(contextID: ContextID, origin: String) throws {
-    try requireContext(contextID).storage.clear(origin: origin)
+  public func storageClear(contextID: ContextID, origin: String) async throws {
+    let page = try await storagePage(contextID: contextID, origin: origin)
+    _ = try await page.script("localStorage.clear()", isolated: false)
   }
 
   public func permissionDecision(contextID: ContextID, permission: String, origin: String) async throws

@@ -84,7 +84,7 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     let url = state.target ?? state.page.url
     return EnginePageSnapshot(id: state.page.id.description, url: url?.absoluteString,
       title: state.page.title, canGoBack: state.page.canGoBack,
-      canGoForward: state.page.canGoForward, isLoading: state.loading,
+      canGoForward: state.page.canGoForward, isLoading: state.loading, progress: state.progress,
       isSecure: url?.scheme == "https", error: state.error, closed: state.closed)
   }
 
@@ -141,13 +141,23 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
 
   func updatePrivacy(profileID: UUID, policy: BrowserPrivacyPolicy) async throws {
     let context = try await context(for: profileID)
-    var rules: [String] = []
-    if policy.blockAds { rules += ["||doubleclick.net^", "||googlesyndication.com^"] }
-    if policy.blockTrackers { rules += ["||google-analytics.com^", "||connect.facebook.net^"] }
+    let rules = AggressiveBlockFilter.ruleList(blockAds: policy.blockAds,
+      blockTrackers: policy.blockTrackers, hideIP: policy.hideIP,
+      cookieBanners: policy.handleCookieBanners)
     try await engine.runtime.configureContentBlocking(contextID: context,
-      rules: rules.joined(separator: "\n"), enabled: policy.blockAds || policy.blockTrackers)
+      rules: rules, enabled: policy.blockAds || policy.blockTrackers || policy.hideIP)
     if policy.handleCookieBanners {
       throw BrowserPortError.unsupported("cookie-banner handling; network filters were applied")
+    }
+  }
+
+  func setProfileEphemeral(profileID: UUID, enabled: Bool) async throws {
+    if enabled {
+      let context = try await context(for: profileID)
+      try await engine.runtime.setContextEphemeral(contextID: context, enabled: true)
+    } else {
+      guard let context = contexts[profileID] else { return }
+      try await engine.runtime.setContextEphemeral(contextID: context, enabled: false)
     }
   }
 

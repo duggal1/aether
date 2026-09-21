@@ -1,5 +1,12 @@
 import SwiftUI
 
+public enum AetherIconStyle {
+    public static let weight: Font.Weight = .medium
+    public static let chromeSize: CGFloat = 16
+    public static let menuSize: CGFloat = 16
+    public static let canvas: CGFloat = 20
+}
+
 public enum AetherSymbol: String, CaseIterable, Sendable {
     case sidebarLeft = "sidebar.left"
     case sidebarRight = "sidebar.right"
@@ -59,6 +66,9 @@ public enum AetherSymbol: String, CaseIterable, Sendable {
     case tiles = "square.grid.2x2"
     case addTile = "plus.square.dashed"
     case external = "arrow.up.forward.square"
+    case mic = "mic"
+    case send = "arrow.up"
+    case chat = "bubble.left.fill"
 
     public var label: String {
         switch self {
@@ -114,6 +124,24 @@ public enum AetherSymbol: String, CaseIterable, Sendable {
         case .tiles: "Shortcuts"
         case .addTile: "Add shortcut"
         case .external: "Open externally"
+        case .mic: "Voice"
+        case .send: "Send"
+        case .chat: "Chat"
+        }
+    }
+    public var customIcon: AetherCustomIcon? {
+        switch self {
+        case .search, .inspect: .search
+        case .history, .recentlyClosed, .rewind: .historyLeft
+        case .reload: .historyRight
+        case .download, .downloads: .download
+        case .settings: .gear
+        case .privacy: .lockPrivacy
+        case .lock, .unlock: .lock
+        case .globe: .globe
+        case .bookmarkCollection: .bookmarkSelected
+        case .openInPage: .terminalUpRight
+        default: nil
         }
     }
 }
@@ -123,18 +151,25 @@ public struct AetherSymbolView: View {
     public var tint: Color?
     public var size: CGFloat
 
-    public init(_ symbol: AetherSymbol, tint: Color? = nil, size: CGFloat = 16) {
+    public init(_ symbol: AetherSymbol, tint: Color? = nil, size: CGFloat = AetherIconStyle.chromeSize) {
         self.symbol = symbol
         self.tint = tint
         self.size = size
     }
 
     public var body: some View {
-        Image(systemName: symbol.rawValue)
-            .font(AetherType.symbol(size, weight: .medium))
-            .symbolRenderingMode(.monochrome)
-            .foregroundStyle(tint ?? Color.primary)
-            .frame(width: size * 1.3, height: size * 1.3)
-            .accessibilityHidden(true)
+        Group {
+            if let custom = symbol.customIcon {
+                AetherCustomIconView(custom, tint: tint, size: size)
+            } else {
+                Image(systemName: symbol.rawValue)
+                    .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
+                    .symbolRenderingMode(.hierarchical)
+                    .imageScale(.medium)
+                    .foregroundStyle(tint ?? Color.primary)
+            }
+        }
+        .frame(width: AetherIconStyle.canvas, height: AetherIconStyle.canvas, alignment: .center)
+        .accessibilityHidden(true)
     }
 }

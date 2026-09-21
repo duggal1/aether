@@ -18,31 +18,35 @@ public struct SidebarTabListView: View {
             .frame(height: 48)
 
             if window.workspace.preferences.showFavorites {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 6.5), GridItem(.flexible(), spacing: 6.5), GridItem(.flexible(), spacing: 6.5)], spacing: 6.5) {
-                    ForEach(window.workspace.shortcuts.prefix(7)) { item in
-                        shortcutTile(item)
+                let pinned = window.workspace.pinnedShortcuts()
+                if !pinned.isEmpty {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+                        ForEach(pinned.prefix(7)) { item in
+                            shortcutTile(item)
+                        }
+                        addShortcutTile
                     }
-                    addShortcutTile
+                    .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 12)
                 }
-                .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 12)
             }
 
             Button { _ = window.newTab() } label: {
-                HStack(spacing: 8) {
-                    BrowserIconView(icon: .plus, tint: theme.muted).iconSize(16)
-                    Text("New Tab").font(AetherType.body(13)).foregroundStyle(theme.muted)
+                HStack(spacing: 9) {
+                    BrowserIconView(icon: .plus, tint: theme.muted).iconSize(14)
+                        .offset(y: -0.5)
+                    Text("New Tab").font(AetherType.emphasis(12)).foregroundStyle(theme.muted)
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 9)
-                .frame(height: 33)
+                .padding(.horizontal, 8)
+                .frame(height: 35)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(SidebarRowStyle(reduced: reduced))
+            .buttonStyle(SidebarRowStyle(reduced: reduced, radius: 7))
             .focusEffectDisabled()
             .padding(.horizontal, 6)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     if !window.tabs.filter(\.isPinned).isEmpty {
                         sectionHeader("Pinned")
                         ForEach(window.tabs.filter(\.isPinned)) { tab in
@@ -59,6 +63,7 @@ public struct SidebarTabListView: View {
                 .padding(.top, 2)
                 .padding(.bottom, 12)
             }
+            .scrollClipDisabled()
             .padding(.top, 6)
 
             Spacer(minLength: 0)
@@ -82,25 +87,39 @@ public struct SidebarTabListView: View {
 
     private func shortcutTile(_ item: BrowserShortcut) -> some View {
         Button { _ = window.newTab(url: item.url) } label: {
-            DomainIcon(item.url, size: 18)
-                .frame(maxWidth: .infinity).frame(height: 40.5)
-                .background(AetherPalette.tile(theme.dark), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            DomainIcon(item.url, size: 17)
+                .frame(maxWidth: .infinity).frame(height: 41)
+                .background(
+                    LinearGradient(colors: [AetherPalette.pinTop(theme.dark),
+                                            AetherPalette.pinBottom(theme.dark)],
+                                   startPoint: .top, endPoint: .bottom),
+                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
         }
         .buttonStyle(SidebarTileStyle(reduced: reduced))
         .focusEffectDisabled()
         .help(item.name)
+        .contextMenu {
+            Button("Open in New Tab") { _ = window.newTab(url: item.url) }
+            Button(item.isPinned ? "Unpin" : "Pin") { window.workspace.toggleShortcutPin(item.id) }
+        }
     }
 
     private var addShortcutTile: some View {
         Button { addingShortcut = true } label: {
             BrowserIconView(icon: .plus, tint: theme.soft).iconSize(13)
-                .frame(maxWidth: .infinity).frame(height: 40.5)
+                .frame(maxWidth: .infinity).frame(height: 41)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(theme.soft.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                 }
         }
         .buttonStyle(.plain)
+        .aetherPointingCursor()
         .help("Add shortcut")
     }
 

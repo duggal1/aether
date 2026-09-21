@@ -181,7 +181,7 @@ public final class CookieJar: @unchecked Sendable {
   }
 
   public func remove(name: String, domain: String, path: String = "/") {
-    state.withLock { state in
+    _ = state.withLock { state in
       state.cookies.removeValue(
         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
     }

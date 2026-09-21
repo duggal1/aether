@@ -1,0 +1,144 @@
+{
+  "metric": "dispatch-to-title, 0.5s polls, no eval/snapshot/screenshot during timing",
+  "browser": "chrome",
+  "summary": {
+    "count_ok": 19,
+    "count_total": 19,
+    "median_observed_title_ms": 1363.73
+  },
+  "results": [
+    {
+      "url": "https://www.see-for-yourself.com/",
+      "status": "OK",
+      "observed_title_ms": 1443.72,
+      "title": "See for Yourself",
+      "trial": 1
+    },
+    {
+      "url": "https://www.dontlookup.app/",
+      "status": "OK",
+      "observed_title_ms": 685.6,
+      "title": "Don't Look Up \u2014 a game about keeping everyone looking down",
+      "trial": 1
+    },
+    {
+      "url": "https://wisprflow.ai/",
+      "status": "OK",
+      "observed_title_ms": 674.37,
+      "title": "Wispr Flow | Effortless Voice Dictation",
+      "trial": 1
+    },
+    {
+      "url": "https://www.boonglobal.io/",
+      "status": "OK",
+      "observed_title_ms": 6807.02,
+      "title": "Boon \u2022 Cause The Effect",
+      "trial": 1
+    },
+    {
+      "url": "https://www.moremedia.at/",
+      "status": "OK",
+      "observed_title_ms": 1367.47,
+      "title": "MOREMEDIA\u00ae \u00b7 Digitalagentur Linz: Webdesign, Marke &\u00a0KI",
+      "trial": 1
+    },
+    {
+      "url": "https://www.corndel.com/",
+      "status": "OK",
+      "observed_title_ms": 1432.71,
+      "title": "Corndel: Transforming Workplaces with Skills & Leadership",
+      "trial": 1
+    },
+    {
+      "url": "https://www.podiumautomation.com/",
+      "status": "OK",
+      "observed_title_ms": 1421.72,
+      "title": "Podium Automation | UL 508A Control Panels Built in 4 Weeks",
+      "trial": 1
+    },
+    {
+      "url": "https://usealia.com/",
+      "status": "OK",
+      "observed_title_ms": 1363.73,
+      "title": "Alia - Agentic team coordination",
+      "trial": 1
+    },
+    {
+      "url": "https://calendly.com/",
+      "status": "OK",
+      "observed_title_ms": 1363.18,
+      "title": "Meeting Scheduling Software and AI Meeting Tools | Calendly",
+      "trial": 1
+    },
+    {
+      "url": "https://www.clay.com/",
+      "status": "OK",
+      "observed_title_ms": 695.15,
+      "title": "Clay | Build systems to grow revenue",
+      "trial": 1
+    },
+    {
+      "url": "https://www.apollo.io/",
+      "status": "OK",
+      "observed_title_ms": 676.88,
+      "title": "The AI GTM System for Go-to-Market Teams | Apollo",
+      "trial": 1
+    },
+    {
+      "url": "https://instantly.ai/",
+      "status": "OK",
+      "observed_title_ms": 2809.65,
+      "title": "Sales Engagement and Lead Intelligence | Instantly",
+      "trial": 1
+    },
+    {
+      "url": "https://eatsnackish.com/",
+      "status": "OK",
+      "observed_title_ms": 765.83,
+      "title": "Snackish\u2122 US",
+      "trial": 1
+    },
+    {
+      "url": "https://playfolly.com/",
+      "status": "OK",
+      "observed_title_ms": 714.11,
+      "title": "Playfolly - Play beautiful.",
+      "trial": 1
+    },
+    {
+      "url": "https://www.lyleandscott.com/",
+      "status": "OK",
+      "observed_title_ms": 4831.03,
+      "title": "Lyle & Scott\u2122 Official Site | Premium British Menswear",
+      "trial": 1
+    },
+    {
+      "url": "https://land-book.com/",
+      "status": "OK",
+      "observed_title_ms": 1353.9,
+      "title": "Landbook - website design inspiration gallery",
+      "trial": 1
+    },
+    {
+      "url": "https://www.awwwards.com/",
+      "status": "OK",
+      "observed_title_ms": 1414.21,
+      "title": "Awwwards - Website Awards - Best Web Design Trends",
+      "trial": 1
+    },
+    {
+      "url": "https://openai.com/codex/",
+      "status": "OK",
+      "observed_title_ms": 1396.75,
+      "title": "Codex | AI Coding Partner from OpenAI | OpenAI",
+      "trial": 1
+    },
+    {
+      "url": "https://www.trysapphire.today/",
+      "status": "OK",
+      "observed_title_ms": 695.82,
+      "title": "Sapphire \u2014 AI-Native B2B Customer Acquisition",
+      "trial": 1
+    }
+  ]
+}

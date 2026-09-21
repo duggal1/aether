@@ -199,7 +199,7 @@ public final class JSParser {
     try consumeSymbol("{", "Expected '{' for named imports")
     while !checkSymbol("}") && !isAtEnd {
       let first = try contextualIdentifier("Expected import name")
-      var imported = first
+      let imported = first
       var local = first
       if matchKeyword("as") {
         local = try contextualIdentifier("Expected local name")
@@ -796,7 +796,7 @@ public final class JSParser {
   }
 
   private func postfix() throws -> JSExpression {
-    var expression = try newExpression()
+    let expression = try newExpression()
     if (checkSymbol("++") || checkSymbol("--")) && !peek.lineTerminatorBefore {
       let op = peekSymbol()!
       advance()

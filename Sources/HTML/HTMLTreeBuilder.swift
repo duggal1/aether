@@ -196,7 +196,7 @@ public final class HTMLTreeBuilder {
       closeTableCell()
       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
       return
-    case "caption", "colgroup", "tbody", "tfoot", "thead", "col":
+    case "caption", "colgroup", "tbody", "tfoot", "thead":
       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
       return
     case "table":
@@ -439,7 +439,7 @@ public final class HTMLTreeBuilder {
   private func adoptionAgency(
     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
   ) {
-    guard let formattingPos, entryIndex != nil else {
+    guard formattingPos != nil, entryIndex != nil else {
       close(name)
       return
     }
@@ -506,7 +506,7 @@ public final class HTMLTreeBuilder {
   }
 
   private func popThrough(formattingID: NodeID) {
-    while let last = openElements.last, openElements.count > 1 {
+    while openElements.count > 1 {
       let removed = openElements.removeLast()
       if removed == formattingID { break }
     }

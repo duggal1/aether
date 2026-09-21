@@ -7,16 +7,11 @@ public struct SearchSettingsView: View {
         SettingsHelp("Aether uses one address field for website addresses and searches.")
         AetherSection("Search engine") {
             AetherRow("Default provider", subtitle: "Searches from the address bar use this provider.", symbol: "magnifyingglass") {
-                Picker("Default search provider", selection: Binding(get: { workspace.preferences.provider }, set: { workspace.preferences.provider = $0 })) {
-                    ForEach(SearchProvider.allCases) { provider in
-                        Text(provider.rawValue).tag(provider)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(width: 160)
-                .help("Choose the default search provider")
-                .accessibilityLabel("Default search provider")
+                AetherDropdown(
+                    selection: Binding(get: { workspace.preferences.provider }, set: { workspace.preferences.provider = $0 }),
+                    options: SearchProvider.allCases.map { AetherDropdownOption(value: $0, title: $0.rawValue) },
+                    help: "Choose the default search provider",
+                    label: "Default search provider")
             }
         }
         AetherSection("Address bar") {

@@ -15,7 +15,13 @@ struct BrowserControl {
         guard args.count >= 3 else { throw CLIError.usage }
         let path = args[1]
         args.removeFirst(2)
-        try runRemote(args, socket: path)
+        var token: String?
+        if args.first == "--token-file" {
+          guard args.count >= 3 else { throw CLIError.usage }
+          token = try AgentAuth.readTokenFile(from: args[1])
+          args.removeFirst(2)
+        }
+        try runRemote(args, socket: path, token: token)
       } else {
         try await runLocal(args)
       }
@@ -69,9 +75,13 @@ struct BrowserControl {
     }
   }
 
-  private static func runRemote(_ args: [String], socket: String) throws {
+  private static func runRemote(_ args: [String], socket: String, token: String?) throws {
     guard let command = args.first else { throw CLIError.usage }
     let client = AgentSocketClient(path: socket)
+    func send(_ request: AgentRequest) throws -> AgentResponse {
+      if let token { return try client.send(request, token: token) }
+      return try client.send(request)
+    }
     let request: AgentRequest
     switch command {
     case "ping": request = AgentRequest(method: .ping)
@@ -81,7 +91,7 @@ struct BrowserControl {
     case "context-list": request = AgentRequest(method: .contextList)
     case "page-open":
       guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
-      let create = try client.send(
+      let create = try send(
         AgentRequest(method: .pageCreate, params: ["context": .number(context)]))
       try printResponse(create)
       guard let page = create.result?.object?["id"]?.number else { return }
@@ -508,7 +518,7 @@ struct BrowserControl {
         ])
     default: throw CLIError.usage
     }
-    try printResponse(client.send(request))
+    try printResponse(send(request))
   }
 
   private static func open(
@@ -678,6 +688,7 @@ struct BrowserControl {
   }
 
   private static let usage = """
+    Authenticated connections: browserctl --socket <path> --token-file <path> <command> [arguments]
     browserctl inspect <url>
     browserctl render <url> <output.ppm|output.png> [width] [height]
     browserctl eval <url> <javascript>

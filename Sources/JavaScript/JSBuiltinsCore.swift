@@ -109,7 +109,7 @@ public enum JSBuiltins {
       }
       return try runtime.callValue(thisArg, thisValue: receiver, arguments: list)
     }
-    proto.defineNative("bind") { [weak runtime] thisArg, args in
+    proto.defineNative("bind") { thisArg, args in
       guard case .function(let function) = thisArg else {
         throw JSError.type("bind on incompatible receiver")
       }
@@ -140,7 +140,7 @@ public enum JSBuiltins {
       if case .object(let object) = thisArg { return .bool(object.hasOwn(key)) }
       return .bool(false)
     }
-    proto.defineNative("isPrototypeOf") { [weak runtime] thisArg, args in
+    proto.defineNative("isPrototypeOf") { thisArg, args in
       guard case .object(let candidate) = thisArg else { return .bool(false) }
       guard case .object(let object) = args.first else { return .bool(false) }
       var current = object.prototype
@@ -340,7 +340,7 @@ public enum JSBuiltins {
       return .null
     }
     statics.defineNative("setPrototypeOf") { [weak runtime] _, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       guard args.count > 1, case .object(let object) = args[0] else {
         throw JSError.type("Target must be an object")
       }
@@ -374,7 +374,7 @@ public enum JSBuiltins {
       return .bool(object.hasOwn(try runtime.toString(args[1])))
     }
     statics.defineNative("freeze") { [weak runtime] _, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       if case .object(let object) = args.first {
         for key in object.properties.keys {
           var attributes = object.attributes[key] ?? JSPropertyAttributes.default
@@ -387,7 +387,7 @@ public enum JSBuiltins {
       return args.first ?? .undefined
     }
     statics.defineNative("seal") { [weak runtime] _, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       if case .object(let object) = args.first {
         for key in object.properties.keys {
           var attributes = object.attributes[key] ?? JSPropertyAttributes.default
@@ -398,7 +398,7 @@ public enum JSBuiltins {
       }
       return args.first ?? .undefined
     }
-    statics.defineNative("preventExtensions") { [weak runtime] _, args in
+    statics.defineNative("preventExtensions") { _, args in
       if case .object(let object) = args.first { object.isExtensible = false }
       return args.first ?? .undefined
     }

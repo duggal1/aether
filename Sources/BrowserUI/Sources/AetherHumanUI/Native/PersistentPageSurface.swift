@@ -39,6 +39,21 @@ public struct PersistentPageSurface: NSViewRepresentable {
             realSurface.autoresizingMask = [.width, .height]
             realSurface.frame = container.bounds
             container.addSubview(realSurface)
+            AetherWebScrollTuning.tune(realSurface)
         }
+    }
+}
+
+enum AetherWebScrollTuning {
+    static func tune(_ root: NSView) {
+        tuneRecursively(root)
+    }
+
+    private static func tuneRecursively(_ view: NSView) {
+        if let scrollView = view as? NSScrollView {
+            scrollView.scrollerStyle = .overlay
+            scrollView.scrollerKnobStyle = .dark
+        }
+        for subview in view.subviews { tuneRecursively(subview) }
     }
 }

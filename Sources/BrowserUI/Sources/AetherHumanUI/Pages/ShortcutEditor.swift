@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ShortcutEditor: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
     @Environment(\.dismiss) private var dismiss
     @BrowserState private var name: String
     @BrowserState private var url: String
@@ -21,9 +22,15 @@ public struct ShortcutEditor: View {
             fields
             actions
         }
-        .padding(22)
+        .padding(18)
         .frame(width: 380)
-        .background(theme.inset)
+        .background(theme.modal)
+        .overlay {
+            RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
+                .strokeBorder(theme.hairline, lineWidth: 1)
+                .allowsHitTesting(false)
+        }
+        .aetherDarkGlassShadow(dark: theme.dark)
     }
 
     private var heading: some View {
@@ -52,10 +59,12 @@ public struct ShortcutEditor: View {
         HStack(spacing: 8) {
             Spacer()
             Button("Cancel") { dismiss() }
-                .aetherButtonStyle()
+                .buttonStyle(AetherDialogButtonStyle(kind: .cancel, reduced: reduced))
+                .focusEffectDisabled()
             Button("Save") { save() }
-                .aetherProminentButtonStyle()
+                .buttonStyle(AetherDialogButtonStyle(kind: .primary, reduced: reduced))
                 .keyboardShortcut(.defaultAction)
+                .focusEffectDisabled()
                 .disabled(!canSave)
         }
     }

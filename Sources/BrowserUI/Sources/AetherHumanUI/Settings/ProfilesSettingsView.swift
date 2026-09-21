@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ProfilesSettingsView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var createName = ""
     @BrowserState private var showCreate = false
     @BrowserState private var editing: UUID?
@@ -10,7 +11,7 @@ public struct ProfilesSettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Separate browsing identities. Aether's engine adapter must enforce independent cookies and site data for each profile.")
+        SettingsHelp("Separate browsing identities with independent cookies and site data.")
         AetherSection("Profiles") {
             ForEach(Array(workspace.profiles.enumerated()), id: \.element.id) { index, profile in
                 if index > 0 { SettingsDivider() }
@@ -57,10 +58,15 @@ public struct ProfilesSettingsView: View {
         VStack(alignment: .leading, spacing: 15) {
             Text(title).font(AetherType.title(20))
             AetherField("Profile name", text: value)
-            HStack {
-                Spacer(); Button("Cancel", action: cancel)
+            HStack(spacing: 8) {
+                Spacer()
+                Button("Cancel", action: cancel)
+                    .buttonStyle(AetherDialogButtonStyle(kind: .cancel, reduced: reduced))
+                    .focusEffectDisabled()
                 Button("Save", action: save).disabled(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .buttonStyle(AetherDialogButtonStyle(kind: .primary, reduced: reduced))
                     .keyboardShortcut(.defaultAction)
+                    .focusEffectDisabled()
             }
         }.padding(24).frame(width: 350).background(theme.canvas)
     }

@@ -123,6 +123,11 @@ fleet policy, `Diagnostics` metrics, `Media` registry/bridge, `browserctl` /
   apple 1063/598/611, youtube 1373/3153/1562, wiki 1608/1210/1104 (ms).
   Parity class, no ranking; Safari's own 0.7->8s youtube swing reproduced.
   Raw: agents/opencode/perf-baseline/results/interleave-2026-09-21.json.
+- Safari-27 alignment round: cookie/storage APIs were silently custom-jar
+  only — now WebKit-backed via MainActor `WebKitCookieBridge` (value types
+  cross, `WebKitStoreCache` stays authoritative); rule lists compile once
+  per content hash and reuse; 20-site run med 593ms p95 skewed by a
+  trial-2-clustered ~13s environmental stall also seen pre-change.
 
 ## Rules for every step
 

@@ -34,7 +34,7 @@ extension AgentCommandDispatcher {
       return denied()
     }
     let context: UInt64?
-    if method == "page.create" || method.hasPrefix("context.") {
+    if method == "page.create" || method == "page.list" || method.hasPrefix("context.") {
       context = identifier("context")
     } else if method.hasPrefix("page."), let page = identifier("page") {
       context = try? await engine.runtime.pageInfo(PageID(rawValue: page)).contextID.rawValue

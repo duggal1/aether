@@ -78,12 +78,12 @@ public struct AetherCommandPalette: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Divider().opacity(0.4)
+            Rectangle().fill(theme.faintLine).frame(height: 1)
             row("History", nil, symbol: .history, chevron: true) { close(); window.showsHistory = true }
             row("Bookmarks", nil, symbol: .bookmarks, chevron: true) { close(); window.showsBookmarks = true }
         }
         .padding(8)
-        .frame(width: 334)
+        .frame(width: 322)
         .frame(maxHeight: 520, alignment: .top)
         .background {
             AetherPopoverBackground()
@@ -101,8 +101,9 @@ public struct AetherCommandPalette: View {
                 .font(AetherType.body(16))
                 .foregroundStyle(theme.ink)
                 .focused($fieldFocused)
-            Text("\u{21E7}\u{2318}A")
+            Text("\u{21E7}\u{2318} A")
                 .font(AetherType.caption(10)).foregroundStyle(theme.soft)
+                .tracking(0.5)
         }
         .padding(.horizontal, 11)
         .frame(height: 42)
@@ -113,8 +114,8 @@ public struct AetherCommandPalette: View {
     @ViewBuilder private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(AetherType.emphasis(12))
-                .foregroundStyle(theme.muted)
+                .font(AetherType.sectionHeader(12))
+                .foregroundStyle(theme.soft)
                 .padding(.leading, 9).padding(.vertical, 4)
             content()
         }
@@ -127,7 +128,7 @@ public struct AetherCommandPalette: View {
     @ViewBuilder private func row(_ title: String, _ subtitle: String?, url: String? = nil, symbol: AetherSymbol? = nil,
                                   selected: Bool = false, chevron: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HoverSurface(selected: selected) {
+            HoverSurface(selected: selected, radius: 12) {
             HStack(spacing: 10) {
                 if let url {
                     DomainIcon(url, size: 16)
@@ -147,7 +148,7 @@ public struct AetherCommandPalette: View {
             }
             .foregroundStyle(theme.ink)
             .padding(.horizontal, 9)
-            .frame(height: subtitle == nil ? 33 : 42)
+            .frame(height: subtitle == nil ? 40 : 52)
             .contentShape(Rectangle())
             }
         }

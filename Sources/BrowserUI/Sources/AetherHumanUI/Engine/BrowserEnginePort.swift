@@ -8,14 +8,15 @@ public struct EnginePageSnapshot: Sendable {
     public let canGoBack: Bool
     public let canGoForward: Bool
     public let isLoading: Bool
+    public let progress: Double
     public let isSecure: Bool
     public let error: String?
     public let closed: Bool
     public init(id: String, url: String?, title: String, canGoBack: Bool, canGoForward: Bool,
-                isLoading: Bool = false, isSecure: Bool = true, error: String? = nil, closed: Bool = false) {
+                isLoading: Bool = false, progress: Double = 0, isSecure: Bool = true, error: String? = nil, closed: Bool = false) {
         self.id = id; self.url = url; self.title = title
         self.canGoBack = canGoBack; self.canGoForward = canGoForward
-        self.isLoading = isLoading; self.isSecure = isSecure
+        self.isLoading = isLoading; self.progress = progress; self.isSecure = isSecure
         self.error = error; self.closed = closed
     }
 }
@@ -46,15 +47,18 @@ public protocol BrowserEnginePort: AnyObject {
     func close(pageID: String) async
     func surface(pageID: String) -> NSView?
     func updatePrivacy(profileID: UUID, policy: BrowserPrivacyPolicy) async throws
+    func setProfileEphemeral(profileID: UUID, enabled: Bool) async throws
 }
 
 public struct BrowserPrivacyPolicy: Equatable, Sendable {
     public var blockAds: Bool
     public var blockTrackers: Bool
     public var handleCookieBanners: Bool
-    public init(blockAds: Bool = true, blockTrackers: Bool = true, handleCookieBanners: Bool = true) {
+    public var hideIP: Bool
+    public init(blockAds: Bool = true, blockTrackers: Bool = true, handleCookieBanners: Bool = true,
+                hideIP: Bool = false) {
         self.blockAds = blockAds; self.blockTrackers = blockTrackers
-        self.handleCookieBanners = handleCookieBanners
+        self.handleCookieBanners = handleCookieBanners; self.hideIP = hideIP
     }
 }
 

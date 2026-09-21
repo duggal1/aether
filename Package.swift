@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
   name: "NativeBrowserEngine",
-  platforms: [.macOS(.v15)],
+  platforms: [.macOS("27.0")],
   products: [
     .library(name: "BrowserEngine", targets: ["BrowserEngine"]),
     .library(name: "AetherHumanUI", targets: ["AetherHumanUI"]),
@@ -15,7 +15,7 @@ let package = Package(
   targets: [
     .target(
       name: "AetherHumanUI", path: "Sources/BrowserUI/Sources",
-      exclude: ["AetherHumanUI/Resources"],
+      exclude: ["AetherHumanUI/Resources", "AetherHumanPreview"],
       sources: ["AetherHumanUI", "icons"],
       resources: [.copy("AetherHumanUI/Resources/Fonts")],
       swiftSettings: [.swiftLanguageMode(.v5)]),

@@ -15,30 +15,29 @@ public struct NewTabView: View {
     public var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(spacing: 26) {
-                    AetherMark()
+                VStack(spacing: 20) {
+                    AetherLogo()
+                        .frame(width: 46)
+                        .accessibilityLabel("Aether")
                     askCard
                     if window.arrangement == .top || window.sidebarCollapsed || !window.workspace.preferences.showFavorites {
                         LazyVGrid(columns: columns, alignment: .center, spacing: 18) {
-                            ForEach(window.workspace.shortcuts) { item in shortcut(item) }
+                            ForEach(window.workspace.pinnedShortcuts()) { item in shortcut(item) }
                             addTile
                         }
                         .frame(maxWidth: 438)
-                        .padding(.top, 8)
+                        .padding(.top, 4)
                     }
                 }
-                .frame(maxWidth: 651)
+                .frame(maxWidth: 640)
                 .padding(.horizontal, 32)
-                .padding(.top, max(48, geometry.size.height * 0.25))
-                .padding(.bottom, 40)
+                .padding(.top, max(44, geometry.size.height * 0.24))
+                .padding(.bottom, 36)
                 .frame(maxWidth: .infinity)
             }
             .scrollIndicators(.hidden)
         }
-        .background {
-            LinearGradient(colors: [theme.canvas, AetherPalette.panelBottom(theme.dark)],
-                           startPoint: .top, endPoint: .bottom)
-        }
+        .background(AetherPalette.canvas(theme.dark))
         .sheet(isPresented: $adding) { ShortcutEditor(workspace: window.workspace, shortcut: nil) }
         .sheet(item: $editing) { item in ShortcutEditor(workspace: window.workspace, shortcut: item) }
         .task {
@@ -49,47 +48,42 @@ public struct NewTabView: View {
     private var canSubmit: Bool { !ask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     private var askCard: some View {
-        VStack(spacing: 18) {
-            HStack(spacing: 12) {
-                BrowserIconView(icon: .search, tint: theme.muted).iconSize(17)
-                TextField("Ask anything…", text: $ask,
-                          prompt: Text("Ask anything…").foregroundStyle(theme.placeholder))
-                    .textFieldStyle(.plain)
-                    .font(AetherType.placeholder(16))
-                    .foregroundStyle(theme.ink)
-                    .focused($askFocused)
-                    .onSubmit(submitAsk)
+        HStack(spacing: 11) {
+            BrowserIconView(icon: .search, tint: theme.fieldIcon).iconSize(16)
+            TextField("Ask anything…", text: $ask,
+                      prompt: Text("Ask anything…").foregroundStyle(theme.placeholder))
+                .textFieldStyle(.plain)
+                .font(AetherType.placeholder(14))
+                .foregroundStyle(theme.ink)
+                .focused($askFocused)
+                .onSubmit(submitAsk)
+            Button(action: submitAsk) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(canSubmit ? theme.ink : theme.muted)
+                    .frame(width: 26, height: 26)
+                    .background(canSubmit ? theme.control : theme.raised, in: Circle())
+                    .contentShape(Circle())
             }
-            .frame(height: 28)
-            .padding(.horizontal, 6)
-            HStack {
-                Button { adding = true } label: {
-                    Label("Add shortcut", systemImage: "plus")
-                        .font(AetherType.body(13))
-                        .foregroundStyle(theme.muted)
-                        .padding(.horizontal, 12)
-                        .frame(height: 30)
-                        .background(theme.hover.opacity(0.6), in: Capsule())
-                }
-                .buttonStyle(AetherPressStyle(reduced: reduced))
-                Spacer()
-                Text(window.workspace.preferences.provider.rawValue)
-                    .font(AetherType.caption(12)).foregroundStyle(theme.muted)
-                Button(action: submitAsk) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(canSubmit ? theme.ink : theme.soft)
-                        .frame(width: 32, height: 32)
-                        .background(theme.hover, in: Circle())
-                }
-                .buttonStyle(AetherPressStyle(reduced: reduced))
-                .disabled(!canSubmit)
-                .help("Search or open address")
-                .accessibilityLabel("Search or open address")
+            .buttonStyle(AetherPressStyle(reduced: reduced))
+            .aetherPointingCursor()
+            .disabled(!canSubmit)
+            .help("Search or open address")
+            .accessibilityLabel("Search or open address")
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 48)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(theme.omnibox)
+        }
+        .overlay {
+            if askFocused {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(theme.raised, lineWidth: 1)
+                    .allowsHitTesting(false)
             }
         }
-        .padding(16)
-        .background { AetherGlassBackdrop(radius: 20) }
         .animation(AetherMotion.focus(reduced), value: askFocused)
     }
 
@@ -116,6 +110,7 @@ public struct NewTabView: View {
         .help(item.url)
         .contextMenu {
             Button("Open in New Tab") { _ = window.newTab(url: item.url) }
+            Button(item.isPinned ? "Unpin" : "Pin") { window.workspace.toggleShortcutPin(item.id) }
             Button("Edit Shortcut") { editing = item }
             Button("Remove Shortcut", role: .destructive) { window.workspace.removeShortcut(item.id) }
         }
@@ -138,15 +133,5 @@ public struct NewTabView: View {
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
         .help("Add shortcut")
-    }
-}
-
-private struct AetherMark: View {
-    var body: some View {
-        AetherLogo()
-            .frame(width: 38, height: 38)
-            .frame(width: 68, height: 64)
-            .background { AetherGlassBackdrop(radius: 22) }
-            .accessibilityLabel("Aether")
     }
 }

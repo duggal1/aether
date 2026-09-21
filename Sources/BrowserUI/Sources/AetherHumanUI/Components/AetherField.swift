@@ -25,13 +25,12 @@ public struct AetherField: View {
         }
         .padding(.horizontal, 11)
         .frame(height: 34)
-        .background(theme.inset, in: RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
+        .background(focused ? theme.inputFocus : theme.inset,
+                    in: RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
         .overlay {
-            if focused {
-                RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-                    .strokeBorder(theme.hairline, lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
+            RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+                .strokeBorder(Color.white.opacity(focused ? 0.13 : 0.07), lineWidth: 1)
+                .allowsHitTesting(false)
         }
         .animation(AetherMotion.focus(reduced), value: focused)
     }

@@ -9,6 +9,7 @@ struct NativeAddressField: NSViewRepresentable {
     let focusRequest: Int
     let onSubmit: () -> Void
     let onEscape: () -> Void
+    let onMove: (Int) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -82,6 +83,14 @@ struct NativeAddressField: NSViewRepresentable {
             if selector == #selector(NSResponder.cancelOperation(_:)) {
                 parent.onEscape()
                 control.window?.makeFirstResponder(nil)
+                return true
+            }
+            if selector == #selector(NSResponder.moveUp(_:)) {
+                parent.onMove(-1)
+                return true
+            }
+            if selector == #selector(NSResponder.moveDown(_:)) {
+                parent.onMove(1)
                 return true
             }
             return false

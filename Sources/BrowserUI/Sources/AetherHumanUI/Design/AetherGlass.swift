@@ -95,6 +95,7 @@ public extension View {
         } else {
             buttonStyle(.bordered)
         }
+        pointerStyle(.link)
     }
 
     @ViewBuilder
@@ -104,5 +105,6 @@ public extension View {
         } else {
             buttonStyle(.borderedProminent)
         }
+        pointerStyle(.link)
     }
 }

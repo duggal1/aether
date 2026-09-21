@@ -15,4 +15,5 @@ public final class DisconnectedEnginePort: BrowserEnginePort {
     public func close(pageID: String) async {}
     public func surface(pageID: String) -> NSView? { nil }
     public func updatePrivacy(profileID: UUID, policy: BrowserPrivacyPolicy) async throws { throw BrowserPortError.notConnected }
+    public func setProfileEphemeral(profileID: UUID, enabled: Bool) async throws { throw BrowserPortError.notConnected }
 }

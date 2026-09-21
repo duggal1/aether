@@ -144,7 +144,7 @@ extension JSBuiltins {
       return .string(jsSubstring(text, utf16Start: start, utf16End: end))
     }
     proto.defineNative("substring") { [weak runtime] thisArg, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       let text = try primitiveString(thisArg)
       let units = Array(text.utf16)
       let length = units.count
@@ -158,7 +158,7 @@ extension JSBuiltins {
       return .string(jsSubstring(text, utf16Start: start, utf16End: end))
     }
     proto.defineNative("substr") { [weak runtime] thisArg, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       let text = try primitiveString(thisArg)
       let units = Array(text.utf16)
       let length = units.count

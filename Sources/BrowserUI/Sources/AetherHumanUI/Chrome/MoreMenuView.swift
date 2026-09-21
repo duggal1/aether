@@ -6,7 +6,7 @@ struct AetherMenuRow<Content: View>: View {
     @BrowserState private var hovering = false
     let radius: CGFloat
     let content: Content
-    init(radius: CGFloat = 7, @ViewBuilder content: () -> Content) {
+    init(radius: CGFloat = 10, @ViewBuilder content: () -> Content) {
         self.radius = radius
         self.content = content()
     }
@@ -61,11 +61,11 @@ public struct MoreMenuView: View {
         AetherMenuRow {
             HStack(spacing: 10) {
                 BrowserIconView(icon: icon, tint: theme.muted).iconSize(14)
-                Text(title).font(AetherType.body(12.5)).foregroundStyle(theme.ink)
+                Text(title).font(AetherType.body(13)).foregroundStyle(theme.ink)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 9)
-            .frame(height: 29)
+            .frame(height: 34)
             .contentShape(Rectangle())
         }
     }

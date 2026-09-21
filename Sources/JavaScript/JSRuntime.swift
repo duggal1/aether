@@ -22,7 +22,7 @@ public enum JSError: Error, CustomStringConvertible {
   }
 }
 
-public indirect enum JSValue: CustomStringConvertible, Equatable {
+public indirect enum JSValue: CustomStringConvertible, Equatable, @unchecked Sendable {
   case number(Double)
   case bigint(String)
   case string(String)
@@ -571,7 +571,7 @@ public final class JSRuntime {
   private func runStatements(_ program: [JSStatement], module: JSModuleRecord?) throws -> JSValue {
     stepsUsed = 0
     let scope: JSEnvironment
-    if let module {
+    if module != nil {
       scope = JSEnvironment(parent: globals, kind: .function)
     } else {
       if scriptScope == nil { scriptScope = JSEnvironment(parent: globals, kind: .function) }
@@ -813,7 +813,7 @@ public final class JSRuntime {
   func construct(
     _ callee: JSValue, arguments: [JSValue], env: JSEnvironment? = nil
   ) throws -> JSValue {
-    var target = callee
+    let target = callee
     if case .function(let bound) = target, let inner = bound.boundTarget {
       var combined = bound.boundArguments
       combined.append(contentsOf: arguments)
@@ -1500,9 +1500,8 @@ public final class JSRuntime {
     let object = JSObject(prototype: arrayPrototype)
     for (index, value) in values.enumerated() { object.properties[String(index)] = value }
     object.properties["length"] = .number(Double(values.count))
-    weak var weakObject = object
-    object.nativeSet = { key, value in
-      guard let target = weakObject else { return false }
+    object.nativeSet = { [weak object] key, value in
+      guard let target = object else { return false }
       if key == "length" {
         let number: Double
         switch value {
@@ -2700,7 +2699,7 @@ public final class JSRuntime {
     guard case .function(let function) = constructor else {
       throw JSError.type("Right-hand side of instanceof is not callable")
     }
-    let hasInstance = function.staticProperties.get("prototype")
+    _ = function.staticProperties.get("prototype")
     guard case .object(let prototype) = function.prototypeObject.map({ JSValue.object($0) })
       ?? hasInstanceObject(function) else {
       throw JSError.type("Function has no prototype for instanceof")
@@ -3219,7 +3218,7 @@ public final class JSRuntime {
   }
 
   private func installEval() {
-    let evalFunction = JSFunction(native: { [weak self] _ in .undefined }, name: "eval")
+    let evalFunction = JSFunction(native: { _ in .undefined }, name: "eval")
     _ = evalFunction
     let direct = JSFunction(nativeMethod: { [weak self] _, args in
       guard let self else { return .undefined }

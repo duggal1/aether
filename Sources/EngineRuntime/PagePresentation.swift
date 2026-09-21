@@ -10,6 +10,7 @@ public struct RuntimePageState: Equatable, Sendable {
   public let revision: UInt64
   public let scroll: Point
   public let loading: Bool
+  public let progress: Double
   public let target: URL?
   public let error: String?
   public let closed: Bool
@@ -53,11 +54,13 @@ extension BrowserRuntime {
   func state(for page: PageRecord, closed: Bool = false) -> RuntimePageState {
     if let state = webStates[page.id] {
       return RuntimePageState(page: info(for: page), navigation: nil, revision: state.sequence,
-        scroll: page.scroll, loading: state.loading, target: state.url, error: state.error, closed: closed)
+        scroll: page.scroll, loading: state.loading, progress: state.progress,
+        target: state.url, error: state.error, closed: closed)
     }
     return RuntimePageState(page: info(for: page), navigation: page.loaded?.navigationID,
       revision: page.loaded?.document.mutationVersion ?? 0, scroll: page.scroll,
-      loading: navigationLoads[page.id] != nil, target: navigationTargets[page.id],
+      loading: navigationLoads[page.id] != nil, progress: 0,
+      target: navigationTargets[page.id],
       error: navigationErrors[page.id], closed: closed)
   }
 
@@ -75,7 +78,7 @@ extension BrowserRuntime {
     }
     for (id, previous) in observedStates where current[id] == nil {
       let closed = RuntimePageState(page: previous.page, navigation: previous.navigation,
-        revision: previous.revision, scroll: previous.scroll, loading: false,
+        revision: previous.revision, scroll: previous.scroll, loading: false, progress: 0,
         target: nil, error: nil, closed: true)
       for observer in pageObservers.values { observer.yield(closed) }
     }
@@ -128,12 +131,6 @@ extension BrowserRuntime {
   public func scrollBy(pageID: PageID, x: Double, y: Double) async throws {
     let offset = try await scrollOffset(pageID: pageID)
     _ = try await scrollTo(pageID: pageID, x: offset.x + x, y: offset.y + y)
-    return
-    let page = try requirePage(pageID)
-    guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
-    _ = try await scrollTo(pageID: pageID,
-      x: min(max(0, page.scroll.x + x), max(0, loaded.layout.contentSize.width - page.viewport.width)),
-      y: min(max(0, page.scroll.y + y), max(0, loaded.layout.contentSize.height - page.viewport.height)))
   }
 
   public func focusNext(pageID: PageID, backwards: Bool = false) async throws {

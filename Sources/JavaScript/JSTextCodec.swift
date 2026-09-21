@@ -79,7 +79,7 @@ extension JSBuiltins {
     decoderConstructor.prototypeObject = decoderProto
     decoderProto.set("constructor", .function(decoderConstructor))
     decoderProto.defineNative("decode") { [weak runtime] thisArg, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       guard case .object(let decoder) = thisArg,
         case .string(let encoding) = decoder.get("encoding")
       else {

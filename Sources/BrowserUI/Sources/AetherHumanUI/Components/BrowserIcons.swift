@@ -38,6 +38,11 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
     case pin
     case folder
     case gear
+    case reader
+    case mic
+    case send
+    case chat
+    case incognito
 
     public var id: Self { self }
 
@@ -79,6 +84,32 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
         case .pin: .pin
         case .folder: .folder
         case .gear: .settings
+        case .reader: .reader
+        case .mic: .mic
+        case .send: .send
+        case .chat: .chat
+        case .incognito: .lock
+        }
+    }
+
+    public var customIcon: AetherCustomIcon? {
+        switch self {
+        case .terminalArrowLeft: .terminalLeft
+        case .terminalArrowRight: .terminalRight
+        case .arrowDownLeft: .terminalDownRight
+        case .rewind: .historyLeft
+        case .refresh: .historyRight
+        case .search: .search
+        case .history: .historyLeft
+        case .download: .download
+        case .lock: .lock
+        case .gear: .gear
+        case .globe: .globe
+        case .bookmark: .bookmark
+        case .doubleBookmark: .bookmarkSelected
+        case .arrowUpRight: .terminalUpRight
+        case .incognito: .incognito
+        default: nil
         }
     }
 
@@ -96,12 +127,21 @@ public struct BrowserIconView: View {
     }
 
     public var body: some View {
-        Image(systemName: icon.symbol.rawValue)
-            .font(AetherType.symbol(size, weight: .medium))
-            .symbolRenderingMode(.monochrome)
-            .foregroundStyle(tint ?? Color.primary)
-            .frame(width: size, height: size)
-            .accessibilityHidden(true)
+        Group {
+            if let custom = icon.customIcon {
+                AetherCustomIconView(custom, tint: tint, size: size)
+            } else {
+                Image(systemName: icon.symbol.rawValue)
+                    .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
+                    .symbolRenderingMode(.hierarchical)
+                    .imageScale(.medium)
+                    .foregroundStyle(tint ?? Color.primary)
+            }
+        }
+        .frame(width: AetherIconStyle.canvas,
+               height: AetherIconStyle.canvas,
+               alignment: .center)
+        .accessibilityHidden(true)
     }
 }
 
@@ -112,7 +152,7 @@ public extension View {
 }
 
 private struct AetherIconSizeKey: EnvironmentKey {
-    static let defaultValue: CGFloat = 16
+    static let defaultValue: CGFloat = AetherIconStyle.chromeSize
 }
 
 extension EnvironmentValues {

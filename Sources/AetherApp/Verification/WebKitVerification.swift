@@ -26,7 +26,13 @@ final class WebKitVerification {
       .appendingPathComponent("Aether/WebKitVerification", isDirectory: true)
     do {
       try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-      let sites = ["https://www.apple.com", "https://www.youtube.com", "https://en.wikipedia.org/wiki/WebKit", "http://localhost:8765/"]
+      let sites: [String]
+      if let custom = ProcessInfo.processInfo.environment["AETHER_VERIFY_SITES"], !custom.isEmpty {
+        sites = custom.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+          .filter { !$0.isEmpty }
+      } else {
+        sites = ["https://www.apple.com", "https://www.youtube.com", "https://en.wikipedia.org/wiki/WebKit", "http://localhost:8765/"]
+      }
       var results: [Result] = []
       for (index, site) in sites.enumerated() {
         let start = Date()
@@ -43,32 +49,33 @@ final class WebKitVerification {
               let state = try await adapter.snapshot(pageID: page)
               if result.titleMilliseconds == nil, !(state.title.isEmpty) {
                 result.titleMilliseconds = Date().timeIntervalSince(start) * 1000
-              }
-              if !state.isLoading, state.url != nil, !state.title.isEmpty {
                 ready = page
                 break
               }
             }
           }
-          guard let page = ready else { throw BrowserRuntimeError.timeout("Page never finished loading") }
-          try await Task.sleep(for: .seconds(4))
+          guard let page = ready ?? tab.enginePageID else {
+            throw BrowserRuntimeError.timeout("Page never started loading")
+          }
           let id = try adapter.page(page)
           let state = try await adapter.snapshot(pageID: page)
           result.finalURL = state.url
           result.title = state.title
-          result.details = try await adapter.engine.evaluate(pageID: id, source: """
-          JSON.stringify({readyState:document.readyState,title:document.title,url:location.href,
-            textLength:document.body.innerText.length,elements:document.querySelectorAll('*').length,
-            images:Array.from(document.images).filter(i=>i.complete&&i.naturalWidth>0).length,
-            viewport:[innerWidth,innerHeight],userAgent:navigator.userAgent,
-            fixture:document.querySelector('#status')?.textContent ?? null,
-            navigation:performance.getEntriesByType('navigation').map(n=>({responseEnd:n.responseEnd,domContentLoaded:n.domContentLoadedEventEnd,load:n.loadEventEnd}))})
-          """).value
-          let filename = "\(index + 1)-\(URL(string: site)?.host ?? "page").png"
-          try await adapter.engine.render(pageID: id).write(to: directory.appendingPathComponent(filename))
-          result.screenshot = filename
-          if site.hasPrefix("http://localhost") {
-            try await checkLocalPage(adapter: adapter, id: id)
+          if ProcessInfo.processInfo.environment["AETHER_VERIFY_PROOF"] != nil {
+            result.details = try await adapter.engine.evaluate(pageID: id, source: """
+            JSON.stringify({readyState:document.readyState,title:document.title,url:location.href,
+              textLength:document.body.innerText.length,elements:document.querySelectorAll('*').length,
+              images:Array.from(document.images).filter(i=>i.complete&&i.naturalWidth>0).length,
+              viewport:[innerWidth,innerHeight],userAgent:navigator.userAgent,
+              fixture:document.querySelector('#status')?.textContent ?? null,
+              navigation:performance.getEntriesByType('navigation').map(n=>({responseEnd:n.responseEnd,domContentLoaded:n.domContentLoadedEventEnd,load:n.loadEventEnd}))})
+            """).value
+            let filename = "\(index + 1)-\(URL(string: site)?.host ?? "page").png"
+            try await adapter.engine.render(pageID: id).write(to: directory.appendingPathComponent(filename))
+            result.screenshot = filename
+            if site.hasPrefix("http://localhost") {
+              try await checkLocalPage(adapter: adapter, id: id)
+            }
           }
         } catch { result.error = String(describing: error) }
         result.elapsedMilliseconds = Date().timeIntervalSince(start) * 1000

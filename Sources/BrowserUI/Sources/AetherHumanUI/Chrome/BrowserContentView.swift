@@ -61,6 +61,7 @@ public struct BrowserContentView: View {
                 Button("New Tab") { _ = window.newTab() }
             }
             .buttonStyle(.bordered)
+            .pointerStyle(.link)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.canvas)

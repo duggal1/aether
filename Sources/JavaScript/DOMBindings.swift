@@ -54,7 +54,6 @@ public enum JSDOMBindings {
 
   static func documentObject(context: JSDOMContext) -> JSObject {
     let document = context.document
-    let events = context.events
     let object = JSObject(
       nativeGet: { [weak document] key in
         guard let document else { return nil }

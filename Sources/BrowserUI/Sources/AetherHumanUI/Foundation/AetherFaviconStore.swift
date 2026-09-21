@@ -22,6 +22,8 @@ public final class AetherFaviconStore {
 
     public func cachedImage(for host: String) -> NSImage? { memory[normalized(host)] }
 
+    public func isUnavailable(_ host: String) -> Bool { unavailable.contains(normalized(host)) }
+
     public func image(for host: String) async -> NSImage? {
         let key = normalized(host)
         guard !key.isEmpty else { return nil }

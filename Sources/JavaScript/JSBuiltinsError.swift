@@ -191,7 +191,7 @@ extension JSBuiltins {
         else {
           continue
         }
-        if let space {
+        if space != nil {
           parts.append("\(jsonQuoted(child)): \(text)")
         } else {
           parts.append("\(jsonQuoted(child)):\(text)")

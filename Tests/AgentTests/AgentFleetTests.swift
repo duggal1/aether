@@ -105,6 +105,10 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
 @Test func contextCookiesStoragePermissions() async throws {
   let engine = NativeBrowserEngine()
   let context = await engine.runtime.createContext(name: "data")
+  let page = try await engine.runtime.createPage(contextID: context.id)
+  _ = try await engine.runtime.loadHTML(
+    pageID: page.id, html: "<title>data</title>",
+    url: URL(string: "https://example.test/")!)
   try await engine.runtime.setCookie(
     contextID: context.id,
     cookie: CookieInfo(name: "s", value: "1", domain: "example.test", path: "/"))

@@ -1,7 +1,6 @@
 import SwiftUI
 
 public struct NavigationBarView: View {
-    @Environment(\.aetherTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var showsMore = false
     let window: BrowserWindowModel
@@ -18,11 +17,11 @@ public struct NavigationBarView: View {
                     window.sidebarCollapsed.toggle()
                 }
             }
-            ChromeButton(.arrowLeft, help: "Back \u{2318}[", enabled: window.selected?.canGoBack == true) { window.perform(.back) }
-            ChromeButton(.arrowRight, help: "Forward \u{2318}]", enabled: window.selected?.canGoForward == true) { window.perform(.forward) }
+            ChromeButton(.arrowLeft, help: "Back \u{2318}[", enabled: window.selected?.canGoBack == true, iconSize: 14) { window.perform(.back) }
+            ChromeButton(.arrowRight, help: "Forward \u{2318}]", enabled: window.selected?.canGoForward == true, iconSize: 14) { window.perform(.forward) }
             ChromeButton(window.selected?.loadState == .loading ? .close : .refresh,
                          help: window.selected?.loadState == .loading ? "Stop loading" : "Reload \u{2318}R",
-                         enabled: window.selected?.enginePageID != nil) {
+                         enabled: window.selected?.enginePageID != nil, iconSize: 14) {
                 window.perform(window.selected?.loadState == .loading ? .stop : .reload)
             }
             OmniboxView(window: window).padding(.horizontal, 7)
@@ -41,9 +40,8 @@ public struct NavigationBarView: View {
                 .popover(isPresented: $showsMore) { MoreMenuView(window: window) }
             }
         }
-        .padding(.leading, window.arrangement == .sidebar && window.sidebarCollapsed ? 78 : 6)
+        .padding(.leading, window.arrangement == .sidebar && window.sidebarCollapsed ? 78 : 4)
         .padding(.trailing, 6)
-        .frame(height: AetherMetrics.chromeHeight)
-        .background(theme.canvas)
+        .frame(height: 40)
     }
 }

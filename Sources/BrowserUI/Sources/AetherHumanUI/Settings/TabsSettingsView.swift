@@ -48,15 +48,8 @@ public struct TabsSettingsView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity)
-            .background(selected ? theme.hover : theme.canvas,
+            .background(selected ? theme.settingsRaised : theme.canvas,
                         in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .overlay {
-                if !selected {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .strokeBorder(theme.faintLine, lineWidth: 0.5)
-                        .allowsHitTesting(false)
-                }
-            }
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
         .focusEffectDisabled()

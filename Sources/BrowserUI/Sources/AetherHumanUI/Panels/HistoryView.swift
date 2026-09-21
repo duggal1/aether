@@ -73,11 +73,11 @@ public struct HistoryView: View {
     }
 
     private func visitRow(_ visit: BrowserVisit) -> some View {
-        HoverSurface(radius: 8) {
+        HoverSurface(radius: 12) {
             HStack(spacing: 12) {
                 DomainIcon(visit.url, size: 22)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(visit.title).font(AetherType.rowTitle(12.5)).lineLimit(1)
+                    Text(visit.title).font(AetherType.body(12.5)).lineLimit(1)
                     Text(visit.url).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1)
                 }
                 Spacer(minLength: 8)
@@ -88,9 +88,10 @@ public struct HistoryView: View {
                 }
             }
             .padding(.horizontal, 10)
-            .frame(height: 38)
+            .frame(height: 40)
             .contentShape(Rectangle())
         }
+        .aetherPointingCursor()
         .onTapGesture { window.navigateSelected(visit.url); dismiss() }
     }
 }

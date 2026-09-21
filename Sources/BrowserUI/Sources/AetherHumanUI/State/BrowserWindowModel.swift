@@ -7,6 +7,8 @@ public final class BrowserWindowModel: Identifiable {
     public let workspace: BrowserWorkspace
     public let surfaces = PageSurfaceRegistry()
     public var activeProfileID: UUID
+    public var isIncognito = false
+    @ObservationIgnored private var incognitoReturnProfileID: UUID?
     public var sidebarCollapsed = false
     public var showsTabSearch = false
     public var showsHistory = false
@@ -86,8 +88,34 @@ public final class BrowserWindowModel: Identifiable {
     }
     public func switchProfile(_ id: UUID) {
         guard workspace.profiles.contains(where: { $0.id == id }) else { return }
+        let leavingIncognito = isIncognito && activeProfileID != id
         activeProfileID = id
         if tabsByProfile[id, default: []].isEmpty { _ = newTab() }
+        isIncognito = workspace.isIncognito(id)
+        if isIncognito {
+            Task { try? await workspace.engine.setProfileEphemeral(profileID: id, enabled: true) }
+        } else if leavingIncognito, let incognitoID = workspace.profiles.first(where: \.isIncognito)?.id {
+            Task { try? await workspace.engine.setProfileEphemeral(profileID: incognitoID, enabled: false) }
+        }
+    }
+    public func setIncognito(_ enabled: Bool) {
+        if enabled {
+            guard !isIncognito else { return }
+            let profile = workspace.ensureIncognitoProfile()
+            incognitoReturnProfileID = activeProfileID
+            switchProfile(profile.id)
+            Task {
+                do {
+                    var policy = workspace.preferences.privacy
+                    policy.hideIP = true
+                    try await workspace.engine.updatePrivacy(profileID: profile.id, policy: policy)
+                } catch { alert = error.localizedDescription }
+            }
+        } else {
+            guard isIncognito else { return }
+            incognitoReturnProfileID = nil
+            switchProfile(workspace.defaultProfileID)
+        }
     }
     public func removeProfile(_ id: UUID, switchTo next: UUID) {
         for tab in tabsByProfile[id] ?? [] {
@@ -203,6 +231,7 @@ public final class BrowserWindowModel: Identifiable {
         tab.canGoBack = state.canGoBack
         tab.canGoForward = state.canGoForward
         tab.isSecure = state.isSecure
+        tab.loadProgress = state.progress
         if let error = state.error {
             tab.loadState = .failed(error)
             if tab.id == selectedID { finishGlow(true) }
@@ -253,6 +282,15 @@ public final class BrowserWindowModel: Identifiable {
     }
     public func setArrangement(_ mode: TabArrangement) { workspace.preferences.arrangement = mode }
     public func toggleArrangement() { setArrangement(arrangement == .top ? .sidebar : .top) }
+
+    public func toggleSidebar() {
+        if arrangement != .sidebar {
+            setArrangement(.sidebar)
+            sidebarCollapsed = false
+            return
+        }
+        sidebarCollapsed.toggle()
+    }
 }
 
 public enum EngineNavigationAction { case back, forward, reload, stop }

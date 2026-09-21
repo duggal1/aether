@@ -21,9 +21,9 @@ public struct FindBarView: View {
             if let message {
                 Text(message).font(AetherType.caption(11)).foregroundStyle(theme.error)
             }
-            ChromeButton(.arrowUp, help: "Previous match") { find(false) }
-            ChromeButton(.arrowDown, help: "Next match") { find(true) }
-            ChromeButton(.close, help: "Close find") { window.showsFind = false }
+            ChromeButton(.arrowUp, help: "Previous match", size: 28) { find(false) }
+            ChromeButton(.arrowDown, help: "Next match", size: 28) { find(true) }
+            ChromeButton(.close, help: "Close find", size: 28) { window.showsFind = false }
         }
         .padding(6)
         .background { AetherPopoverBackground() }

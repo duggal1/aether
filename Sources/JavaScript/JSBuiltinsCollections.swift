@@ -294,7 +294,7 @@ extension JSBuiltins {
     let weakMapProto = JSObject(prototype: runtime.objectPrototype)
     let weakSetProto = JSObject(prototype: runtime.objectPrototype)
     weakMapProto.defineNative("set") { [weak runtime] thisArg, args in
-      guard let runtime else { return .undefined }
+      guard runtime != nil else { return .undefined }
       guard case .object(let table) = thisArg,
         case .object(let key) = args.first ?? .undefined
       else {

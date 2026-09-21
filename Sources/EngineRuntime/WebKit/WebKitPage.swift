@@ -12,16 +12,28 @@ struct WebPageState: Sendable, Equatable {
   let historyIndex: Int
   let loading: Bool
   let loaded: Bool
+  let progress: Double
   let error: String?
 }
 
 @MainActor
 final class WebKitContext {
   let store: WKWebsiteDataStore
+  let isEphemeral: Bool
   var rules: WKContentRuleList?
 
   init(identifier: UUID?) {
     store = WebKitStoreCache.shared.store(for: identifier)
+    isEphemeral = identifier == nil
+  }
+
+  init(ephemeralStore: WKWebsiteDataStore) {
+    store = ephemeralStore
+    isEphemeral = true
+  }
+
+  static func ephemeral() -> WebKitContext {
+    WebKitContext(ephemeralStore: WKWebsiteDataStore.nonPersistent())
   }
 }
 
@@ -63,6 +75,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
       view.observe(\.url, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
       view.observe(\.title, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
       view.observe(\.isLoading, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
+      view.observe(\.estimatedProgress, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
       view.observe(\.canGoBack, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
       view.observe(\.canGoForward, options: [.new]) { [weak self] _, _ in self?.scheduleChange() }
     ]
@@ -89,7 +102,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     return WebPageState(sequence: sequence, url: view.url, title: view.title ?? "",
       viewport: Size(width: view.bounds.width, height: view.bounds.height),
       history: history, historyIndex: list.currentItem == nil ? -1 : list.backList.count,
-      loading: view.isLoading, loaded: loaded, error: lastError)
+      loading: view.isLoading, loaded: loaded, progress: view.estimatedProgress, error: lastError)
   }
 
   func publish() {
@@ -98,7 +111,8 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
       previous.url == value.url, previous.title == value.title,
       previous.viewport == value.viewport, previous.history == value.history,
       previous.historyIndex == value.historyIndex, previous.loading == value.loading,
-      previous.loaded == value.loaded, previous.error == value.error { return }
+      previous.loaded == value.loaded, previous.progress == value.progress,
+      previous.error == value.error { return }
     lastPublished = value
     changed(value)
   }

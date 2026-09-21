@@ -21,7 +21,7 @@ public final class BrowserPreferences {
         arrangement = TabArrangement(rawValue: defaults.string(forKey: "aether.tabs") ?? "") ?? .top
         appearance = AetherAppearance(rawValue: defaults.string(forKey: "aether.appearance") ?? "") ?? .system
         provider = SearchProvider(rawValue: defaults.string(forKey: "aether.provider") ?? "") ?? .google
-        restoreWindows = defaults.object(forKey: "aether.restore") as? Bool ?? true
+        restoreWindows = defaults.object(forKey: "aether.restore.v2") as? Bool ?? false
         showFavorites = defaults.object(forKey: "aether.favorites") as? Bool ?? true
         showFullAddress = defaults.object(forKey: "aether.fullAddress") as? Bool ?? false
         sidebarWidth = max(188, min(324, defaults.object(forKey: "aether.sidebarWidth") as? Double ?? 190))
@@ -37,7 +37,7 @@ public final class BrowserPreferences {
         defaults.set(arrangement.rawValue, forKey: "aether.tabs")
         defaults.set(appearance.rawValue, forKey: "aether.appearance")
         defaults.set(provider.rawValue, forKey: "aether.provider")
-        defaults.set(restoreWindows, forKey: "aether.restore")
+        defaults.set(restoreWindows, forKey: "aether.restore.v2")
         defaults.set(showFavorites, forKey: "aether.favorites")
         defaults.set(showFullAddress, forKey: "aether.fullAddress")
         defaults.set(sidebarWidth, forKey: "aether.sidebarWidth")

@@ -18,7 +18,7 @@ public struct ShortcutsSettingsView: View {
                 AetherRow(item.0) {
                     Text(item.1).font(AetherType.mono(11)).foregroundStyle(theme.muted)
                         .padding(.horizontal, 8).padding(.vertical, 5)
-                        .background(theme.hover, in: RoundedRectangle(cornerRadius: 4))
+                        .background(theme.settingsRaised, in: RoundedRectangle(cornerRadius: 4))
                 }
             }
         }

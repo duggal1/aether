@@ -100,11 +100,11 @@ private struct BookmarkFolderSection: View {
             .buttonStyle(AetherPressStyle(reduced: reduced))
             if expanded {
                 ForEach(marks) { mark in
-                    HoverSurface(radius: 8) {
+                    HoverSurface(radius: 12) {
                         HStack(spacing: 12) {
                             DomainIcon(mark.url, size: 20)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(mark.title).font(AetherType.rowTitle(12)).lineLimit(1)
+                                Text(mark.title).font(AetherType.body(12)).lineLimit(1)
                                 Text(mark.url).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1)
                             }
                             Spacer(minLength: 8)
@@ -114,9 +114,10 @@ private struct BookmarkFolderSection: View {
                             }
                         }
                         .padding(.horizontal, 10)
-                        .frame(height: 38)
+                        .frame(height: 40)
                         .contentShape(Rectangle())
                     }
+                    .aetherPointingCursor()
                     .onTapGesture { open(mark) }
                 }
             }

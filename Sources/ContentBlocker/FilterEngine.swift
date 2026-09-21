@@ -133,11 +133,11 @@ public final class FilterEngine: @unchecked Sendable {
     guard FilterListParser.isValidDomain(normalized) else {
       throw BlockerError.invalidDomain(normalized)
     }
-    lock.withLock { $0.configuration.temporaryAllowedDomains.insert(normalized) }
+    _ = lock.withLock { $0.configuration.temporaryAllowedDomains.insert(normalized) }
   }
 
   public func removeTemporaryAllow(host: String) {
-    lock.withLock { $0.configuration.temporaryAllowedDomains.remove(host.lowercased()) }
+    _ = lock.withLock { $0.configuration.temporaryAllowedDomains.remove(host.lowercased()) }
   }
 
   public func stats() -> FilterStats {

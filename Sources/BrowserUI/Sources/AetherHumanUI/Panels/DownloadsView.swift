@@ -19,16 +19,17 @@ public struct DownloadsView: View {
             }
             if entries.isEmpty {
                 AetherEmptyState(icon: .download, heading: "No downloads",
-                                 description: failure ?? "Download records from Aether's runtime will appear here when connected.")
+                                 description: failure ?? "Downloads will appear here.")
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(entries) { item in
                             HoverSurface(radius: 8) {
                                 HStack(spacing: 12) {
-                                    AetherSymbolView(.page, tint: theme.muted, size: 16)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(item.fileName).font(AetherType.rowTitle(12.5)).lineLimit(1)
+                                    AetherCustomIconView(AetherCustomIcon.fileIcon(for: item.fileName),
+                                                         tint: theme.muted, size: 16)
+                                     VStack(alignment: .leading, spacing: 4) {
+                                         Text(item.fileName).font(AetherType.body(12.5)).lineLimit(1)
                                         if !item.isComplete, let total = item.totalBytes, total > 0 {
                                             ProgressView(value: Double(item.bytesReceived), total: Double(total))
                                         } else {
