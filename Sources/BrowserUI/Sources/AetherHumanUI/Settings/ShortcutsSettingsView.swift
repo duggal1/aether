@@ -11,7 +11,6 @@ public struct ShortcutsSettingsView: View {
     ]
     public init() {}
     public var body: some View {
-        SettingsHelp("Keyboard-first browsing. These are Aether shell shortcuts; webpage shortcuts are delivered by the engine.")
         AetherSection("Browser") {
             ForEach(Array(shortcuts.enumerated()), id: \.offset) { index, item in
                 if index > 0 { SettingsDivider() }
