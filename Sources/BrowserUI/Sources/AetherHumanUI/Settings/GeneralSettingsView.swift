@@ -4,7 +4,6 @@ public struct GeneralSettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Choose how Aether starts and which profile new windows use.")
         AetherSection("On startup") {
             AetherRow("Restore previous windows", subtitle: "Continue where you left off.") {
                 Toggle("Restore previous windows", isOn: Binding(get: { workspace.preferences.restoreWindows }, set: { workspace.preferences.restoreWindows = $0 })).labelsHidden().toggleStyle(.switch)
