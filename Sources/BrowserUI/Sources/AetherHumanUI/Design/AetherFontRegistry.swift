@@ -74,12 +74,16 @@ public enum AetherFontRegistry {
         var directories: [URL] = []
         var roots: [URL] = []
         if let resources = Bundle.main.resourceURL { roots.append(resources) }
+        roots.append(Bundle.module.resourceURL)
         if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
             roots.append(executable.deletingLastPathComponent())
         }
         roots.append(Bundle.main.bundleURL.deletingLastPathComponent())
+        roots.append(Bundle.module.bundleURL)
         for root in roots {
             directories.append(root.appendingPathComponent("Fonts", isDirectory: true))
+            directories.append(root.appendingPathComponent("AetherHumanUI/Resources/Fonts", isDirectory: true))
+            directories.append(root.appendingPathComponent("Contents/Resources/Fonts", isDirectory: true))
             directories.append(root.appendingPathComponent("Resources/Fonts", isDirectory: true))
             guard let entries = try? manager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { continue }
             for entry in entries where entry.pathExtension == "bundle" {
@@ -105,8 +109,8 @@ public enum AetherFontRegistry {
     }
 
     private static func variedFont(size: CGFloat, wght: Double) -> Font? {
-        guard let name = baseFace, let axis = weightAxisID,
-              let base = NSFont(name: name, size: size) else { return nil }
+        guard let name = baseFace, let base = NSFont(name: name, size: size) else { return nil }
+        guard let axis = weightAxisID else { return Font(base) }
         let baseDescriptor = CTFontCopyFontDescriptor(base as CTFont)
         let variation = [kCTFontVariationAttribute as String: [axis: wght]] as CFDictionary
         let descriptor = CTFontDescriptorCreateCopyWithAttributes(baseDescriptor, variation)
