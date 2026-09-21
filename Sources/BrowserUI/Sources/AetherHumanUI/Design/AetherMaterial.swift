@@ -92,7 +92,7 @@ struct AetherDitherOverlay: View {
     }
 }
 
-// Only the sidebar samples macOS native material. All browser-content chrome is opaque.
+// Native macOS sidebar material must remain visible: do not cover it with opaque chrome.
 private struct AetherNativeSidebarMaterial: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
@@ -117,7 +117,7 @@ public struct AetherChromeBackground: View {
         ZStack {
             if role == .sidebar {
                 AetherNativeSidebarMaterial()
-                theme.chrome.opacity(theme.dark ? 0.86 : 0.91)
+                theme.chrome.opacity(theme.dark ? 0.34 : 0.58)
             } else {
                 theme.chrome
             }
@@ -131,7 +131,8 @@ public struct AetherPopoverBackground: View {
     public init() {}
     public var body: some View {
         RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
-            .fill(theme.card)
+            .fill(theme.card.opacity(0.92))
+            .background { RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous).fill(.regularMaterial) }
             .overlay {
                 RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
                     .strokeBorder(theme.hairline, lineWidth: 0.5)
