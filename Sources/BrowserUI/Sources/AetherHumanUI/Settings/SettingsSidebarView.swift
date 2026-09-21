@@ -10,16 +10,16 @@ public struct SettingsSidebarView: View {
             Text("Aether")
                 .font(AetherType.emphasis(14))
                 .foregroundStyle(theme.heading)
-                .padding(.horizontal, 12).padding(.top, 22).padding(.bottom, 20)
+                .padding(.horizontal, 11).padding(.top, 26).padding(.bottom, 21)
             ForEach(SettingsSection.allCases) { section in
                 settingsRow(section)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 9)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 11)
+        .padding(.bottom, 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { AetherChromeBackground(.sidebar) }
+        .background(theme.chrome)
     }
 
     private func settingsRow(_ section: SettingsSection) -> some View {
@@ -32,11 +32,11 @@ public struct SettingsSidebarView: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(selection == section ? theme.ink : theme.muted)
                     .frame(width: 20)
-                Text(section.rawValue).font(AetherType.body(13)).lineLimit(1)
+                Text(section.rawValue).font(AetherType.emphasis(13)).lineLimit(1)
                 Spacer(minLength: 0)
             }
             .foregroundStyle(selection == section ? theme.ink : theme.muted)
-            .padding(.horizontal, 12).frame(height: 34)
+            .padding(.horizontal, 12).frame(height: 37)
             .background {
                 if selection == section {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
