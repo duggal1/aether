@@ -30,8 +30,13 @@ public final class BrowserWorkspace {
             BrowserShortcut(name: "Slack", url: "https://slack.com/"),
             BrowserShortcut(name: "GitHub", url: "https://github.com/")
         ] : archive.shortcuts
-        UserDefaults.standard.set(true, forKey: "aether.shortcuts.seeded.v1")
         defaultProfileID = all.contains(where: { $0.id == archive.defaultProfileID }) ? archive.defaultProfileID! : all[0].id
+        if shouldSeed {
+            // Make the first launch durable before recording the migration flag.
+            BrowserPersistence.save(BrowserArchive(profiles: all, bookmarks: bookmarks,
+                visits: visits, shortcuts: shortcuts, defaultProfileID: defaultProfileID))
+        }
+        UserDefaults.standard.set(true, forKey: "aether.shortcuts.seeded.v1")
     }
 
     public func loadEngineLibraries() async {
