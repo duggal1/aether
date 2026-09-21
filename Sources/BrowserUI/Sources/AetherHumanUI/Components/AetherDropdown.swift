@@ -3,10 +3,12 @@ import SwiftUI
 public struct AetherDropdownOption<Value: Hashable & Sendable>: Identifiable, Sendable {
     public let value: Value
     public let title: String
+    public let iconURL: String?
     public var id: Value { value }
-    public init(value: Value, title: String) {
+    public init(value: Value, title: String, iconURL: String? = nil) {
         self.value = value
         self.title = title
+        self.iconURL = iconURL
     }
 }
 
@@ -32,12 +34,17 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
         options.first(where: { $0.value == selection })?.title ?? ""
     }
 
+    private var selectedIconURL: String? {
+        options.first(where: { $0.value == selection })?.iconURL
+    }
+
     public var body: some View {
         Button {
             highlighted = selection
             withAnimation(AetherMotion.dropdown(reduced)) { open.toggle() }
         } label: {
-            HStack(spacing: 7) {
+            HStack(spacing: 9) {
+                if let iconURL = selectedIconURL { DomainIcon(iconURL, size: 17) }
                 Text(selectedTitle)
                     .font(AetherType.body(12))
                     .foregroundStyle(theme.ink)
@@ -46,7 +53,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
                 AetherSymbolView(open ? .discloseUp : .discloseDown, tint: theme.muted, size: 10)
             }
             .padding(.horizontal, 10)
-            .frame(minWidth: 160, minHeight: 28)
+            .frame(minWidth: 160, minHeight: 34)
             .background(theme.settingsRaised, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .contentShape(Rectangle())
         }
@@ -72,6 +79,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
             withAnimation(AetherMotion.dropdown(reduced)) { open = false }
         } label: {
             HStack(spacing: 9) {
+                if let iconURL = option.iconURL { DomainIcon(iconURL, size: 17) }
                 Text(option.title)
                     .font(AetherType.body(12))
                     .lineLimit(1)
