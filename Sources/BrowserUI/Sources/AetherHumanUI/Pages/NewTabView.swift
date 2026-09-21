@@ -126,8 +126,8 @@ public struct NewTabView: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .aetherPointingCursor()
-            .help("Shortcut actions for \\(item.name)")
-            .accessibilityLabel("Shortcut actions for \\(item.name)")
+            .help("Shortcut actions for \(item.name)")
+            .accessibilityLabel("Shortcut actions for \(item.name)")
         }
     }
 
