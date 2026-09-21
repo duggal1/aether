@@ -26,8 +26,8 @@ public struct OmniboxSuggestionsView: View {
                 .id(row.id)
             }
         }
-        .padding(6)
-        .frame(width: 470)
+        .padding(9)
+        .frame(maxWidth: 760)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(theme.card)
@@ -36,10 +36,10 @@ public struct OmniboxSuggestionsView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(theme.hairline, lineWidth: 0.5)
         }
-        .shadow(color: Color.black.opacity(theme.dark ? 0.08 : 0.04), radius: 6, y: 2)
+            
         .offset(y: 38)
         .zIndex(2)
-        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+        .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(AetherMotion.dropdown(reduced), value: model.rows.count)
     }
 
@@ -73,10 +73,10 @@ private struct OmniboxSuggestionRow: View {
                 Spacer(minLength: 6)
                 trailing
             }
-            .font(AetherType.body(12))
+            .font(AetherType.body(13))
             .foregroundStyle(theme.ink)
-            .padding(.horizontal, 9)
-            .frame(height: 32)
+            .padding(.horizontal, 12)
+            .frame(height: 40)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(fill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .contentShape(Rectangle())
