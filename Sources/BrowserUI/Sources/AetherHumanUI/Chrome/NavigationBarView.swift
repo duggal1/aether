@@ -13,9 +13,9 @@ public struct NavigationBarView: View {
 
     public var body: some View {
         HStack(spacing: 4) {
-            if window.arrangement == .sidebar && window.sidebarCollapsed {
-                ChromeButton(.sidebar, help: "Show sidebar") {
-                    window.sidebarCollapsed = false
+            if window.arrangement == .sidebar {
+                ChromeButton(.sidebar, help: window.sidebarCollapsed ? "Show sidebar" : "Hide sidebar") {
+                    window.sidebarCollapsed.toggle()
                 }
             }
             ChromeButton(.arrowLeft, help: "Back \u{2318}[", enabled: window.selected?.canGoBack == true) { window.perform(.back) }
@@ -41,8 +41,9 @@ public struct NavigationBarView: View {
                 .popover(isPresented: $showsMore) { MoreMenuView(window: window) }
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.leading, window.arrangement == .sidebar && window.sidebarCollapsed ? 78 : 6)
+        .padding(.trailing, 6)
         .frame(height: AetherMetrics.chromeHeight)
-        .background { if showsChrome { AetherChromeBackground(.toolbar) } }
+        .background(theme.canvas)
     }
 }

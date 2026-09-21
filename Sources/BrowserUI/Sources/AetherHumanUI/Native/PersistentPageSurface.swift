@@ -6,8 +6,8 @@ public final class PageSurfaceRegistry {
     private var surfaces: [String: NSView] = [:]
     public init() {}
     public func surface(for id: String, engine: any BrowserEnginePort) -> NSView? {
-        if let cached = surfaces[id] { return cached }
-        guard let view = engine.surface(pageID: id) else { return nil }
+        guard let view = engine.surface(pageID: id) else { surfaces.removeValue(forKey: id); return nil }
+        if let cached = surfaces[id], cached !== view { cached.removeFromSuperview() }
         surfaces[id] = view
         return view
     }

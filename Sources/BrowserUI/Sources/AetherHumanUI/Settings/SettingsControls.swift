@@ -15,8 +15,14 @@ public struct SettingsToggle: View {
 }
 
 public struct SettingsDivider: View {
+    @Environment(\.aetherTheme) private var theme
     public init() {}
-    public var body: some View { Divider().padding(.leading, 12) }
+    public var body: some View {
+        Rectangle()
+            .fill(theme.faintLine)
+            .frame(height: 0.5)
+            .padding(.leading, 12)
+    }
 }
 
 public struct SettingsHelp: View {

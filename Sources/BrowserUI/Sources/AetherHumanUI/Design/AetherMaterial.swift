@@ -16,7 +16,7 @@ public struct AetherChromeBackground: View {
 
     private var isOpaque: Bool { reduceTransparency || contrast == .increased }
 
-    private var veilOpacity: Double { role == .sidebar ? 0.42 : 0.55 }
+    private var veilOpacity: Double { role == .sidebar ? 0.76 : 0.88 }
 
     public var body: some View {
         ZStack {
@@ -24,7 +24,7 @@ public struct AetherChromeBackground: View {
                 theme.canvas
             } else {
                 AetherChromeBlur(role: role)
-                theme.canvas.opacity(veilOpacity)
+                AetherPalette.chrome(theme.dark).opacity(veilOpacity)
             }
         }
         .accessibilityHidden(true)
@@ -68,17 +68,47 @@ public struct AetherPopoverBackground: View {
     public var body: some View {
         if isOpaque {
             shape.fill(theme.raised).accessibilityHidden(true)
-        } else if #available(macOS 26.0, *) {
-            ZStack {
-                shape.fill(theme.raised.opacity(0.22)).accessibilityHidden(true)
-                Color.clear
-                    .glassEffect(.regular, in: shape)
-                    .accessibilityHidden(true)
-            }
         } else {
-            shape.fill(.regularMaterial).accessibilityHidden(true)
+            shape.fill(.regularMaterial)
+                .overlay { shape.fill(theme.raised.opacity(0.86)) }
+                .accessibilityHidden(true)
         }
     }
+}
+public struct AetherSheetBackground: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+    public init() {}
+
+    private var isOpaque: Bool { reduceTransparency || contrast == .increased }
+
+    public var body: some View {
+        ZStack {
+            if isOpaque {
+                theme.raised
+            } else {
+                AetherStrongInAppBlur()
+                theme.raised.opacity(0.88)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct AetherStrongInAppBlur: NSViewRepresentable {
+    typealias NSViewType = NSVisualEffectView
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .withinWindow
+        view.state = .followsWindowActiveState
+        view.isEmphasized = false
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 public struct AetherCardBackground: View {
     @Environment(\.aetherTheme) private var theme
@@ -92,33 +122,19 @@ public struct AetherCardBackground: View {
 }
 
 public struct AetherLeadingGlassPanel: View {
-    @Environment(\.aetherTheme) private var theme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorSchemeContrast) private var contrast
     public init() {}
-
-    private var isOpaque: Bool { reduceTransparency || contrast == .increased }
-    private var shape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12)
-    }
-
-    public var body: some View {
-        if isOpaque {
-            shape.fill(theme.raised).accessibilityHidden(true)
-        } else if #available(macOS 26.0, *) {
-            ZStack {
-                shape.fill(theme.raised.opacity(0.22)).accessibilityHidden(true)
-                Color.clear
-                    .glassEffect(.regular, in: shape)
-                    .accessibilityHidden(true)
-            }
-        } else {
-            shape.fill(.regularMaterial).accessibilityHidden(true)
-        }
-    }
+    public var body: some View { AetherPopoverBackground() }
 }
 
 public extension View {
+    @ViewBuilder
+    func aetherGlassShadow(dark: Bool) -> some View {
+        if #available(macOS 26.0, *) {
+            self
+        } else {
+            self.aetherFloatingShadow(dark: dark)
+        }
+    }
     func aetherRestingShadow(dark: Bool) -> some View {
         let spec = AetherShadow.resting(dark)
         return self.shadow(color: spec.color, radius: spec.radius, y: spec.y)

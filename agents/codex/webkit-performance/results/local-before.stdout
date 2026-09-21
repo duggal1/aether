@@ -1,0 +1,10 @@
+{"query_1": {"n": 60, "median_ms": 0.6418334960471839, "p95_ms": 1.3560000079451129, "max_ms": 106.06362500402611}}
+{"query_4": {"n": 240, "median_ms": 0.8370834984816611, "p95_ms": 1.8911250081146136, "max_ms": 2.850875011063181}}
+Traceback (most recent call last):
+  File "/Users/harshitduggal/workspace/Aether/agents/codex/webkit-performance/results/local_benchmark.py", line 165, in <module>
+    run(args.binary, args.output)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/harshitduggal/workspace/Aether/agents/codex/webkit-performance/results/local_benchmark.py", line 87, in run
+    assert all(p['title'] == 'Performance fixture' for p in loaded)
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

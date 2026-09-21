@@ -227,11 +227,21 @@ public struct AgentSocketServer: Sendable {
   }
 
   private func writeAll(fd: Int32, data: Data) throws {
+    #if canImport(Darwin)
+      var enabled: Int32 = 1
+      guard setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &enabled,
+        socklen_t(MemoryLayout<Int32>.size)) == 0 else {
+        throw AgentTransportError.socket("setsockopt(SO_NOSIGPIPE) failed")
+      }
+      let flags: Int32 = 0
+    #else
+      let flags = Int32(MSG_NOSIGNAL)
+    #endif
     try data.withUnsafeBytes { raw in
       guard let base = raw.baseAddress else { return }
       var sent = 0
       while sent < raw.count {
-        let result = send(fd, base.advanced(by: sent), raw.count - sent, 0)
+        let result = send(fd, base.advanced(by: sent), raw.count - sent, flags)
         guard result > 0 else { throw AgentTransportError.socket("send() failed") }
         sent += result
       }

@@ -10,7 +10,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "AetherHumanUI", path: "Sources",
-                exclude: ["AetherHumanUI/Resources"],
+                exclude: ["AetherHumanUI/Resources", "AetherHumanPreview"],
                 sources: ["AetherHumanUI", "icons"],
                 resources: [.copy("AetherHumanUI/Resources/Fonts")]),
         .executableTarget(name: "AetherHumanPreview", dependencies: ["AetherHumanUI"]),

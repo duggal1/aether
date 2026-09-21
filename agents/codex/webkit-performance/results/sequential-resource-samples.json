@@ -1,0 +1,195 @@
+{
+  "scope": "daemon only; excludes WebKit subprocesses and does not establish total browser memory",
+  "exit_before_cleanup": null,
+  "samples": [
+    {
+      "rss_kib": 26272,
+      "cpu_percent": 13.3
+    },
+    {
+      "rss_kib": 69680,
+      "cpu_percent": 25.8
+    },
+    {
+      "rss_kib": 86480,
+      "cpu_percent": 17.4
+    },
+    {
+      "rss_kib": 83584,
+      "cpu_percent": 1.3
+    },
+    {
+      "rss_kib": 71456,
+      "cpu_percent": 19.2
+    },
+    {
+      "rss_kib": 56480,
+      "cpu_percent": 6.4
+    },
+    {
+      "rss_kib": 44160,
+      "cpu_percent": 13.5
+    },
+    {
+      "rss_kib": 44544,
+      "cpu_percent": 1.3
+    },
+    {
+      "rss_kib": 46192,
+      "cpu_percent": 15.4
+    },
+    {
+      "rss_kib": 46384,
+      "cpu_percent": 6.9
+    },
+    {
+      "rss_kib": 45920,
+      "cpu_percent": 0.5
+    },
+    {
+      "rss_kib": 46048,
+      "cpu_percent": 10.6
+    },
+    {
+      "rss_kib": 45232,
+      "cpu_percent": 0.3
+    },
+    {
+      "rss_kib": 49968,
+      "cpu_percent": 24.9
+    },
+    {
+      "rss_kib": 46128,
+      "cpu_percent": 1.9
+    },
+    {
+      "rss_kib": 34352,
+      "cpu_percent": 0.2
+    },
+    {
+      "rss_kib": 31744,
+      "cpu_percent": 0.3
+    },
+    {
+      "rss_kib": 31680,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 31968,
+      "cpu_percent": 0.4
+    },
+    {
+      "rss_kib": 33264,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 33264,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 32672,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 27520,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 27584,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 26672,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 26688,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 28208,
+      "cpu_percent": 0.4
+    },
+    {
+      "rss_kib": 42080,
+      "cpu_percent": 8.4
+    },
+    {
+      "rss_kib": 43008,
+      "cpu_percent": 5.3
+    },
+    {
+      "rss_kib": 43536,
+      "cpu_percent": 14.1
+    },
+    {
+      "rss_kib": 44096,
+      "cpu_percent": 1.4
+    },
+    {
+      "rss_kib": 43392,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 43328,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 34368,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 33968,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 33680,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 32704,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 32736,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 32880,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 33440,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 33520,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 33600,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 34016,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 42800,
+      "cpu_percent": 0.8
+    },
+    {
+      "rss_kib": 43424,
+      "cpu_percent": 7.9
+    },
+    {
+      "rss_kib": 41632,
+      "cpu_percent": 11.5
+    },
+    {
+      "rss_kib": 42720,
+      "cpu_percent": 12.9
+    }
+  ],
+  "peak_daemon_rss_kib": 86480
+}

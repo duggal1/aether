@@ -1,0 +1,53 @@
+{
+ "Aether": {
+  "https://www.apple.com": [
+   1063,
+   1181,
+   1062
+  ],
+  "https://www.youtube.com": [
+   1195,
+   1373,
+   1587
+  ],
+  "https://en.wikipedia.org/wiki/WebKit": [
+   1617,
+   1608,
+   1024
+  ]
+ },
+ "Chrome": {
+  "https://www.apple.com": [
+   860,
+   611,
+   604
+  ],
+  "https://www.youtube.com": [
+   1562,
+   2462,
+   1513
+  ],
+  "https://en.wikipedia.org/wiki/WebKit": [
+   1104,
+   967,
+   1377
+  ]
+ },
+ "Safari": {
+  "https://www.apple.com": [
+   1092,
+   417,
+   598
+  ],
+  "https://www.youtube.com": [
+   3153,
+   683,
+   8052
+  ],
+  "https://en.wikipedia.org/wiki/WebKit": [
+   1568,
+   1210,
+   657
+  ]
+ }
+}

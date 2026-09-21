@@ -14,21 +14,21 @@ public struct AetherRow<Accessory: View>: View {
         HStack(spacing: 12) {
             if let symbol {
                 Image(systemName: symbol)
-                    .font(AetherType.symbol(13)).foregroundStyle(theme.muted)
+                    .font(AetherType.symbol(16)).foregroundStyle(theme.muted)
                     .frame(width: 19)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(AetherType.rowTitle()).foregroundStyle(theme.ink)
                 if let subtitle {
-                    Text(subtitle).font(AetherType.caption(11)).foregroundStyle(theme.muted)
+                    Text(subtitle).font(AetherType.caption(12)).foregroundStyle(theme.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 10)
             accessory
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 15)
     }
 }
 
@@ -42,14 +42,14 @@ public struct AetherSection<Content: View>: View {
     }
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title.uppercased())
-                .font(AetherType.sectionHeader(10)).tracking(0.4)
-                .foregroundStyle(theme.soft)
+            Text(title)
+                .font(AetherType.emphasis(12))
+                .foregroundStyle(theme.muted)
                 .padding(.leading, 4)
             VStack(spacing: 0) { content }
-                .background(theme.surface, in: RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
+                .background(theme.raised, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             if let footer {
-                Text(footer).font(AetherType.caption(11)).foregroundStyle(theme.muted).padding(.leading, 4)
+                Text(footer).font(AetherType.caption(12)).foregroundStyle(theme.muted).padding(.leading, 4)
             }
         }
     }

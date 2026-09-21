@@ -143,8 +143,8 @@ struct PaletteContractTests {
     }
 
     @Test func metricsFollowTheSpecifiedGrid() {
-        #expect(AetherMetrics.chromeHeight == 44)
-        #expect(AetherMetrics.tabHeight == 34)
+        #expect(AetherMetrics.chromeHeight == 42)
+        #expect(AetherMetrics.tabHeight == 33)
         #expect(AetherMetrics.tapTarget == 44)
         #expect(AetherMetrics.panelRadius == 16)
     }
@@ -181,6 +181,14 @@ struct IconSystemTests {
         workspace.preferences.transientSidebarWidth = nil
         #expect(workspace.preferences.sidebarWidth == saved + 20)
         #expect(workspace.preferences.transientSidebarWidth == nil)
+    }
+
+    @Test func fusedTopTabHasConcaveFillets() {
+        let rect = CGRect(x: 0, y: 0, width: 171, height: 39)
+        let bounds = FusedTopTabShape().path(in: rect).boundingRect
+        #expect(!FusedTopTabShape().path(in: rect).isEmpty)
+        #expect(abs(bounds.width - 201) < 0.5)
+        #expect(abs(bounds.height - 39) < 0.5)
     }
 
     @Test func brandMarksRemainRenderable() {

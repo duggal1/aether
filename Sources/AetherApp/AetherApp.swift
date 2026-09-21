@@ -38,7 +38,8 @@ struct AetherApp: App {
           }
         }
     }
-    .defaultSize(width: 1270, height: 795)
+    .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1270, height: 795)
     .commands { BrowserCommands() }
     Settings {
       AetherThemeScope { SettingsWindowView(workspace: workspace) }

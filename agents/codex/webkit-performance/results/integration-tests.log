@@ -1,0 +1,17 @@
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test nativeAdapterPreservesPageAndProfileIdentity() started.
+✔ Test nativeAdapterPreservesPageAndProfileIdentity() passed after 1.086 seconds.
+✔ Test run with 1 test in 0 suites passed after 1.087 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test runtimeCreatesIsolatedContextsAndPages() started.
+✔ Test runtimeCreatesIsolatedContextsAndPages() passed after 0.018 seconds.
+◇ Test dispatcherExposesDeterministicContextAndPageLifecycle() started.
+✔ Test dispatcherExposesDeterministicContextAndPageLifecycle() passed after 0.002 seconds.
+◇ Test invalidNumericAgentParametersReturnErrorsWithoutCrashing() started.
+✔ Test invalidNumericAgentParametersReturnErrorsWithoutCrashing() passed after 0.001 seconds.
+✔ Test run with 3 tests in 0 suites passed after 0.022 seconds.
+{"command": ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift", "test", "-j", "1", "--no-parallel", "-Xswiftc", "-plugin-path", "-Xswiftc", "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing", "--skip-build", "--filter", "nativeAdapterPreservesPageAndProfileIdentity|runtimeCreatesIsolatedContextsAndPages|dispatcherExposesDeterministicContextAndPageLifecycle|invalidNumericAgentParametersReturnErrorsWithoutCrashing"], "seconds": 7.207, "peakTreeRSSMiB": 127.58, "exitCode": 0, "stopped": null}

@@ -114,8 +114,12 @@ public actor BrowserRuntime {
   private let metricsCollector = MetricsCollector()
   private let scheduler = EngineScheduler()
   var contexts: [ContextID: ContextRecord] = [:] {
-    didSet { publishPageStates() }
+    didSet {
+      if let pageStateUpdate { publishPageState(pageStateUpdate) }
+      else { publishPageStates() }
+    }
   }
+  var pageStateUpdate: PageID?
   var pageObservers: [UUID: AsyncStream<RuntimePageState>.Continuation] = [:]
   var observedStates: [PageID: RuntimePageState] = [:]
   var navigationLoads: [PageID: Task<LoadedPage, Error>] = [:]
@@ -1304,7 +1308,7 @@ public actor BrowserRuntime {
     -> BrowserPageInfo
   {
     let record = try requirePage(pageID)
-    if state == .active || state == .background {
+    if state == .active || state == .background || state == .suspended {
       contexts[record.contextID]?.pages[pageID]?.lifecycle = state
       if state == .active { try await restoreWebContent(pageID) }
       return try pageInfo(pageID)

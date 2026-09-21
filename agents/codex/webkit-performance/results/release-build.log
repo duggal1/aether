@@ -1,0 +1,656 @@
+warning: 'aether': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/harshitduggal/workspace/Aether/Sources/BrowserUI/Sources/AetherHumanPreview/AetherHumanPreviewApp.swift
+Building for production...
+[Computing dependencies]
+[Pre-planning 1 / 994]
+[Planning deferred tasks]
+[3 / 84] WebSecurity
+[30 / 98] ContentBlocker
+[32 / 100] ContentBlocker
+/Users/harshitduggal/workspace/Aether/Sources/ContentBlocker/FilterEngine.swift:136:10: warning: result of call to 'withLock' is unused [#NoUsage]
+134 |       throw BlockerError.invalidDomain(normalized)
+135 |     }
+136 |     lock.withLock { $0.configuration.temporaryAllowedDomains.insert(normalized) }
+    |          `- warning: result of call to 'withLock' is unused [#NoUsage]
+137 |   }
+138 | 
+
+/Users/harshitduggal/workspace/Aether/Sources/ContentBlocker/FilterEngine.swift:140:10: warning: result of call to 'withLock' is unused [#NoUsage]
+138 | 
+139 |   public func removeTemporaryAllow(host: String) {
+140 |     lock.withLock { $0.configuration.temporaryAllowedDomains.remove(host.lowercased()) }
+    |          `- warning: result of call to 'withLock' is unused [#NoUsage]
+141 |   }
+142 | 
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[33 / 100] EngineCore
+[35 / 98] AetherNetworkHardening
+[38 / 99] AetherNetworkHardening
+[39 / 99] AetherHumanUI
+[42 / 101]
+[43 / 102] AetherCapture
+[44 / 102] AetherHumanUI
+[48 / 107] EngineCore
+[51 / 107] AetherNetworkHardening
+[57 / 119] Text
+[58 / 120] WebSecurity
+[59 / 121] Text
+[63 / 121] Scheduler
+[65 / 123] Scheduler
+[70 / 124] Persistence
+[71 / 125] Graphics
+[75 / 125] DOM
+[76 / 126] Diagnostics
+[76 / 127] Diagnostics
+[77 / 127] DOM
+[85 / 125] AgentProtocol
+[86 / 126] CSS
+[87 / 127] AgentProtocol
+[91 / 142] Networking
+[92 / 143] WebSecurity
+[97 / 143] Scheduler
+/Users/harshitduggal/workspace/Aether/Sources/Networking/CookieJar.swift:184:11: warning: result of call to 'withLock' is unused [#NoUsage]
+182 | 
+183 |   public func remove(name: String, domain: String, path: String = "/") {
+184 |     state.withLock { state in
+    |           `- warning: result of call to 'withLock' is unused [#NoUsage]
+185 |       state.cookies.removeValue(
+186 |         forKey: "\(domain.lowercased())|\(path.isEmpty ? "/" : path)|\(name)")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[99 / 143] Networking
+[100 / 143] Media
+[102 / 143] Media
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:114:17: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 96 | 
+ 97 |   public func seek(to seconds: Double, completion: (@Sendable (Bool) -> Void)? = nil) {
+ 98 |     onMain {
+    |            |- note: 'self' implicitly strongly captured here
+    |            `- note: add 'self' as a capture list item to silence
+ 99 |       guard let player = self.player, let item = player.currentItem else {
+100 |         completion?(false)
+    :
+112 |       player.seek(
+113 |         to: target, toleranceBefore: .zero, toleranceAfter: .zero
+114 |       ) { [weak self] finished in
+    |                 |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                 `- note: explicitly assign the capture list item to silence
+115 |         guard let self else { return }
+116 |         self.callbacks.async {
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:205:53: warning: main actor-isolated property 'assetTrack' can not be referenced from a nonisolated context
+203 |         let duration = observed.duration.seconds
+204 |         let size = observed.presentationSize
+205 |         let kinds = observed.tracks.compactMap { $0.assetTrack?.mediaType.rawValue }
+    |                                                     `- warning: main actor-isolated property 'assetTrack' can not be referenced from a nonisolated context
+206 |         let failure = observed.error.map { String(describing: $0) }
+207 |         self?.callbacks.async {
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AVFoundation.framework/Headers/AVPlayerItemTrack.h:45:57: note: property declared here
+ 43 | 	notification queue.  By default, this queue is the main queue.
+ 44 | */
+ 45 | @property (nonatomic, readonly, nullable) AVAssetTrack *assetTrack;
+    |                                                         `- note: property declared here
+ 46 | 
+ 47 | /*!
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:208:11: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+206 |         let failure = observed.error.map { String(describing: $0) }
+207 |         self?.callbacks.async {
+208 |           self?.itemStatusChanged(
+    |           `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+209 |             status: status, duration: duration, size: size, trackKinds: kinds,
+210 |             failure: failure)
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:216:33: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+214 |         let failed = observed.status == .failed
+215 |         let message = observed.error.map { String(describing: $0) }
+216 |         self?.callbacks.async { self?.playerStatusChanged(failed: failed, message: message) }
+    |                                 `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+217 |       },
+218 |       player.observe(\.rate, options: [.new]) { [weak self] observed, _ in
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:220:33: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+218 |       player.observe(\.rate, options: [.new]) { [weak self] observed, _ in
+219 |         let rate = Double(observed.rate)
+220 |         self?.callbacks.async { self?.rateChanged(rate: rate) }
+    |                                 `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+221 |       },
+222 |       item.observe(\.isPlaybackBufferEmpty, options: [.new]) { [weak self] observed, _ in
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:225:22: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+223 |         let empty = observed.isPlaybackBufferEmpty
+224 |         self?.callbacks.async {
+225 |           if empty { self?.emit(.waiting) }
+    |                      `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+226 |         }
+227 |       },
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:231:23: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+229 |         let keepUp = observed.isPlaybackLikelyToKeepUp
+230 |         self?.callbacks.async {
+231 |           if keepUp { self?.emit(.canplaythrough) }
+    |                       `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+232 |         }
+233 |       },
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:244:33: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+242 |         forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: nil
+243 |       ) { [weak self] _ in
+244 |         self?.callbacks.async { self?.emit(.ended) }
+    |                                 `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+245 |       },
+246 |       NotificationCenter.default.addObserver(
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:252:11: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+250 |           .map { String(describing: $0) } ?? "playback failed"
+251 |         self?.callbacks.async {
+252 |           self?.mutate {
+    |           `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+253 |             $0.error = MediaErrorInfo(code: .decode, message: message)
+254 |           }
+
+/Users/harshitduggal/workspace/Aether/Sources/Media/PlayerBackend.swift:255:11: warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+253 |             $0.error = MediaErrorInfo(code: .decode, message: message)
+254 |           }
+255 |           self?.emit(.error)
+    |           `- warning: reference to captured var 'self' in concurrently-executing code [#SendableClosureCaptures]
+256 |         }
+257 |       },
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>
+[106 / 143] HTML
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:199:60: warning: literal value is already handled by previous pattern; consider removing it
+138 |       insertNode(node)
+139 |       return
+140 |     case "link", "meta", "base", "col", "embed", "source", "track", "wbr", "img", "input", "area",
+    |                                  `- note: first occurrence of identical literal pattern is here
+141 |       "param":
+142 |       let node = makeElement(name: name, attributes: attributes)
+    :
+197 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+198 |       return
+199 |     case "caption", "colgroup", "tbody", "tfoot", "thead", "col":
+    |                                                            `- warning: literal value is already handled by previous pattern; consider removing it
+200 |       pushOrdinary(name: name, attributes: attributes, selfClosing: selfClosing)
+201 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:442:15: warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+440 |     name: String, formattingID: NodeID, entryIndex: Int?, formattingPos: Int?
+441 |   ) {
+442 |[108 / 144] HTML
+     guard let formattingPos, entryIndex != nil else {
+    |               `- warning: immutable value 'formattingPos' was never used; consider replacing with '_' or removing it [#NoUsage]
+443 |       close(name)
+444 |       return
+
+/Users/harshitduggal/workspace/Aether/Sources/HTML/HTMLTreeBuilder.swift:509:15: warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+507 | 
+508 |   private func popThrough(formattingID: NodeID) {
+509 |     while let last = openElements.last, openElements.count > 1 {
+    |               `- warning: immutable value 'last' was never used; consider replacing with '_' or removing it [#NoUsage]
+510 |       let removed = openElements.removeLast()
+511 |       if removed == formattingID { break }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[112 / 144] CSS
+[121 / 155] Images
+[122 / 156] JavaScript
+[122 / 157] JavaScript
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMBindings.swift:57:9: warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 55 |   static func documentObject(context: JSDOMContext) -> JSObject {
+ 56 |     let document = context.document
+ 57 |     let events = context.events
+    |         `- warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 58 |     let object = JSObject(
+ 59 |       nativeGet: { [weak document] key in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:7:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  5 |   public static func locationFor(context: JSDOMContext) -> JSObject {
+  6 |     let object = JSObject()
+  7 |     weak var weakObject = object
+    |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+  8 |     object.nativeGet = { [weak context] key in
+  9 |       guard let context, let object = weakObject else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/DOMWindow.swift:106:14: warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+104 |     object.set("state", .null)
+105 |     object.set("scrollRestoration", .string("auto"))
+106 |     weak var weakLocation = location
+    |              `- warning: weak variable 'weakLocation' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+107 |     object.defineNative("pushState") { args in
+108 |       if let first = args.first { object.set("__state", first) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBigInt.swift:168:9: warning: variable 'amount' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+166 |   static func shift(_ lhs: String, _ rhs: String, right: Bool) throws -> String {
+167 |     let value = normalize(lhs)
+168 |     var amount = normalize(rhs)
+    |         `- warning: variable 'amount' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+169 |     if amount.hasPrefix("-") {
+170 |       if right { return try shift(strip(value) == "0" ? "0" : value, negate(amount), right: false) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCollections.swift:297:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+295 |     let weakSetProto = JSObject(prototype: runtime.objectPrototype)
+296 |     weakMapProto.defineNative("set") { [weak runtime] thisArg, args in
+297 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+298 |       guard case .object(let table) = thisArg,
+299 |         case .object(let key) = args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:112:40: warning: variable 'runtime' was written to, but never read
+110 |       return try runtime.callValue(thisArg, thisValue: receiver, arguments: list)
+111 |     }
+112 |     proto.defineNative("bind") { [weak runtime] thisArg, args in
+    |                                        `- warning: variable 'runtime' was written to, but never read
+113 |       guard case .function(let function) = thisArg else {
+114 |         throw JSError.type("bind on incompatible receiver")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:143:49: warning: variable 'runtime' was written to, but never read
+141 |       return .bool(false)
+142 |     }
+143 |     proto.defineNative("isPrototypeOf") { [weak runtime] thisArg, args in
+    |                                                 `- warning: variable 'runtime' was written to, but never read
+144 |       guard case .object(let candidate) = thisArg else { return .bool(false) }
+145 |       guard case .object(let object) = args.first else { return .bool(false) }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:343:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+341 |     }
+342 |     statics.defineNative("setPrototypeOf") { [weak runtime] _, args in
+343 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+344 |       guard args.count > 1, case .object(let object) = args[0] else {
+345 |         throw JSError.type("Target must be an object")
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:377:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+375 |     }
+376 |     statics.defineNative("freeze") { [weak runtime] _, args in
+377 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+378 |       if case .object(let object) = args.first {
+379 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:390:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+388 |     }
+389 |     statics.defineNative("seal") { [weak runtime] _, args in
+390 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+391 |       if case .object(let object) = args.first {
+392 |         for key in object.properties.keys {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsCore.swift:401:55: warning: variable 'runtime' was written to, but never read
+399 |       return args.first ?? .undefined
+400 |     }
+401 |     statics.defineNative("preventExtensions") { [weak runtime] _, args in
+    |                                                       `- warning: variable 'runtime' was written to, but never read
+402 |       if case .object(let object) = args.first { object.isExtensible = false }
+403 |       return args.first ?? .undefined
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsError.swift:194:16: warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+192 |           continue
+193 |         }
+194 |         if let space {
+    |                `- warning: value 'space' was defined but never used; consider replacing with boolean test [#NoUsage]
+195 |           parts.append("\(jsonQuoted(child)): \(text)")
+196 |         } else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:147:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+145 |     }
+146 |     proto.defineNative("substring") { [weak runtime] thisArg, args in
+147 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+148 |       let text = try primitiveString(thisArg)
+149 |       let units = Array(text.utf16)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSBuiltinsString.swift:161:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+159 |     }
+160 |     proto.defineNative("substr") { [weak runtime] thisArg, args in
+161 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+162 |       let text = try primitiveString(thisArg)
+163 |       let units = Array(text.utf16)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:202:11: warning: variable 'imported' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 200 |     while !checkSymbol("}") && !isAtEnd {
+ 201 |       let first = try contextualIdentifier("Expected import name")
+ 202 |       var imported = first
+     |           `- warning: variable 'imported' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 203 |       var local = first
+ 204 |       if matchKeyword("as") {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSParser.swift:799:9: warning: variable 'expression' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 797 | 
+ 798 |   private func postfix() throws -> JSExpression {
+ 799 |     var expression = try newExpression()
+     |         `- warning: variable 'expression' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 800 |     if (checkSymbol("++") || checkSymbol("--")) && !peek.lineTerminatorBefore {
+ 801 |       let op = peekSymbol()!
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:11:8: warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+   9 |   case range(String)
+  10 |   case runtime(String)
+  11 |   case thrown(JSValue)
+     |        `- warning: associated value 'thrown' of 'Sendable'-conforming enum 'JSError' has non-Sendable type 'JSValue'
+  12 | 
+  13 |   public var description: String {
+     :
+  23 | }
+  24 | 
+  25 | public indirect enum JSValue: CustomStringConvertible, Equatable {
+     |                      `- note: consider making enum 'JSValue' conform to the 'Sendable' protocol
+  26 |   case number(Double)
+  27 |   case bigint(String)
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:574:12: warning: value 'module' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 572 |     stepsUsed = 0
+ 573 |     let scope: JSEnvironment
+ 574 |     if let module {
+     |            `- warning: value 'module' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 575 |       scope = JSEnvironment(parent: globals, kind: .function)
+ 576 |     } else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:816:9: warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 814 |     _ callee: JSValue, arguments: [JSValue], env: JSEnvironment? = nil
+ 815 |   ) throws -> JSValue {
+ 816 |     var target = callee
+     |         `- warning: variable 'target' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 817 |     if case .function(let bound) = target, let inner = bound.boundTarget {
+ 818 |       var combined = bound.boundArguments
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:1503:14: warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1501 |     for (index, value) in values.enumerated() { object.properties[String(index)] = value }
+1502 |     object.properties["length"] = .number(Double(values.count))
+1503 |     weak var weakObject = object
+     |              `- warning: weak variable 'weakObject' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+1504 |     object.nativeSet = { key, value in
+1505 |       guard let target = weakObject else { return false }
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:2703:9: warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2701 |       throw JSError.type("Right-hand side of instanceof is not callable")
+2702 |     }
+2703 |     let hasInstance = function.staticProperties.get("prototype")
+     |         `- warning: initialization of immutable value 'hasInstance' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+2704 |     guard case .object(let prototype) = function.prototypeObject.map({ JSValue.object($0) })
+2705 |       ?? hasInstanceObject(function) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSRuntime.swift:3222:51: warning: variable 'self' was written to, but never read
+3220 | 
+3221 |   private func installEval() {
+3222 |     let evalFunction = JSFunction(native: { [weak self] _ in .undefined }, name: "eval")
+     |                                                   `- warning: variable 'self' was written to, but never read
+3223 |     _ = evalFunction
+3224 |     let direct = JSFunction(nativeMethod: { [weak self] _, args in
+
+/Users/harshitduggal/workspace/Aether/Sources/JavaScript/JSTextCodec.swift:82:17: warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 80 |     decoderProto.set("constructor", .function(decoderConstructor))
+ 81 |     decoderProto.defineNative("decode") { [weak runtime] thisArg, args in
+ 82 |       guard let runtime else { return .undefined }
+    |                 `- warning: value 'runtime' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 83 |       guard case .object(let decoder) = thisArg,
+ 84 |         case .string(let encoding) = decoder.get("encoding")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[123 / 157] Images
+[130 / 158] Style
+[132 / 159] Style
+[136 / 157] Style
+[146 / 168]
+[148 / 170] Layout
+[149 / 171] WebAPI
+[150 / 172] Layout
+[157 / 171] Networking
+[161 / 174] AetherHumanUI-product
+[163 / 181] Display
+[165 / 182] Display
+[179 / 190] WebAPI
+[187 / 198]
+[188 / 199] Display
+[200 / 211] EngineRuntime
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:145:9: warning: variable 'record' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 143 |     let bridge = JSMediaBridge()
+ 144 |     let mirror = MediaMirror()
+ 145 |     var record = ContextRecord(
+     |         `- warning: variable 'record' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 146 |       id: id,
+ 147 |       name: name.isEmpty ? "context-\(id.rawValue)" : name,
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:454:5: warning: result of 'try?' is unused [#NoUsage]
+ 452 |       let runtime = context.pages[pageID]?.javascript
+ 453 |     else { return }
+ 454 |     try? runtime.dispatchEvent(type: event.rawValue, target: node)
+     |     `- warning: result of 'try?' is unused [#NoUsage]
+ 455 |   }
+ 456 | 
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:797:5: warning: code after 'return' will never be executed
+ 795 |   public func navigate(pageID: PageID, to url: URL, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+ 796 |     return try await navigateWeb(pageID: pageID, request: HTTPRequest(url: url), settle: settle)
+ 797 |     return try await performNavigation(pageID: pageID, request: HTTPRequest(url: url), history: .push)
+     |     `- warning: code after 'return' will never be executed
+ 798 |   }
+ 799 | 
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:803:5: warning: code after 'return' will never be executed
+ 801 |   public func navigate(pageID: PageID, request: HTTPRequest, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+ 802 |     return try await navigateWeb(pageID: pageID, request: request, settle: settle)
+ 803 |     return try await performNavigation(pageID: pageID, request: request, history: .push)
+     |     `- warning: code after 'return' will never be executed
+ 804 |   }
+ 805 | 
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:810:5: warning: code after 'return' will never be executed
+ 808 |     try await webPage(pageID).back()
+ 809 |     return try await synchronizedWebInfo(pageID)
+ 810 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 811 |     let targetIndex = page.historyIndex - 1
+ 812 |     guard page.history.indices.contains(targetIndex) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:824:5: warning: code after 'return' will never be executed
+ 822 |     try await webPage(pageID).forward()
+ 823 |     return try await synchronizedWebInfo(pageID)
+ 824 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 825 |     let targetIndex = page.historyIndex + 1
+ 826 |     guard page.history.indices.contains(targetIndex) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:838:5: warning: code after 'return' will never be executed
+ 836 |     try await webPage(pageID).reload(bypassCache: bypassCache)
+ 837 |     return try await synchronizedWebInfo(pageID)
+ 838 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 839 |     guard let url = page.loaded?.url else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+ 840 |     var request = HTTPRequest(url: url)
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:852:5: warning: code after 'return' will never be executed
+ 850 |   public func snapshot(pageID: PageID, limit: Int = 20000) async throws -> PageSnapshot {
+ 851 |     return try await webPage(pageID).snapshot(info: pageInfo(pageID), limit: limit)
+ 852 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 853 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+ 854 |     let dom = loaded.document.snapshot()
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:882:5: warning: code after 'return' will never be executed
+ 880 |   public func query(pageID: PageID, selector: String) async throws -> InspectedNode? {
+ 881 |     return try await webPage(pageID).query(selector).first
+ 882 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 883 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+ 884 |     guard let id = loaded.document.querySelector(selector) else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:890:5: warning: code after 'return' will never be executed
+ 888 |   public func queryAll(pageID: PageID, selector: String) async throws -> [InspectedNode] {
+ 889 |     return try await webPage(pageID).query(selector)
+ 890 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 891 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+ 892 |     return loaded.document.querySelectorAll(selector).compactMap {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:929:5: warning: code after 'return' will never be executed
+ 927 |     try await webPage(pageID).nodeAction(nodeID, body: "n.scrollIntoView({block:'center'}); n.focus(); n.click();")
+ 928 |     return try await synchronizedWebInfo(pageID)
+ 929 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 930 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+ 931 |     guard let node = loaded.document.node(nodeID) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:982:5: warning: code after 'return' will never be executed
+ 980 |   public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) async throws {
+ 981 |     try await webPage(pageID).fill(nodeID, value: text, append: append); return
+ 982 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+ 983 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+ 984 |     guard let node = loaded.document.node(nodeID) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1003:5: warning: code after 'return' will never be executed
+1001 |   public func evaluate(pageID: PageID, source: String) async throws -> JavaScriptResult {
+1002 |     return try await webPage(pageID).evaluate(source)
+1003 |     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
+     |     `- warning: code after 'return' will never be executed
+1004 |       var page = context.pages[pageID]
+1005 |     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1051:5: warning: code after 'return' will never be executed
+1049 |   public func captureState(pageID: PageID) async throws -> CapturePageState {
+1050 |     return try await webPage(pageID).captureState()
+1051 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1052 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1053 |     return CapturePageState(
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1074:5: warning: code after 'return' will never be executed
+1072 |   ) async throws -> CaptureDocumentData {
+1073 |     return try await webPage(pageID).captureDocument(includeComputedStyles: includeComputedStyles, redactSensitive: redactSensitive)
+1074 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1075 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1076 |     guard let contextID = contextID(containing: pageID), let context = contexts[contextID] else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1257:5: warning: code after 'return' will never be executed
+1255 |     try await webPage(pageID).resize(size)
+1256 |     return try await synchronizedWebInfo(pageID)
+1257 |     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
+     |     `- warning: code after 'return' will never be executed
+1258 |       var page = context.pages[pageID]
+1259 |     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1270:5: warning: code after 'return' will never be executed
+1268 |     try await webPage(pageID).loadHTML(html, url: url)
+1269 |     return try await synchronizedWebInfo(pageID)
+1270 |     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
+     |     `- warning: code after 'return' will never be executed
+1271 |       var page = context.pages[pageID]
+1272 |     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1319:5: warning: code after 'return' will never be executed
+1317 |     contexts[record.contextID]?.pages[pageID]?.lifecycle = state
+1318 |     return try pageInfo(pageID)
+1319 |     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
+     |     `- warning: code after 'return' will never be executed
+1320 |       var page = context.pages[pageID]
+1321 |     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1466:5: warning: code after 'return' will never be executed
+1464 |     try await webPage(pageID).nodeAction(nodeID, body: "n.focus()")
+1465 |     return try pageInfo(pageID)
+1466 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1467 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1468 |     guard loaded.document.node(nodeID) != nil else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1488:5: warning: code after 'return' will never be executed
+1486 |     _ = try await webPage(pageID).script("document.activeElement?.blur()")
+1487 |     return try pageInfo(pageID)
+1488 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1489 |     guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1490 |     if let previous = page.focused, let runtime = page.javascript {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1501:5: warning: code after 'return' will never be executed
+1499 |   public func focusedNode(pageID: PageID) async throws -> InspectedNode? {
+1500 |     return try await webPage(pageID).query(":focus").first
+1501 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1502 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1503 |     guard let focused = page.focused else { return nil }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1516:5: warning: code after 'return' will never be executed
+1514 |   public func scrollTo(pageID: PageID, x: Double, y: Double) async throws -> Point {
+1515 |     return try await webPage(pageID).scroll(x: x, y: y)
+1516 |     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
+     |     `- warning: code after 'return' will never be executed
+1517 |       var page = context.pages[pageID]
+1518 |     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1529:5: warning: code after 'return' will never be executed
+1527 |   public func scrollOffset(pageID: PageID) async throws -> Point {
+1528 |     return try await webPage(pageID).scrollPosition()
+1529 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1530 |     guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1531 |     return page.scroll
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1605:5: warning: code after 'return' will never be executed
+1603 |   public func selectOption(pageID: PageID, selectNodeID: NodeID, value: String) async throws {
+1604 |     try await webPage(pageID).fill(selectNodeID, value: value, append: false); return
+1605 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1606 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1607 |     guard let select = loaded.document.node(selectNodeID), select.tagName == "select" else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1633:5: warning: code after 'return' will never be executed
+1631 |   public func fill(pageID: PageID, nodeID: NodeID, value: String) async throws {
+1632 |     try await webPage(pageID).fill(nodeID, value: value, append: false); return
+1633 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1634 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1635 |     guard let node = loaded.document.node(nodeID) else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/BrowserRuntime.swift:1651:5: warning: code after 'return' will never be executed
+1649 |     try await webPage(pageID).nodeAction(formNodeID, body: "n.requestSubmit()")
+1650 |     return try await synchronizedWebInfo(pageID)
+1651 |     let page = try requirePage(pageID)
+     |     `- warning: code after 'return' will never be executed
+1652 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+1653 |     guard let form = loaded.document.node(formNodeID), form.tagName == "form" else {
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/PagePresentation.swift:132:5: warning: code after 'return' will never be executed
+130 |     _ = try await scrollTo(pageID: pageID, x: offset.x + x, y: offset.y + y)
+131 |     return
+132 |     let page = try requirePage(pageID)
+    |     `- warning: code after 'return' will never be executed
+133 |     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+134 |     _ = try await scrollTo(pageID: pageID,
+
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/ProfilePrivacy.swift:10:5: warning: code after 'return' will never be executed
+ 8 |     try await configureWebBlocking(contextID: contextID, rules: rules, enabled: enabled)
+ 9 |     return
+10 |     let context = try requireContext(contextID)
+   |     `- warning: code after 'return' will never be executed
+11 |     try context.network.blocker.replaceRules(from: rules)
+12 |     context.network.blocker.updateConfiguration(BlockerConfiguration(enabled: enabled))
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[202 / 212] EngineRuntime
+[207 / 216] WebSecurity
+[208 / 217] BrowserEngine
+[211 / 216] BrowserEngine
+[215 / 227] browserd-product
+[216 / 228] enginebench-product
+[217 / 229] browserd-product
+[221 / 229] AetherApp-product
+[222 / 230] browserctl-product
+[223 / 231] AetherApp-product
+[232 / 237]
+[234 / 237] browserd-product
+[235 / 237] browserctl-product
+[237 / 237] enginebench-product
+[239 / 240] AetherApp-product
+[241 / 241] browserctl-product
+[244 / 244] browserd-product
+[247 / 247] enginebench-product
+Build complete! (144.03 sec)

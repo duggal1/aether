@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import AetherHumanUI
 
@@ -8,7 +9,12 @@ struct AetherHumanPreviewApp: App {
     var body: some Scene {
         WindowGroup("Aether", id: "browser") {
             BrowserWindowRoot(workspace: workspace)
+                .onAppear {
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate()
+                }
         }
+        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1270, height: 795)
         .commands { BrowserCommands() }
 

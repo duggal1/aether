@@ -27,7 +27,7 @@ public struct FindBarView: View {
         }
         .padding(6)
         .background { AetherPopoverBackground() }
-        .aetherFloatingShadow(dark: theme.dark)
+        .aetherGlassShadow(dark: theme.dark)
     }
 
     private func find(_ forward: Bool) {

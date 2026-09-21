@@ -66,7 +66,7 @@ public struct HistoryView: View {
         }
         .padding(22)
         .frame(width: 680, height: 560)
-        .background(theme.raised)
+        .background { AetherSheetBackground() }
         .confirmationDialog("Clear history for this profile?", isPresented: $confirmClear) {
             Button("Clear History", role: .destructive) { window.workspace.clearHistory(window.activeProfileID) }
         } message: { Text("Browsing history for this profile will be removed from Aether's shell history.") }

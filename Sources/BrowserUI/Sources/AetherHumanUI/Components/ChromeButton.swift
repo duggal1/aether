@@ -20,11 +20,11 @@ public struct ChromeButton: View {
     public var body: some View {
         Button(action: action) {
             BrowserIconView(icon: icon, tint: tint)
-                .iconSize(15)
+                .iconSize(16)
                 .frame(width: size, height: size)
                 .background {
                     if enabled && (hovering || selected) {
-                        Circle().fill(theme.hover)
+                        RoundedRectangle(cornerRadius: 7).fill(theme.hover)
                     }
                 }
         }
@@ -38,6 +38,6 @@ public struct ChromeButton: View {
 
     private var tint: Color {
         guard enabled else { return theme.soft }
-        return hovering || selected ? theme.ink : theme.muted
+        return hovering || selected ? theme.ink : AetherPalette.navigation(theme.dark)
     }
 }

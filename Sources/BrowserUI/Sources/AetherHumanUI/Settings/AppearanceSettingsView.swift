@@ -59,8 +59,15 @@ public struct AppearanceSettingsView: View {
             }
             .foregroundStyle(theme.ink)
             .padding(10)
-            .background(selected ? theme.hover : theme.surface,
-                        in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .background(selected ? theme.hover : theme.canvas,
+                        in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .overlay {
+                if !selected {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(theme.faintLine, lineWidth: 0.5)
+                        .allowsHitTesting(false)
+                }
+            }
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
         .focusEffectDisabled()

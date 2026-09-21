@@ -5,6 +5,7 @@ public struct AetherCommandPalette: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var query = ""
     @FocusState private var fieldFocused: Bool
+    @Namespace private var glassNS
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
@@ -28,7 +29,7 @@ public struct AetherCommandPalette: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
             searchField
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
@@ -81,40 +82,39 @@ public struct AetherCommandPalette: View {
             row("History", nil, symbol: .history, chevron: true) { close(); window.showsHistory = true }
             row("Bookmarks", nil, symbol: .bookmarks, chevron: true) { close(); window.showsBookmarks = true }
         }
-        .padding(13)
-        .frame(width: 348)
-        .frame(maxHeight: .infinity, alignment: .top)
+        .padding(8)
+        .frame(width: 334)
+        .frame(maxHeight: 520, alignment: .top)
         .background {
-            AetherLeadingGlassPanel()
+            AetherPopoverBackground()
         }
-        .aetherFloatingShadow(dark: theme.dark)
+        .aetherGlassShadow(dark: theme.dark)
         .onAppear { fieldFocused = true }
         .onExitCommand { close() }
     }
 
     private var searchField: some View {
         HStack(spacing: 9) {
-            BrowserIconView(icon: .search, tint: theme.muted).iconSize(13)
-            TextField("Search tabs, history, bookmarks", text: $query)
+            BrowserIconView(icon: .search, tint: theme.muted).iconSize(16)
+            TextField("Search", text: $query, prompt: Text("Search").foregroundStyle(theme.placeholder))
                 .textFieldStyle(.plain)
-                .font(AetherType.body(13))
+                .font(AetherType.body(16))
                 .foregroundStyle(theme.ink)
                 .focused($fieldFocused)
             Text("\u{21E7}\u{2318}A")
                 .font(AetherType.caption(10)).foregroundStyle(theme.soft)
         }
         .padding(.horizontal, 11)
-        .frame(height: 34)
-        .background(theme.inset, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .frame(height: 42)
+        
         .accessibilityLabel("Search tabs, history and bookmarks")
     }
 
     @ViewBuilder private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title.uppercased())
-                .font(AetherType.sectionHeader(10))
-                .tracking(0.4)
-                .foregroundStyle(theme.soft)
+            Text(title)
+                .font(AetherType.emphasis(12))
+                .foregroundStyle(theme.muted)
                 .padding(.leading, 9).padding(.vertical, 4)
             content()
         }
@@ -127,14 +127,15 @@ public struct AetherCommandPalette: View {
     @ViewBuilder private func row(_ title: String, _ subtitle: String?, url: String? = nil, symbol: AetherSymbol? = nil,
                                   selected: Bool = false, chevron: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
+            HoverSurface(selected: selected) {
             HStack(spacing: 10) {
                 if let url {
-                    DomainIcon(url, size: 20)
+                    DomainIcon(url, size: 16)
                 } else if let symbol {
-                    AetherSymbolView(symbol, tint: theme.muted, size: 13)
+                    AetherSymbolView(symbol, tint: theme.muted, size: 16)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(AetherType.rowTitle(12)).lineLimit(1)
+                    Text(title).font(AetherType.body(13)).lineLimit(1)
                     if let subtitle { Text(subtitle).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1) }
                 }
                 Spacer(minLength: 4)
@@ -146,10 +147,12 @@ public struct AetherCommandPalette: View {
             }
             .foregroundStyle(theme.ink)
             .padding(.horizontal, 9)
-            .frame(height: subtitle == nil ? 30 : 38)
+            .frame(height: subtitle == nil ? 33 : 42)
             .contentShape(Rectangle())
+            }
         }
         .buttonStyle(AetherPaletteRowStyle(reduced: reduced))
+        .focusEffectDisabled()
     }
 
     private func close() { window.showsTabSearch = false }
@@ -162,7 +165,7 @@ private struct AetherPaletteRowStyle: ButtonStyle {
         configuration.label
             .background { AetherFocusedFill(radius: 7) }
             .focusEffectDisabled()
-            .modifier(AetherPointingCursor())
+            .pointerStyle(.link)
             .background(configuration.isPressed ? theme.hover : .clear,
                         in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)

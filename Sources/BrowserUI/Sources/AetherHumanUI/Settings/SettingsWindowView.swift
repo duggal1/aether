@@ -11,26 +11,29 @@ public struct SettingsWindowView: View {
             SettingsSidebarView(selection: $selection)
                 .frame(width: AetherMetrics.settingsSidebar)
             Rectangle()
-                .fill(theme.hairline)
-                .frame(width: 1)
+                .fill(theme.faintLine)
+                .frame(width: 0.5)
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(selection.rawValue)
-                        .font(AetherType.panelTitle(20)).foregroundStyle(theme.heading)
+                        .font(AetherType.emphasis(19)).foregroundStyle(theme.heading)
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 25).padding(.top, 25).padding(.bottom, 18)
+                .padding(.horizontal, 28).padding(.top, 26).padding(.bottom, 24)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) { sectionContent }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 25).padding(.bottom, 30)
+                        .padding(.horizontal, 28).padding(.bottom, 30)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(theme.canvas)
         }
-        .frame(width: 800, height: 560)
-        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+        .frame(width: 820, height: 570)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .toggleStyle(.switch)
+        .controlSize(.regular)
+        .tint(.accentColor)
         .aetherTypography()
         .preferredColorScheme(workspace.preferences.appearance.colorScheme)
     }

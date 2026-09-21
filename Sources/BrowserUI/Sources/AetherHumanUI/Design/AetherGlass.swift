@@ -42,7 +42,7 @@ public struct AetherGlassBackdrop: View {
             RoundedRectangle(cornerRadius: radius, style: .continuous).fill(theme.raised)
         } else if #available(macOS 26.0, *) {
             Color.clear
-                .glassEffect(variant == .clear ? .clear : .regular.interactive(interactive),
+                .glassEffect(variant == .clear ? .clear : .regular.tint(theme.raised.opacity(0.55)).interactive(interactive),
                              in: RoundedRectangle(cornerRadius: radius, style: .continuous))
         } else {
             RoundedRectangle(cornerRadius: radius, style: .continuous)

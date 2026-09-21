@@ -58,6 +58,8 @@ extension BrowserRuntime {
     return try await webPage(pageID).view
   }
 
+  public func isWebContentLive(pageID: PageID) -> Bool { webPages[pageID] != nil }
+
   func restoreWebContent(_ id: PageID) async throws {
     guard webPages[id] == nil else { return }
     let record = try requirePage(id)
@@ -78,8 +80,7 @@ extension BrowserRuntime {
       page.history = state.history
       page.historyIndex = state.historyIndex
     }
-    contexts[contextID]?.pages[pageID] = page
-    publishPageStates()
+    updatePageRecord(page)
   }
 
   func synchronizedWebInfo(_ id: PageID) async throws -> BrowserPageInfo {

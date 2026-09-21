@@ -1,0 +1,56 @@
+warning: 'aether': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/harshitduggal/workspace/Aether/Sources/BrowserUI/Sources/AetherHumanPreview/AetherHumanPreviewApp.swift
+Building for debugging...
+[Computing dependencies]
+[Provisioning 2 / 54]
+[Pre-planning 1 / 1545]
+[Planning 1052 / 1545]
+[Planning deferred tasks]
+[Constructing 776 / 3510]
+[Starting]
+[15 / 160] HTML
+[32 / 189] EngineCore
+[34 / 190] EngineCore
+[35 / 190] AetherNetworkHardening
+[39 / 181] EngineCore
+[40 / 182] AetherHumanUI
+[41 / 182] AetherCapture
+[52 / 216] WebSecurity
+[53 / 216] Text
+[56 / 211] Scheduler
+[59 / 206] Networking
+[63 / 196] Diagnostics
+[64 / 196] DOM
+[65 / 196] CSS
+[66 / 196] DOM
+[68 / 186] AgentProtocol
+[82 / 217] JavaScript
+[86 / 207] HTML
+[87 / 207] AgentProtocol
+[96 / 202] Style
+[104 / 193] Graphics
+[107 / 190] Scheduler
+[109 / 190] Layout
+[119 / 185] Scheduler
+[125 / 184] Media
+[135 / 182] Text
+[136 / 182] Navigation
+[141 / 182] Layout
+[143 / 183] EngineRuntime
+[150 / 186] BrowserEngine
+[152 / 187]
+[158 / 169] AgentTests-product
+[158 / 169]
+[160 / 171] AgentTests-product
+[164 / 170] AgentTests-product
+[167 / 172] HumanIntegrationTests-product
+[169 / 171]
+Build complete! (18.04 sec)
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test webKitDOMBatchingPreservesResultsAndMeasuresRoundTrips() started.
+WEBKIT_DOM_BENCH samples=200 separate_median_ms=0.3136875 batched_median_ms=0.1875205
+✔ Test webKitDOMBatchingPreservesResultsAndMeasuresRoundTrips() passed after 1.406 seconds.
+✔ Test run with 1 test in 0 suites passed after 1.406 seconds.
+{"command": ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift", "test", "-j", "1", "--no-parallel", "-Xswiftc", "-plugin-path", "-Xswiftc", "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing", "--filter", "webKitDOMBatching"], "seconds": 26.889, "peakTreeRSSMiB": 458.52, "exitCode": 0, "stopped": null}

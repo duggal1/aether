@@ -1,0 +1,7 @@
+{
+  "authenticated_connections": 12,
+  "abandoned_responses": 6,
+  "completed_requests": 6,
+  "invalid_token_rejected": true,
+  "daemon_survived": true
+}

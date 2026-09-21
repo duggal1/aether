@@ -48,6 +48,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     self.changed = changed
     let configuration = WKWebViewConfiguration()
     configuration.websiteDataStore = context.store
+    configuration.preferences.inactiveSchedulingPolicy = .throttle
     WebKitAppearance.install(in: configuration)
     if let rules = context.rules { configuration.userContentController.add(rules) }
     view = WKWebView(frame: NSRect(x: 0, y: 0, width: viewport.width, height: viewport.height),

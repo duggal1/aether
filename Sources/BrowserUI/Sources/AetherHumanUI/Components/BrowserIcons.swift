@@ -97,7 +97,7 @@ public struct BrowserIconView: View {
 
     public var body: some View {
         Image(systemName: icon.symbol.rawValue)
-            .font(AetherType.symbol(size * 0.92))
+            .font(AetherType.symbol(size, weight: .medium))
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(tint ?? Color.primary)
             .frame(width: size, height: size)
@@ -112,7 +112,7 @@ public extension View {
 }
 
 private struct AetherIconSizeKey: EnvironmentKey {
-    static let defaultValue: CGFloat = 14
+    static let defaultValue: CGFloat = 16
 }
 
 extension EnvironmentValues {

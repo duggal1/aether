@@ -24,12 +24,14 @@ public struct ProfilesSettingsView: View {
                     } label: {
                         Image(systemName: "ellipsis").font(.system(size: 15)).frame(width: 24)
                     }.menuStyle(.borderlessButton).frame(width: 35)
+                        .pointerStyle(.link)
                 }
             }
         }
         HStack {
             Spacer()
             Button { showCreate = true } label: { Label("Create Profile", systemImage: "plus") }
+                .pointerStyle(.link)
         }
         .sheet(isPresented: $showCreate) {
             editor(title: "Create Profile", value: $createName) {

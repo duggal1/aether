@@ -114,6 +114,15 @@ fleet policy, `Diagnostics` metrics, `Media` registry/bridge, `browserctl` /
 - Settle=commit saves 0.8-2.4s on long-tail pages, ~0 on fast pages.
 - Foreground FCP stays sub-second on award sites; background tabs measure
   the throttle, not the engine.
+- Fast-lane round: surface-ownership healing (`activate` liveness check +
+  registry identity swap), tiered retention (suspend keeps throttled view;
+  freeze/discard close), `.throttle` inactive policy on all views, bounded
+  `focusNext` (limit 500), removed double global publish (didSet covers).
+  Suspend-retains proven: title readable post-suspend with no reload.
+- Interleaved Aether/Safari/Chrome title medians (3 trials):
+  apple 1063/598/611, youtube 1373/3153/1562, wiki 1608/1210/1104 (ms).
+  Parity class, no ranking; Safari's own 0.7->8s youtube swing reproduced.
+  Raw: agents/opencode/perf-baseline/results/interleave-2026-09-21.json.
 
 ## Rules for every step
 

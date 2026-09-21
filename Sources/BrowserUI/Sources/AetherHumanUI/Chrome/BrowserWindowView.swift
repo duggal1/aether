@@ -8,46 +8,48 @@ public struct BrowserWindowView: View {
     public init(window: BrowserWindowModel) { self.window = window }
 
     public var body: some View {
-        ZStack(alignment: .trailing) {
-            VStack(spacing: 0) {
-                if window.arrangement == .top {
-                    VStack(spacing: 0) {
-                        TopTabStripView(window: window, showsChrome: false)
-                        NavigationBarView(window: window, showsChrome: false).zIndex(1)
-                    }
-                    .background { AetherChromeBackground(.toolbar) }
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                HStack(spacing: 0) {
-                    if window.arrangement == .sidebar && !window.sidebarCollapsed {
-                        SidebarTabListView(window: window)
-                            .transition(.move(edge: .leading).combined(with: .opacity))
-                            .overlay(alignment: .trailing) {
-                                SidebarResizeHandle(preferences: window.workspace.preferences)
-                            }
-                    }
-                    VStack(spacing: 0) {
-                        if window.arrangement == .sidebar {
-                            NavigationBarView(window: window).zIndex(1)
+        ZStack(alignment: .topTrailing) {
+            HStack(spacing: 0) {
+                if window.arrangement == .sidebar && !window.sidebarCollapsed {
+                    SidebarTabListView(window: window)
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                        .overlay(alignment: .trailing) {
+                            SidebarResizeHandle(preferences: window.workspace.preferences)
                         }
+                }
+                VStack(spacing: 0) {
+                    if window.arrangement == .top {
+                        TopTabStripView(window: window)
+                            .zIndex(2)
+                    }
+                    VStack(spacing: 0) {
+                        NavigationBarView(window: window, showsChrome: false).zIndex(10)
                         BrowserContentView(window: window, surfaces: window.surfaces)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(theme.canvas)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .padding(.leading, window.arrangement == .top ? 6 : 0)
+                    .padding(.trailing, 6)
+                    .padding(.bottom, 6)
+                    .padding(.top, window.arrangement == .sidebar ? 6 : 0)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             if window.showsTabSearch {
-                Color.black.opacity(theme.dark ? 0.32 : 0.14)
+                Color.clear
                     .contentShape(Rectangle())
                     .onTapGesture { window.showsTabSearch = false }
-                    .transition(.opacity)
-                    .zIndex(1)
+                    .zIndex(20)
                 AetherCommandPalette(window: window)
+                    .padding(.top, window.arrangement == .top ? 42 : 48)
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 8)
                     .transition(AetherMotion.panelTransition(reduced))
-                    .zIndex(2)
+                    .zIndex(21)
             }
         }
         .frame(minWidth: 760, minHeight: 460)
-        .background(theme.canvas)
+        .background { AetherChromeBackground(.sidebar) }
         .preferredColorScheme(window.workspace.preferences.appearance.colorScheme)
         .animation(AetherMotion.panel(reduced), value: window.showsTabSearch)
         .animation(AetherMotion.sidebar(reduced), value: window.sidebarCollapsed)

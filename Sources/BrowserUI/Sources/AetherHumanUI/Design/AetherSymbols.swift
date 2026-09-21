@@ -123,7 +123,7 @@ public struct AetherSymbolView: View {
     public var tint: Color?
     public var size: CGFloat
 
-    public init(_ symbol: AetherSymbol, tint: Color? = nil, size: CGFloat = 14) {
+    public init(_ symbol: AetherSymbol, tint: Color? = nil, size: CGFloat = 16) {
         self.symbol = symbol
         self.tint = tint
         self.size = size
@@ -131,7 +131,7 @@ public struct AetherSymbolView: View {
 
     public var body: some View {
         Image(systemName: symbol.rawValue)
-            .font(AetherType.symbol(size))
+            .font(AetherType.symbol(size, weight: .medium))
             .symbolRenderingMode(.monochrome)
             .foregroundStyle(tint ?? Color.primary)
             .frame(width: size * 1.3, height: size * 1.3)

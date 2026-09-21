@@ -1,0 +1,23 @@
+{
+  "binary": "/Users/harshitduggal/workspace/Aether/agents/codex/webkit-performance/before/bin/browserd",
+  "sha256": "3a53aa413fcac217a3185a5cf35d839b48f1ce4714085fdc3a75ecbd4f6048d9",
+  "checks": [],
+  "benchmarks": {
+    "navigation_1_makespan_ms": 1097.552249993896,
+    "query_1": {
+      "n": 60,
+      "median_ms": 0.6418334960471839,
+      "p95_ms": 1.3560000079451129,
+      "max_ms": 106.06362500402611
+    },
+    "navigation_4_makespan_ms": 180.30249999719672,
+    "query_4": {
+      "n": 240,
+      "median_ms": 0.8370834984816611,
+      "p95_ms": 1.8911250081146136,
+      "max_ms": 2.850875011063181
+    }
+  },
+  "memory_scope": "daemon RSS only; excludes WebKit services",
+  "error": "AssertionError()"
+}

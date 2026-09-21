@@ -25,6 +25,7 @@ public struct DomainIcon: View {
                     .interpolation(.high)
                     .scaledToFit()
                     .frame(width: size * 0.9, height: size * 0.9)
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
             } else if host != nil {
                 Image(systemName: AetherSymbol.globe.rawValue)
                     .font(AetherType.symbol(size * 0.68))

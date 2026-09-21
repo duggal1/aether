@@ -6,28 +6,25 @@ public struct SettingsSidebarView: View {
     public init(selection: Binding<SettingsSection>) { _selection = selection }
     public var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                AetherLogo()
-                    .frame(width: 16, height: 16)
-                Text("Aether").font(AetherType.body(14))
-            }
-            .foregroundStyle(theme.heading)
-            .padding(.horizontal, 12).padding(.top, 24).padding(.bottom, 24)
+            Text("Aether")
+                .font(AetherType.emphasis(14))
+                .foregroundStyle(theme.heading)
+                .padding(.horizontal, 12).padding(.top, 22).padding(.bottom, 20)
             ForEach(SettingsSection.allCases) { section in
                 Button { selection = section } label: {
                     HStack(spacing: 11) {
-                        AetherSymbolView(nativeIcon(for: section), tint: selection == section ? theme.ink : theme.muted, size: 12)
-                            .frame(width: 17)
-                        Text(section.rawValue).font(AetherType.body(12)).lineLimit(1)
+                        AetherSymbolView(nativeIcon(for: section), tint: selection == section ? theme.ink : theme.muted, size: 16)
+                            .frame(width: 20)
+                        Text(section.rawValue).font(AetherType.body(13)).lineLimit(1)
                         Spacer(minLength: 0)
                     }
                     .foregroundStyle(selection == section ? theme.ink : theme.muted)
-                    .padding(.horizontal, 12).frame(height: 32)
-                    .background(selection == section ? theme.selection : .clear, in: RoundedRectangle(cornerRadius: 7))
+                    .padding(.horizontal, 12).frame(height: 34)
+                    .background(selection == section ? theme.hover : .clear, in: RoundedRectangle(cornerRadius: 7))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .aetherFocusTreatment(radius: 7)
+                .aetherFocusTreatment(radius: 6)
                 .focusEffectDisabled()
                 .aetherPointingCursor()
             }
@@ -36,7 +33,7 @@ public struct SettingsSidebarView: View {
         .padding(.horizontal, 9)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.canvas)
+        .background { AetherChromeBackground(.sidebar) }
     }
 
     private func nativeIcon(for section: SettingsSection) -> AetherSymbol {

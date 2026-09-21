@@ -9,6 +9,7 @@ public struct BrowserWindowRoot: View {
         AetherThemeScope {
             BrowserWindowView(window: window)
                 .aetherTypography()
+                .ignoresSafeArea(.container, edges: .top)
                 .focusedSceneValue(\.aetherWindow, window)
                 .task { await window.restoreProfile() }
         }

@@ -29,7 +29,11 @@ extension BrowserRuntime {
     let pair = AsyncStream<RuntimePageState>.makeStream(bufferingPolicy: .bufferingNewest(256))
     pageObservers[token] = pair.continuation
     for context in contexts.values {
-      for page in context.pages.values { pair.continuation.yield(state(for: page)) }
+      for page in context.pages.values {
+        let value = state(for: page)
+        observedStates[page.id] = value
+        pair.continuation.yield(value)
+      }
     }
     pair.continuation.onTermination = { [weak self] _ in
       Task { await self?.removePageObserver(token) }
@@ -37,7 +41,10 @@ extension BrowserRuntime {
     return pair.stream
   }
 
-  func removePageObserver(_ token: UUID) { pageObservers[token] = nil }
+  func removePageObserver(_ token: UUID) {
+    pageObservers[token] = nil
+    if pageObservers.isEmpty { observedStates.removeAll(keepingCapacity: false) }
+  }
 
   public func pageState(pageID: PageID) throws -> RuntimePageState {
     state(for: try requirePage(pageID))
@@ -55,6 +62,7 @@ extension BrowserRuntime {
   }
 
   func publishPageStates() {
+    guard !pageObservers.isEmpty else { return }
     var current: [PageID: RuntimePageState] = [:]
     for context in contexts.values {
       for page in context.pages.values {
@@ -72,6 +80,21 @@ extension BrowserRuntime {
       for observer in pageObservers.values { observer.yield(closed) }
     }
     observedStates = current
+  }
+
+  func publishPageState(_ id: PageID) {
+    guard !pageObservers.isEmpty, let context = contextID(containing: id),
+      let page = contexts[context]?.pages[id] else { return }
+    let value = state(for: page)
+    guard observedStates[id] != value else { return }
+    observedStates[id] = value
+    for observer in pageObservers.values { observer.yield(value) }
+  }
+
+  func updatePageRecord(_ page: PageRecord) {
+    pageStateUpdate = page.id
+    defer { pageStateUpdate = nil }
+    contexts[page.contextID]?.pages[page.id] = page
   }
 
   public func stopNavigation(pageID: PageID) async {
@@ -114,7 +137,7 @@ extension BrowserRuntime {
   }
 
   public func focusNext(pageID: PageID, backwards: Bool = false) async throws {
-    let snapshot = try await snapshot(pageID: pageID)
+    let snapshot = try await snapshot(pageID: pageID, limit: 500)
     let nodes = snapshot.nodes.filter {
       $0.visible && $0.enabled && ($0.editable || ["button", "link", "checkbox", "radio", "combobox"].contains($0.role ?? ""))
     }

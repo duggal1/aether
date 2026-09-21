@@ -24,7 +24,7 @@ public final class BrowserPreferences {
         restoreWindows = defaults.object(forKey: "aether.restore") as? Bool ?? true
         showFavorites = defaults.object(forKey: "aether.favorites") as? Bool ?? true
         showFullAddress = defaults.object(forKey: "aether.fullAddress") as? Bool ?? false
-        sidebarWidth = max(188, min(324, defaults.object(forKey: "aether.sidebarWidth") as? Double ?? 226))
+        sidebarWidth = max(188, min(324, defaults.object(forKey: "aether.sidebarWidth") as? Double ?? 190))
         downloadFolder = defaults.string(forKey: "aether.downloads") ?? "Downloads"
         privacy = BrowserPrivacyPolicy(
             blockAds: defaults.object(forKey: "aether.blockAds") as? Bool ?? true,

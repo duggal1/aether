@@ -35,34 +35,31 @@ extension WebKitPage {
     JavaScriptResult(value: try await script(source, isolated: false), console: [])
   }
 
-  func prepareDOM() async throws {
-    _ = try await script(WebKitDOMScript.source(generation: generation))
+  func domScript(_ source: String) -> String {
+    WebKitDOMScript.source(generation: generation) + ";\n" + source
   }
 
   func query(_ selector: String) async throws -> [InspectedNode] {
-    try await prepareDOM()
     let values = try await decode([WebDOMNode].self,
-      "JSON.stringify(Array.from(document.querySelectorAll(\(try Self.literal(selector)))).slice(0,10000).map(n => globalThis.__aetherDOM.describe(n)))")
+      domScript("JSON.stringify(Array.from(document.querySelectorAll(\(try Self.literal(selector)))).slice(0,10000).map(n => globalThis.__aetherDOM.describe(n)))"))
     return values.map(\.inspected)
   }
 
   func snapshot(info: BrowserPageInfo, limit: Int = 20000) async throws -> PageSnapshot {
-    try await prepareDOM()
     let capped = max(1, min(limit, 20000))
-    let values = try await decode([WebDOMNode].self, "JSON.stringify(globalThis.__aetherDOM.snapshot(\(capped)))")
+    let values = try await decode([WebDOMNode].self, domScript("JSON.stringify(globalThis.__aetherDOM.snapshot(\(capped)))"))
     return PageSnapshot(page: info, documentID: DocumentID(rawValue: UInt64(generation)),
       mutationVersion: UInt64(generation), nodes: values.map(\.snapshot))
   }
 
   func nodeAction(_ node: NodeID, body: String) async throws {
     guard node.version == generation else { throw BrowserRuntimeError.nodeNotFound(node) }
-    try await prepareDOM()
-    _ = try await script("""
+    _ = try await script(domScript("""
     (() => { const n = globalThis.__aetherDOM.get(\(node.index));
     if (!n || !n.isConnected) throw new Error('Node is no longer attached');
     \(body)
     })()
-    """)
+    """))
   }
 
   func fill(_ node: NodeID, value: String, append: Bool) async throws {

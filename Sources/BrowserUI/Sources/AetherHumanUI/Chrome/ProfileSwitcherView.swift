@@ -12,11 +12,9 @@ public struct ProfileSwitcherView: View {
     public var body: some View {
         Button { showing.toggle() } label: {
             HStack(spacing: 6) {
-                AetherLogo()
-                    .frame(width: 14, height: 14)
                 Text(window.workspace.name(for: window.activeProfileID))
-                    .font(AetherType.body(13)).lineLimit(1)
-                BrowserIconView(icon: .arrowDown, tint: theme.soft).iconSize(8)
+                    .font(AetherType.emphasis(13)).lineLimit(1)
+                BrowserIconView(icon: .arrowDown, tint: theme.muted).iconSize(10)
             }
             .foregroundStyle(theme.ink)
             .padding(.horizontal, 6)

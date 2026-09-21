@@ -6,8 +6,8 @@ public struct GeneralSettingsView: View {
     public var body: some View {
         SettingsHelp("Choose how Aether starts and which profile new windows use.")
         AetherSection("On startup") {
-            AetherRow("Restore previous windows", subtitle: "Requires engine-backed page restoration, not just saved tab labels.") {
-                Toggle("Restore previous windows", isOn: Binding(get: { workspace.preferences.restoreWindows }, set: { workspace.preferences.restoreWindows = $0 })).labelsHidden()
+            AetherRow("Restore previous windows", subtitle: "Continue where you left off.") {
+                Toggle("Restore previous windows", isOn: Binding(get: { workspace.preferences.restoreWindows }, set: { workspace.preferences.restoreWindows = $0 })).labelsHidden().toggleStyle(.switch)
             }
         }
         AetherSection("New windows") {
@@ -24,6 +24,5 @@ public struct GeneralSettingsView: View {
                 .accessibilityLabel("Open new windows with profile")
             }
         }
-        SettingsHelp("Browser data, JavaScript execution, renderer behavior and profile security remain owned by the existing Aether engine.")
     }
 }

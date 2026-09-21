@@ -1,0 +1,87 @@
+{
+  "scope": "daemon only; excludes WebKit subprocesses and does not establish total browser memory",
+  "exit_before_cleanup": null,
+  "samples": [
+    {
+      "rss_kib": 45216,
+      "cpu_percent": 25.5
+    },
+    {
+      "rss_kib": 54880,
+      "cpu_percent": 4.1
+    },
+    {
+      "rss_kib": 54752,
+      "cpu_percent": 0.1
+    },
+    {
+      "rss_kib": 61424,
+      "cpu_percent": 3.9
+    },
+    {
+      "rss_kib": 87728,
+      "cpu_percent": 20.0
+    },
+    {
+      "rss_kib": 88016,
+      "cpu_percent": 1.9
+    },
+    {
+      "rss_kib": 86816,
+      "cpu_percent": 3.8
+    },
+    {
+      "rss_kib": 86848,
+      "cpu_percent": 0.3
+    },
+    {
+      "rss_kib": 87104,
+      "cpu_percent": 9.8
+    },
+    {
+      "rss_kib": 87008,
+      "cpu_percent": 7.3
+    },
+    {
+      "rss_kib": 87904,
+      "cpu_percent": 25.3
+    },
+    {
+      "rss_kib": 88048,
+      "cpu_percent": 3.7
+    },
+    {
+      "rss_kib": 78816,
+      "cpu_percent": 2.7
+    },
+    {
+      "rss_kib": 79248,
+      "cpu_percent": 3.4
+    },
+    {
+      "rss_kib": 79232,
+      "cpu_percent": 0.7
+    },
+    {
+      "rss_kib": 83008,
+      "cpu_percent": 15.4
+    },
+    {
+      "rss_kib": 83088,
+      "cpu_percent": 3.3
+    },
+    {
+      "rss_kib": 83136,
+      "cpu_percent": 21.1
+    },
+    {
+      "rss_kib": 83296,
+      "cpu_percent": 13.3
+    },
+    {
+      "rss_kib": 83312,
+      "cpu_percent": 10.1
+    }
+  ],
+  "peak_daemon_rss_kib": 88048
+}

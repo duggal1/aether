@@ -1,0 +1,45 @@
+{
+  "binary": "/Users/harshitduggal/workspace/Aether/agents/codex/webkit-performance/before/bin/browserd",
+  "sha256": "3a53aa413fcac217a3185a5cf35d839b48f1ce4714085fdc3a75ecbd4f6048d9",
+  "checks": [
+    "query, queryAll, fill, click, and password redaction",
+    "snapshot limit and decoding",
+    "stale node rejected after reload"
+  ],
+  "benchmarks": {
+    "navigation_1_makespan_ms": 999.0104169992264,
+    "query_1": {
+      "n": 60,
+      "median_ms": 0.5888540035812184,
+      "p95_ms": 2.1787499863421544,
+      "max_ms": 120.0681249902118
+    },
+    "navigation_4_makespan_ms": 246.9630830019014,
+    "query_4": {
+      "n": 240,
+      "median_ms": 1.0911874996963888,
+      "p95_ms": 3.2782079942990094,
+      "max_ms": 4.840958004933782
+    },
+    "navigation_8_makespan_ms": 353.5085409966996,
+    "query_8": {
+      "n": 480,
+      "median_ms": 2.067542001896072,
+      "p95_ms": 5.202959000598639,
+      "max_ms": 16.812166999443434
+    },
+    "snapshot_200": {
+      "n": 20,
+      "median_ms": 14.886520490108524,
+      "p95_ms": 22.51395900384523,
+      "max_ms": 385.0515410013031
+    }
+  },
+  "memory_scope": "daemon RSS only; excludes WebKit services",
+  "daemon_rss_kib": 95152,
+  "abandoned_client": {
+    "attempts": 1,
+    "daemon_exit": -13,
+    "survived": false
+  }
+}

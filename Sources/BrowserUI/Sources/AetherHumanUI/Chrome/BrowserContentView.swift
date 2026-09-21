@@ -39,7 +39,6 @@ public struct BrowserContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
-        .overlay { AetherViewportGlow(phase: window.glow.phase, instant: window.glow.wasInstant) }
         .overlay(alignment: .topTrailing) {
             if window.showsFind {
                 FindBarView(window: window)

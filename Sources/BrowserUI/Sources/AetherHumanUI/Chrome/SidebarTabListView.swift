@@ -13,39 +13,36 @@ public struct SidebarTabListView: View {
             HStack(spacing: 6) {
                 ProfileSwitcherView(window: window)
                 Spacer(minLength: 0)
-                ChromeButton(.sidebar, help: "Collapse sidebar") {
-                    window.sidebarCollapsed = true
-                }
             }
-            .padding(.horizontal, 9)
-            .frame(height: AetherMetrics.chromeHeight)
+            .padding(.leading, 76).padding(.trailing, 6)
+            .frame(height: 48)
 
             if window.workspace.preferences.showFavorites {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 42, maximum: 48), spacing: 6)], spacing: 6) {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 6.5), GridItem(.flexible(), spacing: 6.5), GridItem(.flexible(), spacing: 6.5)], spacing: 6.5) {
                     ForEach(window.workspace.shortcuts.prefix(7)) { item in
                         shortcutTile(item)
                     }
                     addShortcutTile
                 }
-                .padding(.horizontal, 10).padding(.top, 8).padding(.bottom, 12)
+                .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 12)
             }
 
             Button { _ = window.newTab() } label: {
                 HStack(spacing: 8) {
-                    BrowserIconView(icon: .plus, tint: theme.muted).iconSize(12)
-                    Text("New Tab").font(AetherType.body(12)).foregroundStyle(theme.muted)
+                    BrowserIconView(icon: .plus, tint: theme.muted).iconSize(16)
+                    Text("New Tab").font(AetherType.body(13)).foregroundStyle(theme.muted)
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 9)
-                .frame(height: 32)
+                .frame(height: 33)
                 .contentShape(Rectangle())
             }
             .buttonStyle(SidebarRowStyle(reduced: reduced))
             .focusEffectDisabled()
-            .padding(.horizontal, 7)
+            .padding(.horizontal, 6)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     if !window.tabs.filter(\.isPinned).isEmpty {
                         sectionHeader("Pinned")
                         ForEach(window.tabs.filter(\.isPinned)) { tab in
@@ -53,13 +50,12 @@ public struct SidebarTabListView: View {
                                         window: window, namespace: tabGlass)
                         }
                     }
-                    sectionHeader("Tabs")
                     ForEach(window.tabs.filter { !$0.isPinned }) { tab in
                         TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
                                     window: window, namespace: tabGlass)
                     }
                 }
-                .padding(.horizontal, 7)
+                .padding(.horizontal, 6)
                 .padding(.top, 2)
                 .padding(.bottom, 12)
             }
@@ -86,10 +82,9 @@ public struct SidebarTabListView: View {
 
     private func shortcutTile(_ item: BrowserShortcut) -> some View {
         Button { _ = window.newTab(url: item.url) } label: {
-            DomainIcon(item.url, size: 26)
-                .frame(maxWidth: .infinity)
-                .frame(height: 38)
-                .background(theme.raised, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            DomainIcon(item.url, size: 18)
+                .frame(maxWidth: .infinity).frame(height: 40.5)
+                .background(AetherPalette.tile(theme.dark), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(SidebarTileStyle(reduced: reduced))
         .focusEffectDisabled()
@@ -99,8 +94,7 @@ public struct SidebarTabListView: View {
     private var addShortcutTile: some View {
         Button { addingShortcut = true } label: {
             BrowserIconView(icon: .plus, tint: theme.soft).iconSize(13)
-                .frame(maxWidth: .infinity)
-                .frame(height: 38)
+                .frame(maxWidth: .infinity).frame(height: 40.5)
                 .overlay {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .strokeBorder(theme.soft.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))

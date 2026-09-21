@@ -7,9 +7,10 @@ public struct OmniboxView: View {
     @BrowserState private var draft = ""
     @BrowserState private var selection = 0
     @BrowserState private var showingSuggestions = false
-    @BrowserState private var phase: OmniboxProgressPhase = .idle
-    @BrowserState private var sweep = false
-    @BrowserState private var sweepCycle = 0
+    @BrowserState private var progressP = 0.0
+    @BrowserState private var progressOpacity = 0.0
+    @BrowserState private var loadCycle = 0
+    @Namespace private var glassNS
     let window: BrowserWindowModel
 
     public init(window: BrowserWindowModel) { self.window = window }
@@ -95,21 +96,22 @@ public struct OmniboxView: View {
             .help("Bookmark this page")
         }
         .padding(.leading, 12).padding(.trailing, 6)
-        .frame(height: 32)
-        .background { AetherGlassBackdrop(radius: 8, interactive: true) }
-        .overlay(alignment: .bottom) {
-            AetherProgressLine(
-                phase: phase,
-                sweep: sweep,
-                reducedMotion: reduced,
-                color: window.workspace.preferences.progressColor.color
-            )
+        .frame(height: 30)
+        .background {
+            if focused || progressOpacity > 0 {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(theme.hover.opacity(0.55))
+            }
         }
+        .modifier(DiaProgressEffect(p: progressP, opacity: progressOpacity,
+                                    color: window.workspace.preferences.progressColor.color))
         .animation(AetherMotion.focus(reduced), value: focused)
         .animation(.snappy(duration: 0.16), value: showingSuggestions)
         .onAppear { draft = displayAddress(window.selected?.url) }
         .overlay(alignment: .topLeading) {
-            if showingSuggestions { suggestions }
+            AetherGlassGroup(spacing: 8) {
+                if showingSuggestions { suggestions }
+            }
         }
     }
 
@@ -139,8 +141,11 @@ public struct OmniboxView: View {
         .padding(6)
         .frame(maxWidth: 470)
         .fixedSize(horizontal: false, vertical: true)
-        .background { AetherPopoverBackground() }
-        .aetherFloatingShadow(dark: theme.dark)
+        .background {
+            AetherPopoverBackground()
+                .aetherGlassMorph("aether.omni.suggestions", in: glassNS, transition: .materialize)
+        }
+        .aetherGlassShadow(dark: theme.dark)
         .offset(y: 38)
         .zIndex(2)
         .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
@@ -181,70 +186,153 @@ public struct OmniboxView: View {
     }
 
     private func startProgress() {
-        sweepCycle += 1
-        phase = .loading
-        sweep = false
+        loadCycle += 1
         if reduced {
-            sweep = true
+            progressOpacity = 1
+            progressP = 0.10
         } else {
-            withAnimation(.linear(duration: 1.05).repeatForever(autoreverses: false)) { sweep = true }
+            withAnimation(.easeOut(duration: 0.1)) { progressOpacity = 1 }
+            progressP = 0
+            withAnimation(.timingCurve(0.2, 0.7, 0.2, 1, duration: 0.18)) { progressP = 0.10 }
         }
     }
 
     private func finishProgress() {
-        guard phase == .loading else { return }
-        sweepCycle += 1
-        let cycle = sweepCycle
-        sweep = false
-        phase = .finishing
-        withAnimation(.easeOut(duration: 0.3)) { phase = .idle }
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.35))
-            if sweepCycle == cycle, phase == .finishing { phase = .idle }
+        guard progressOpacity > 0 || progressP > 0 else { return }
+        loadCycle += 1
+        let cycle = loadCycle
+        if reduced {
+            progressP = 1
+            progressP = 0
+            withAnimation(.easeIn(duration: 0.3)) { progressOpacity = 0 }
+        } else {
+            withAnimation(.timingCurve(0.2, 0.7, 0.2, 1, duration: 0.2)) { progressP = 1 }
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.35))
+                guard loadCycle == cycle else { return }
+                withAnimation(.easeIn(duration: 0.3)) { progressOpacity = 0 }
+                try? await Task.sleep(for: .seconds(0.32))
+                guard loadCycle == cycle else { return }
+                progressP = 0
+            }
         }
     }
 }
 
-enum OmniboxProgressPhase: Sendable {
-    case idle
-    case loading
-    case finishing
+private struct DiaProgressEffect: AnimatableModifier {
+    var p: Double
+    var opacity: Double
+    var color: Color
+
+    var animatableData: AnimatablePair<Double, Double> {
+        get { AnimatablePair(p, opacity) }
+        set { p = newValue.first; opacity = newValue.second }
+    }
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            GeometryReader { proxy in
+                DiaProgressLayers(p: p, width: proxy.size.width, height: proxy.size.height, color: color)
+            }
+            .opacity(opacity)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+    }
 }
 
-private struct AetherProgressLine: View {
-    let phase: OmniboxProgressPhase
-    let sweep: Bool
-    let reducedMotion: Bool
+private struct DiaProgressLayers: View {
+    let p: Double
+    let width: Double
+    let height: Double
     let color: Color
 
+    private var head: Double { min(1, max(0.10, p)) * width }
+    private var t: Double { min(1, max(0, (1 - p) / 0.9)) }
+    private var mid: Double { t + (1 - t) * 0.5 }
+
+    private func pastHead(_ delta: Double, factor: Double) -> Gradient.Stop {
+        Gradient.Stop(color: color.opacity(0.78 * factor), location: stopLocation(head + delta))
+    }
+
+    private func stopLocation(_ x: Double) -> Double {
+        guard width > 0 else { return 0 }
+        return min(1, max(0, x / width))
+    }
+
     var body: some View {
-        GeometryReader { proxy in
-            switch phase {
-            case .idle:
-                EmptyView()
-            case .loading where reducedMotion:
-                Capsule().fill(color).frame(height: 1)
-            case .loading:
-                Capsule()
-                    .fill(LinearGradient(
-                        colors: [color.opacity(0.1), color],
-                        startPoint: .leading, endPoint: .trailing
-                    ))
-                    .frame(width: 76, height: 1)
-                    .shadow(color: color.opacity(0.35), radius: 2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .offset(x: sweep ? proxy.size.width : -76)
-            case .finishing:
-                Capsule().fill(color).frame(height: 1)
-                    .transition(.opacity)
-            }
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            core.frame(height: 0.5)
+            rim.frame(height: 0.5)
         }
-        .frame(height: 1)
-        .padding(.horizontal, 10)
-        .padding(.bottom, 1.5)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .frame(width: width, height: height, alignment: .leading)
+        .overlay(alignment: .topLeading) { glow }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private var glow: some View {
+        LinearGradient(stops: [
+            Gradient.Stop(color: color.opacity(0.78 * t), location: 0),
+            Gradient.Stop(color: color.opacity(0.78 * mid), location: stopLocation(head * 0.5)),
+            Gradient.Stop(color: color.opacity(0.78), location: stopLocation(head)),
+            pastHead(5, factor: 0.78),
+            pastHead(10, factor: 0.61),
+            pastHead(20, factor: 0.43),
+            pastHead(30, factor: 0.30),
+            pastHead(40, factor: 0.22),
+            pastHead(60, factor: 0.17),
+            pastHead(80, factor: 0.13),
+            pastHead(120, factor: 0.09),
+            pastHead(220, factor: 0),
+        ], startPoint: .leading, endPoint: .trailing)
+        .frame(width: width, height: height)
+        .mask {
+            LinearGradient(stops: [
+                Gradient.Stop(color: .black.opacity(0.07), location: 0),
+                Gradient.Stop(color: .black.opacity(0.075), location: 0.10),
+                Gradient.Stop(color: .black.opacity(0.09), location: 0.233),
+                Gradient.Stop(color: .black.opacity(0.10), location: 0.367),
+                Gradient.Stop(color: .black.opacity(0.11), location: 0.50),
+                Gradient.Stop(color: .black.opacity(0.13), location: 0.567),
+                Gradient.Stop(color: .black.opacity(0.15), location: 0.633),
+                Gradient.Stop(color: .black.opacity(0.17), location: 0.70),
+                Gradient.Stop(color: .black.opacity(0.20), location: 0.767),
+                Gradient.Stop(color: .black.opacity(0.25), location: 0.833),
+                Gradient.Stop(color: .black.opacity(0.35), location: 0.90),
+                Gradient.Stop(color: .black.opacity(0.49), location: 0.95),
+                Gradient.Stop(color: .black.opacity(0.49), location: 0.967),
+                Gradient.Stop(color: .clear, location: 1),
+            ], startPoint: .top, endPoint: .bottom)
+        }
+    }
+
+    private var core: some View {
+        let span = head + 1.5
+        return LinearGradient(stops: [
+            Gradient.Stop(color: color.opacity(0.78 * t), location: 0),
+            Gradient.Stop(color: color.opacity(0.78 * mid), location: span > 0 ? min(1, head * 0.5 / span) : 0),
+            Gradient.Stop(color: color.opacity(0.78), location: span > 0 ? min(1, head / span) : 0),
+            Gradient.Stop(color: .clear, location: 1),
+        ], startPoint: .leading, endPoint: .trailing)
+        .frame(width: span)
+    }
+
+    private var rim: some View {
+        ZStack {
+            LinearGradient(stops: [
+                Gradient.Stop(color: color.opacity(0.9 * t), location: 0),
+                Gradient.Stop(color: color.opacity(0.9 * mid), location: stopLocation(head * 0.5)),
+                Gradient.Stop(color: color.opacity(0.9), location: stopLocation(head)),
+                Gradient.Stop(color: .clear, location: stopLocation(head + 1.5)),
+            ], startPoint: .leading, endPoint: .trailing)
+            LinearGradient(stops: [
+                Gradient.Stop(color: .white.opacity(0.35 * t), location: 0),
+                Gradient.Stop(color: .white.opacity(0.35), location: stopLocation(head)),
+                Gradient.Stop(color: .clear, location: stopLocation(head + 1.5)),
+            ], startPoint: .leading, endPoint: .trailing)
+        }
+        .frame(width: head + 1.5)
     }
 }
 
