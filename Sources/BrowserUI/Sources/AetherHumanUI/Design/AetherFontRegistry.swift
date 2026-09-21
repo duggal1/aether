@@ -10,7 +10,7 @@ public enum AetherTextWeight: String, CaseIterable, Sendable {
     public var usWeightClass: Double {
         switch self {
         case .regular: 400
-        case .emphasis: 450
+        case .emphasis: 500
         case .medium: 500
         }
     }
@@ -22,6 +22,7 @@ public enum AetherFontRegistry {
 
     private static var installed = false
     private static var baseFace: String?
+    private static var baseDescriptor: CTFontDescriptor?
     private static var weightAxisID: Int?
 
     public static func install() {
@@ -74,12 +75,16 @@ public enum AetherFontRegistry {
         var directories: [URL] = []
         var roots: [URL] = []
         if let resources = Bundle.main.resourceURL { roots.append(resources) }
+        roots.append(Bundle.module.resourceURL)
         if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
             roots.append(executable.deletingLastPathComponent())
         }
         roots.append(Bundle.main.bundleURL.deletingLastPathComponent())
+        roots.append(Bundle.module.bundleURL)
         for root in roots {
             directories.append(root.appendingPathComponent("Fonts", isDirectory: true))
+            directories.append(root.appendingPathComponent("AetherHumanUI/Resources/Fonts", isDirectory: true))
+            directories.append(root.appendingPathComponent("Contents/Resources/Fonts", isDirectory: true))
             directories.append(root.appendingPathComponent("Resources/Fonts", isDirectory: true))
             guard let entries = try? manager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { continue }
             for entry in entries where entry.pathExtension == "bundle" {
@@ -92,26 +97,42 @@ public enum AetherFontRegistry {
     }
 
     private static func resolveVariableBase() {
+        // Resolve the font directly from the SwiftPM resource URL. NSFontManager
+        // can lag process registration of variable faces, even when CTFont sees them.
+        for url in bundledFontURLs() {
+            guard let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL)
+                    as? [CTFontDescriptor] else { continue }
+            for descriptor in descriptors {
+                let font = CTFontCreateWithFontDescriptor(descriptor, 12, nil)
+                guard (CTFontCopyFamilyName(font) as String) == "Instrument Sans" else { continue }
+                baseFace = CTFontCopyPostScriptName(font) as String
+                baseDescriptor = descriptor
+                weightAxisID = weightAxisIdentifier(of: font)
+                return
+            }
+        }
         for family in families {
             guard let members = NSFontManager.shared.availableMembers(ofFontFamily: family),
                   let name = members.first?.first as? String,
                   let base = NSFont(name: name, size: 12) else { continue }
             baseFace = name
+            baseDescriptor = CTFontCopyFontDescriptor(base as CTFont)
             weightAxisID = weightAxisIdentifier(of: base as CTFont)
             return
         }
         baseFace = nil
+        baseDescriptor = nil
         weightAxisID = nil
     }
 
     private static func variedFont(size: CGFloat, wght: Double) -> Font? {
-        guard let name = baseFace, let axis = weightAxisID,
-              let base = NSFont(name: name, size: size) else { return nil }
-        let baseDescriptor = CTFontCopyFontDescriptor(base as CTFont)
+        guard let baseDescriptor else { return nil }
+        guard let axis = weightAxisID else {
+            return Font(CTFontCreateWithFontDescriptor(baseDescriptor, size, nil) as NSFont)
+        }
         let variation = [kCTFontVariationAttribute as String: [axis: wght]] as CFDictionary
         let descriptor = CTFontDescriptorCreateCopyWithAttributes(baseDescriptor, variation)
-        let varied = CTFontCreateWithFontDescriptor(descriptor, size, nil)
-        return Font(varied as NSFont)
+        return Font(CTFontCreateWithFontDescriptor(descriptor, size, nil) as NSFont)
     }
 
     private static func weightAxisIdentifier(of font: CTFont) -> Int? {

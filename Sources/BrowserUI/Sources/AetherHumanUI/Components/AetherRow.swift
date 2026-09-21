@@ -1,5 +1,6 @@
 import SwiftUI
 
+// One optical baseline for icons and titles, regardless of optional help copy.
 public struct AetherRow<Accessory: View>: View {
     @Environment(\.aetherTheme) private var theme
     let title: String
@@ -7,32 +8,42 @@ public struct AetherRow<Accessory: View>: View {
     let symbol: String?
     let customIcon: AetherCustomIcon?
     let accessory: Accessory
-    public init(_ title: String, subtitle: String? = nil, symbol: String? = nil, customIcon: AetherCustomIcon? = nil,
-                @ViewBuilder accessory: () -> Accessory) {
-        self.title = title; self.subtitle = subtitle; self.symbol = symbol; self.customIcon = customIcon; self.accessory = accessory()
+
+    public init(_ title: String, subtitle: String? = nil, symbol: String? = nil,
+                customIcon: AetherCustomIcon? = nil, @ViewBuilder accessory: () -> Accessory) {
+        self.title = title
+        self.subtitle = subtitle
+        self.symbol = symbol
+        self.customIcon = customIcon
+        self.accessory = accessory()
     }
+
     public var body: some View {
-        HStack(spacing: 12) {
-            if let customIcon {
-                AetherCustomIconView(customIcon, tint: theme.muted, size: 14)
-                    .frame(width: 19, alignment: .center)
-            } else if let symbol {
+        HStack(alignment: .top, spacing: 13) {
+            if let symbol {
                 Image(systemName: symbol)
-                    .font(AetherType.symbol(16)).foregroundStyle(theme.muted)
-                    .frame(width: 19)
+                    .font(AetherType.symbol(17))
+                    .foregroundStyle(theme.textStrong)
+                    .frame(width: 21, height: 20, alignment: .center)
+                    .padding(.top, 1)
+            } else if let customIcon {
+                AetherCustomIconView(customIcon, tint: theme.textStrong, size: 17)
+                    .frame(width: 21, height: 20, alignment: .center)
+                    .padding(.top, 1)
             }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(AetherType.rowTitle()).foregroundStyle(theme.ink)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(AetherType.emphasis(14)).foregroundStyle(theme.textStrong)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
-                    Text(subtitle).font(AetherType.caption(12)).foregroundStyle(theme.muted)
+                    Text(subtitle).font(AetherType.body(12)).foregroundStyle(theme.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 10)
-            accessory
+            accessory.padding(.top, subtitle == nil ? 0 : 1)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 15)
+        .padding(.horizontal, 15)
+        .padding(.vertical, 13)
     }
 }
 
@@ -41,19 +52,20 @@ public struct AetherSection<Content: View>: View {
     let title: String
     let footer: String?
     let content: Content
+
     public init(_ title: String, footer: String? = nil, @ViewBuilder content: () -> Content) {
         self.title = title; self.footer = footer; self.content = content()
     }
+
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(AetherType.emphasis(12))
-                .foregroundStyle(theme.muted)
-                .padding(.leading, 4)
+        VStack(alignment: .leading, spacing: 9) {
+            Text(title).font(AetherType.emphasis(12)).foregroundStyle(theme.muted)
+                .padding(.leading, 2)
             VStack(spacing: 0) { content }
-                .background { AetherCardBackground(radius: 12) }
+                .background(theme.card, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             if let footer {
-                Text(footer).font(AetherType.caption(12)).foregroundStyle(theme.muted).padding(.leading, 4)
+                Text(footer).font(AetherType.caption(12)).foregroundStyle(theme.muted)
+                    .padding(.leading, 2)
             }
         }
     }

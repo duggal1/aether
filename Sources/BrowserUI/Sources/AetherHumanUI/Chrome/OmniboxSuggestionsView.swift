@@ -5,12 +5,14 @@ public struct OmniboxSuggestionsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     let model: OmniboxSuggestionModel
     let prefix: String
+    let provider: SearchProvider
     let onChoose: (OmniboxSuggestion) -> Void
 
-    public init(model: OmniboxSuggestionModel, prefix: String,
+    public init(model: OmniboxSuggestionModel, prefix: String, provider: SearchProvider,
                 onChoose: @escaping (OmniboxSuggestion) -> Void) {
         self.model = model
         self.prefix = prefix
+        self.provider = provider
         self.onChoose = onChoose
     }
 
@@ -18,7 +20,7 @@ public struct OmniboxSuggestionsView: View {
         VStack(spacing: 0) {
             ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
                 if index == separatorIndex { gap }
-                OmniboxSuggestionRow(row: row, prefix: prefix,
+                OmniboxSuggestionRow(row: row, prefix: prefix, provider: provider,
                                      selected: model.selected == index,
                                      onHover: { model.select(index) }) {
                     onChoose(row)
@@ -27,7 +29,7 @@ public struct OmniboxSuggestionsView: View {
             }
         }
         .padding(9)
-        .frame(maxWidth: 760)
+        .frame(maxWidth: 656)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(theme.card)
@@ -37,7 +39,7 @@ public struct OmniboxSuggestionsView: View {
                 .strokeBorder(theme.hairline, lineWidth: 0.5)
         }
             
-        .offset(y: 38)
+        .offset(y: 37)
         .zIndex(2)
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(AetherMotion.dropdown(reduced), value: model.rows.count)
@@ -61,6 +63,7 @@ private struct OmniboxSuggestionRow: View {
     @State private var hovering = false
     let row: OmniboxSuggestion
     let prefix: String
+    let provider: SearchProvider
     let selected: Bool
     let onHover: () -> Void
     let action: () -> Void
@@ -100,9 +103,8 @@ private struct OmniboxSuggestionRow: View {
     @ViewBuilder private var leading: some View {
         switch row.kind {
         case .open:
-            BrowserIconView(icon: row.url == nil ? .search : .globe, tint: theme.muted)
-                .iconSize(12)
-                .frame(width: 16, alignment: .center)
+            DomainIcon(row.url ?? provider.homepage.absoluteString, size: 18)
+                .frame(width: 18, alignment: .center)
         case .completion:
             BrowserIconView(icon: .search, tint: theme.muted)
                 .iconSize(12)
@@ -142,7 +144,7 @@ private struct OmniboxSuggestionRow: View {
     @ViewBuilder private var trailing: some View {
         switch row.kind {
         case .completion:
-            if selected { hint("⇥") }
+            if selected { Image(systemName: "arrow.right").font(AetherType.symbol(13)).foregroundStyle(theme.muted) }
         case .tab, .bookmark, .history:
             HStack(spacing: 7) {
                 if let host = row.host, !row.title.localizedCaseInsensitiveContains(host) {
@@ -152,12 +154,12 @@ private struct OmniboxSuggestionRow: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                BrowserIconView(icon: kindIcon, tint: theme.soft).iconSize(11)
+                BrowserIconView(icon: kindIcon, tint: theme.soft).iconSize(13)
             }
         case .open:
             EmptyView()
         }
-        if selected, row.kind == .open { hint("↩") }
+        if selected, row.kind == .open { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(theme.muted) }
     }
 
     private var kindIcon: BrowserIcon {

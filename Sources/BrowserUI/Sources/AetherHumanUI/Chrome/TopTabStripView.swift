@@ -15,7 +15,7 @@ public struct TopTabStripView: View {
         HStack(spacing: 0) {
             HStack(spacing: 7) {
                 ProfileSwitcherView(window: window)
-                    .padding(.leading, 10)
+                    .padding(.leading, 4)
                 IncognitoToggleView(window: window)
                 let pinned = window.workspace.pinnedShortcuts()
                 if !pinned.isEmpty {
@@ -67,7 +67,7 @@ public struct TopTabStripView: View {
             .padding(.leading, 10)
             .padding(.trailing, 2)
         }
-        .padding(.leading, 84).padding(.trailing, 8)
+        .padding(.leading, 78).padding(.trailing, 8)
         .frame(height: AetherMetrics.chromeHeight)
         .background { if showsChrome { AetherChromeBackground(.toolbar) } }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))

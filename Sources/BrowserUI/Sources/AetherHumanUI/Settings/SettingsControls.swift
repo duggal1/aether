@@ -4,12 +4,13 @@ public struct SettingsToggle: View {
     let title: String
     let subtitle: String?
     let customIcon: AetherCustomIcon?
+    let symbol: String?
     @Binding var value: Bool
-    public init(_ title: String, subtitle: String? = nil, customIcon: AetherCustomIcon? = nil, value: Binding<Bool>) {
-        self.title = title; self.subtitle = subtitle; self.customIcon = customIcon; _value = value
+    public init(_ title: String, subtitle: String? = nil, customIcon: AetherCustomIcon? = nil, symbol: String? = nil, value: Binding<Bool>) {
+        self.title = title; self.subtitle = subtitle; self.customIcon = customIcon; self.symbol = symbol; _value = value
     }
     public var body: some View {
-        AetherRow(title, subtitle: subtitle, customIcon: customIcon) {
+        AetherRow(title, subtitle: subtitle, symbol: symbol, customIcon: customIcon) {
             Toggle(title, isOn: $value).labelsHidden().toggleStyle(.switch).controlSize(.small)
         }
     }

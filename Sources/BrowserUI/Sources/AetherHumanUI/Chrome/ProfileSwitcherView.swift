@@ -26,8 +26,8 @@ public struct ProfileSwitcherView: View {
                 }
             }
             .foregroundStyle(theme.ink)
-            .padding(.horizontal, 8)
-            .frame(height: 30)
+            .padding(.horizontal, 12)
+            .frame(height: 27)
             .background(hovering ? theme.hover : Color.clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .contentShape(Rectangle())
         }

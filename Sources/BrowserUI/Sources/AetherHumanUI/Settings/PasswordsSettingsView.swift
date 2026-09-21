@@ -5,7 +5,6 @@ public struct PasswordsSettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Keychain and passkey access arrive with engine authorization.")
         AetherSection("Passwords") {
             AetherRow("Password autofill", subtitle: "Requires a real Security framework and form integration.", symbol: "key.horizontal") {
                 Text("Engine integration required").font(AetherType.body(11)).foregroundStyle(theme.muted)

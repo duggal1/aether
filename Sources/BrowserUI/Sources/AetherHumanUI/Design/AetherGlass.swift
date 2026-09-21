@@ -36,11 +36,11 @@ private struct AetherOpaqueButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(theme.ink)
-            .padding(.horizontal, 11)
+            .foregroundStyle(prominent ? theme.background : theme.textStrong)
+            .padding(.horizontal, 13)
             .frame(minHeight: 29)
             .background(
-                configuration.isPressed ? theme.selected : (prominent ? theme.hover : theme.card),
+                prominent ? theme.textStrong.opacity(configuration.isPressed ? 0.78 : 1) : (configuration.isPressed ? theme.hover : theme.selected),
                 in: RoundedRectangle(cornerRadius: 6, style: .continuous)
             )
             .overlay {
@@ -61,11 +61,11 @@ public extension View {
     }
 
     func aetherGlassButton() -> some View {
-        buttonStyle(AetherOpaqueButtonStyle(prominent: false)).pointerStyle(.link)
+        buttonStyle(AetherOpaqueButtonStyle(prominent: false)).focusEffectDisabled().pointerStyle(.link)
     }
 
     func aetherGlassProminentButton() -> some View {
-        buttonStyle(AetherOpaqueButtonStyle(prominent: true)).pointerStyle(.link)
+        buttonStyle(AetherOpaqueButtonStyle(prominent: true)).focusEffectDisabled().pointerStyle(.link)
     }
 }
 

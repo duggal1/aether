@@ -66,6 +66,17 @@ public struct SidebarTabListView: View {
                 }
             }
             .scrollClipDisabled()
+            .mask {
+                if window.tabs.count > 9 {
+                    LinearGradient(
+                        stops: [.init(color: .black, location: 0),
+                                .init(color: .black, location: 0.87),
+                                .init(color: .clear, location: 1)],
+                        startPoint: .top, endPoint: .bottom)
+                } else {
+                    Rectangle().fill(.black)
+                }
+            }
             .padding(.top, 6)
 
             Spacer(minLength: 0)
@@ -78,7 +89,7 @@ public struct SidebarTabListView: View {
                     window.showsTabSearch.toggle()
                 }
             }
-            .padding(.horizontal, 9).padding(.bottom, 8)
+            .padding(.horizontal, 9).padding(.bottom, 12)
         }
         .frame(width: window.workspace.preferences.transientSidebarWidth ?? window.workspace.preferences.sidebarWidth)
         .background { AetherChromeBackground(.sidebar) }

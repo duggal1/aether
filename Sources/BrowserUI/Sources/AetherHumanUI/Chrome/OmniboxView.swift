@@ -123,7 +123,8 @@ public struct OmniboxView: View {
         .onAppear { draft = displayAddress(window.selected?.url) }
         .overlay(alignment: .topLeading) {
             if showsSuggestions {
-                OmniboxSuggestionsView(model: window.suggestions, prefix: draft) { row in
+                OmniboxSuggestionsView(model: window.suggestions, prefix: draft,
+                                       provider: window.workspace.preferences.provider) { row in
                     choose(row)
                 }
             }
@@ -170,12 +171,11 @@ public struct OmniboxView: View {
         loadCycle += 1
         if reduced {
             progressOpacity = 1
-            progressP = 0.14
+            progressP = 0.06
             return
         }
-        withAnimation(.easeOut(duration: 0.12)) { progressOpacity = 1 }
-        withAnimation(.timingCurve(0.34, 0.08, 0.4, 1, duration: 0.28)) { progressP = 0.14 }
-        withAnimation(.linear(duration: 6).delay(0.22)) { progressP = 0.18 }
+        withAnimation(.easeOut(duration: 0.14)) { progressOpacity = 1 }
+        withAnimation(.smooth(duration: 0.18)) { progressP = 0.06 }
     }
 
     private func trackRealProgress() {
@@ -262,8 +262,8 @@ private func neutralProgress(_ deep: UInt, _ mid: UInt, _ pale: UInt) -> (UInt, 
 
 private struct DiaProgressLayers: View {
     let p: Double
-    let width: Double
-    let height: Double
+    let width: CGFloat
+    let height: CGFloat
     let focused: Bool
     let trio: (UInt, UInt, UInt)
 
@@ -271,53 +271,27 @@ private struct DiaProgressLayers: View {
     private var mid: Color { Color(hex: trio.1) }
     private var pale: Color { Color(hex: trio.2) }
 
-    private var fill: Double { 0.05 + 0.90 * min(1, max(0, p)) }
-
-    private func spanColor(_ s: Double) -> Color {
-        if s <= 0.20 { return deep }
-        if s <= 0.50 {
-            let u = (s - 0.20) / 0.30
-            return deep.blended(with: mid, by: AetherSmoothGradient.smootherstep(u))
-        }
-        if s <= 0.72 {
-            let u = (s - 0.50) / 0.22
-            return mid.blended(with: pale, by: AetherSmoothGradient.smootherstep(u))
-        }
-        return pale
-    }
-
-    private func editorialStops(peak: Double) -> [Gradient.Stop] {
-        let steps = 64
-        var stops: [Gradient.Stop] = []
-        stops.reserveCapacity(steps + 1)
-        for index in 0...steps {
-            let u = Double(index) / Double(steps)
-            if u <= fill {
-                let s = min(1, max(0, (u - 0.05) / 0.90))
-                let edge = AetherSmoothGradient.smootherstep(min(1, s / 0.10))
-                    * (1 - AetherSmoothGradient.smootherstep(max(0, (s - 0.90) / 0.10)))
-                stops.append(Gradient.Stop(color: spanColor(s).opacity(peak * edge), location: u))
-            } else {
-                let tail = min(1, (u - fill) / max(0.001, 1 - fill))
-                let alpha = peak * pow(1 - AetherSmoothGradient.smootherstep(tail), 2.2)
-                stops.append(Gradient.Stop(color: pale.opacity(alpha), location: u))
-            }
-        }
-        return stops
-    }
-
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            // Crisp chromatic progress line. Never blur or illuminate the address bar.
-            LinearGradient(stops: editorialStops(peak: 1), startPoint: .leading, endPoint: .trailing)
-                .frame(width: width, height: 2)
-                .opacity(focused ? 1 : 0.9)
+        LinearGradient(
+            stops: [
+                .init(color: deep.opacity(0.72), location: 0),
+                .init(color: mid.opacity(0.85), location: 0.52),
+                .init(color: pale.opacity(0.62), location: 1)
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(width: max(2, width * CGFloat(min(1, max(0, p)))), height: 1)
+        .mask {
+            LinearGradient(
+                stops: [.init(color: .black, location: 0),
+                        .init(color: .black, location: 0.91),
+                        .init(color: .clear, location: 1)],
+                startPoint: .leading, endPoint: .trailing
+            )
         }
         .frame(width: width, height: height, alignment: .bottomLeading)
-        .animation(.easeOut(duration: 0.28), value: focused)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }
-
- 

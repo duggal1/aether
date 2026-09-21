@@ -1,19 +1,19 @@
 import SwiftUI
 
 public enum AetherMotion {
-    public static let pressScale: CGFloat = 0.96
-    public static let hoverScale: CGFloat = 1.01
+    public static let pressScale: CGFloat = 0.987
+    public static let hoverScale: CGFloat = 1.0
 
-    public static func hover(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.08) }
-    public static func focus(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.10) }
-    public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.06) }
-    public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.12) }
+    public static func hover(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.15) }
+    public static func focus(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.21) }
+    public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.11) }
+    public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
     public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.10) }
-    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.18) }
-    public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.14) }
+    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.22) }
+    public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
     public static func dropdown(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.12) }
     public static func panel(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.16) }
-    public static func morph(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.28, bounce: 0.12) }
+    public static func morph(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.24) }
     public static func snappy(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.12) }
     public static func smooth(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.18) }
 

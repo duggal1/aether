@@ -112,12 +112,6 @@ public enum AetherPalette {
     public static func tabHover(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.hover, lightHex: AetherNeutral.lightHover)
     }
-    public static func tabTitle(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.muted, lightHex: AetherNeutral.lightMuted)
-    }
-    public static func selection(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.hover, lightHex: AetherNeutral.lightHover)
-    }
     public static func modal(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
     }
@@ -171,6 +165,13 @@ public enum AetherPalette {
     }
     public static func profileBottom(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
+    }
+    public static func siteSurface(_ hex: UInt) -> Color { color(hex) }
+    public static func siteInk(_ hex: UInt) -> Color {
+        let r = Double((hex >> 16) & 255) / 255
+        let g = Double((hex >> 8) & 255) / 255
+        let b = Double(hex & 255) / 255
+        return r * 0.2126 + g * 0.7152 + b * 0.0722 > 0.50 ? .black : .white
     }
     public static func activeSite(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.background, lightHex: AetherNeutral.lightBackground)

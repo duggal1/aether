@@ -7,7 +7,6 @@ public struct TabsSettingsView: View {
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
 
     public var body: some View {
-        SettingsHelp("Change the location of your tabs. Existing pages and browser sessions stay intact.")
         AetherSection("Tab layout") {
             HStack(spacing: 13) {
                 layoutCard(.top)

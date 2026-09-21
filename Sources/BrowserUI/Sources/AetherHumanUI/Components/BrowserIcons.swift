@@ -92,27 +92,6 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public var customIcon: AetherCustomIcon? {
-        switch self {
-        case .terminalArrowLeft: .terminalLeft
-        case .terminalArrowRight: .terminalRight
-        case .arrowDownLeft: .terminalDownRight
-        case .rewind: .historyLeft
-        case .refresh: .historyRight
-        case .search: .search
-        case .history: .historyLeft
-        case .download: .download
-        case .lock: .lock
-        case .gear: .gear
-        case .globe: .globe
-        case .bookmark: .bookmark
-        case .doubleBookmark: .bookmarkSelected
-        case .arrowUpRight: .terminalUpRight
-        case .incognito: .incognito
-        default: nil
-        }
-    }
-
     public var label: String { symbol.label }
 }
 
@@ -127,17 +106,10 @@ public struct BrowserIconView: View {
     }
 
     public var body: some View {
-        Group {
-            if let custom = icon.customIcon {
-                AetherCustomIconView(custom, tint: tint, size: size)
-            } else {
-                Image(systemName: icon.symbol.rawValue)
-                    .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
-                    .symbolRenderingMode(.hierarchical)
-                    .imageScale(.medium)
-                    .foregroundStyle(tint ?? Color.primary)
-            }
-        }
+        Image(systemName: icon == .doubleBookmark ? "bookmark.fill" : icon.symbol.rawValue)
+            .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint ?? Color.primary)
         .frame(width: AetherIconStyle.canvas,
                height: AetherIconStyle.canvas,
                alignment: .center)

@@ -5,12 +5,13 @@ public struct NewTabView: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var editing: BrowserShortcut?
     @BrowserState private var adding = false
+    @BrowserState private var hoveredShortcut: UUID?
     @BrowserState private var ask = ""
     @FocusState private var askFocused: Bool
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
-    private let columns = Array(repeating: GridItem(.fixed(96), spacing: 18), count: 4)
+    private let columns = Array(repeating: GridItem(.fixed(108), spacing: 16), count: 4)
 
     public var body: some View {
         GeometryReader { geometry in
@@ -24,12 +25,12 @@ public struct NewTabView: View {
                         ForEach(window.workspace.shortcuts) { item in shortcut(item) }
                         addTile
                     }
-                    .frame(maxWidth: 438)
+                    .frame(maxWidth: 480)
                     .padding(.top, 8)
                 }
-                .frame(maxWidth: 760)
+                .frame(maxWidth: 696)
                 .padding(.horizontal, 32)
-                .padding(.top, max(44, geometry.size.height * 0.20))
+                .padding(.top, max(42, geometry.size.height * 0.18))
                 .padding(.bottom, 36)
                 .frame(maxWidth: .infinity)
             }
@@ -70,32 +71,10 @@ public struct NewTabView: View {
             .accessibilityLabel("Search or open address")
         }
         .padding(.horizontal, 14)
-        .frame(height: 48)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(theme.omnibox)
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(LinearGradient(colors: accentColors,
-                                     startPoint: .leading, endPoint: .trailing))
-                .frame(height: askFocused ? 2 : 1)
-                .padding(.horizontal, 11)
-        }
+        .frame(height: 52)
+        .background(theme.card.opacity(0.35), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         .animation(AetherMotion.focus(reduced), value: askFocused)
-    }
-
-    // Neutral shell, chromatic 1–2px accent only. Theme changes reorder the gradient.
-    private var accentColors: [Color] {
-        let violet = Color(red: 0.60, green: 0.40, blue: 0.96)
-        let orange = Color(red: 0.98, green: 0.55, blue: 0.28)
-        let green = Color(red: 0.30, green: 0.76, blue: 0.49)
-        switch window.workspace.preferences.progressColor {
-        case .violet: return [violet, orange, green]
-        case .orange: return [orange, green, violet]
-        case .green: return [green, violet, orange]
-        case .neutral: return [theme.muted, theme.ink]
-        }
     }
 
     private func submitAsk() {
@@ -109,35 +88,46 @@ public struct NewTabView: View {
         ZStack(alignment: .topTrailing) {
             Button { window.navigateSelected(item.url) } label: {
                 VStack(spacing: 9) {
-                    DomainIcon(item.url, size: 24)
+                    DomainIcon(item.url, size: 28)
                         .frame(width: 54, height: 54)
-                        .background { AetherCardBackground(radius: 9) }
+                        .background(theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     Text(item.name)
-                        .font(AetherType.body(11)).foregroundStyle(theme.muted)
-                        .lineLimit(1).frame(width: 92)
+                        .font(AetherType.body(12)).foregroundStyle(theme.muted)
+                        .lineLimit(1).frame(maxWidth: 102)
                 }
-                .frame(width: 96, height: 84)
+                .frame(width: 108, height: 94)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(AetherPressStyle(reduced: reduced))
+            .buttonStyle(.plain)
+            .aetherPointingCursor()
             .help(item.url)
             .contextMenu { shortcutActions(item) }
 
-            Menu {
-                shortcutActions(item)
-            } label: {
+            Menu { shortcutActions(item) } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(theme.muted)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(theme.textStrong)
                     .frame(width: 23, height: 23)
-                    .background(theme.hover, in: RoundedRectangle(cornerRadius: 5))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
+            .padding(.top, 2)
+            .padding(.trailing, 3)
+            .opacity(hoveredShortcut == item.id ? 1 : 0)
+            .allowsHitTesting(hoveredShortcut == item.id)
             .aetherPointingCursor()
             .help("Shortcut actions for \(item.name)")
             .accessibilityLabel("Shortcut actions for \(item.name)")
+        }
+        .frame(width: 108, height: 94)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            withAnimation(AetherMotion.focus(reduced)) {
+                hoveredShortcut = inside ? item.id : (hoveredShortcut == item.id ? nil : hoveredShortcut)
+            }
         }
     }
 
@@ -163,9 +153,10 @@ public struct NewTabView: View {
                 Text("Add")
                     .font(AetherType.body(11)).foregroundStyle(theme.muted)
             }
-            .frame(width: 96, height: 84)
+            .frame(width: 108, height: 94)
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
+        .aetherPointingCursor()
         .help("Add shortcut")
     }
 }
