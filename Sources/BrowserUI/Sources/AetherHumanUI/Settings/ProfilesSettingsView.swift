@@ -11,7 +11,6 @@ public struct ProfilesSettingsView: View {
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
-        SettingsHelp("Separate browsing identities with independent cookies and site data.")
         AetherSection("Profiles") {
             ForEach(Array(workspace.profiles.enumerated()), id: \.element.id) { index, profile in
                 if index > 0 { SettingsDivider() }
