@@ -204,18 +204,28 @@ public enum AetherMetrics {
     public static let profileClusterHeight: CGFloat = 32
 }
 
+// Accent applies only to explicit theme affordances, not neutral browser-owned surfaces.
 public enum AetherProgressColor: String, CaseIterable, Codable, Identifiable, Sendable {
+    case violet = "Violet"
+    case orange = "Orange"
+    case green = "Green"
     case neutral = "Neutral"
     public var id: String { rawValue }
 
     public var color: Color {
         switch self {
-        case .neutral: Color(red: 0xE5 / 255, green: 0xE5 / 255, blue: 0xE5 / 255)
+        case .violet: Color(red: 0.58, green: 0.43, blue: 0.98)
+        case .orange: Color(red: 0.98, green: 0.55, blue: 0.26)
+        case .green: Color(red: 0.34, green: 0.80, blue: 0.53)
+        case .neutral: Color(red: 0.85, green: 0.85, blue: 0.85)
         }
     }
 
     public var gradientTrio: (UInt, UInt, UInt) {
         switch self {
+        case .violet: (0x5842BC, 0x9B7CFF, 0xEEE7FF)
+        case .orange: (0xB94E1D, 0xFF9F56, 0xFFF0D9)
+        case .green: (0x207D50, 0x66D99A, 0xE3FFE8)
         case .neutral: (0xB9B9C0, 0xDEDEE3, 0xFFFFFF)
         }
     }
