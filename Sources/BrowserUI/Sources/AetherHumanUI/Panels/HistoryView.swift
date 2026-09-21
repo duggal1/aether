@@ -12,7 +12,8 @@ public struct HistoryView: View {
     private var results: [BrowserVisit] {
         window.workspace.visits.filter {
             $0.profileID == window.activeProfileID
-                && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query) || $0.url.localizedCaseInsensitiveContains(query))
+                && (query.isEmpty || $0.title.localizedCaseInsensitiveContains(query)
+                    || $0.url.localizedCaseInsensitiveContains(query))
         }
     }
 
@@ -33,65 +34,139 @@ public struct HistoryView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 19) {
             HStack(spacing: 10) {
-                Text("History").font(AetherType.panelTitle(20)).foregroundStyle(theme.heading)
+                Text("History").font(AetherType.panelTitle(22))
+                    .foregroundStyle(theme.textStrong)
                 Spacer(minLength: 8)
                 Button("Clear History") { confirmClear = true }
                     .aetherGlassButton()
-                    .tint(theme.error)
                     .disabled(results.isEmpty)
-                ChromeButton(.close, help: "Close") { dismiss() }
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(AetherType.symbol(13))
+                        .foregroundStyle(theme.muted)
+                        .frame(width: 27, height: 27)
+                }
+                .buttonStyle(.plain)
+                .focusEffectDisabled()
+                .aetherPointingCursor()
+                .help("Close history")
             }
+
             AetherField("Search browsing history", text: $query, icon: .search)
+
             if results.isEmpty {
-                AetherEmptyState(icon: .history, heading: "No history", description: "Pages you visit in this profile appear here.")
+                AetherEmptyState(icon: .history, heading: "No history",
+                                 description: "Pages you visit in this profile appear here.")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 20) {
                         ForEach(groups, id: \.title) { group in
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 7) {
                                 Text(group.title.uppercased())
-                                    .font(AetherType.sectionHeader(10)).tracking(0.4)
-                                    .foregroundStyle(theme.soft)
-                                    .padding(.leading, 4)
+                                    .font(AetherType.emphasis(12))
+                                    .tracking(0.3)
+                                    .foregroundStyle(theme.muted)
+                                    .padding(.horizontal, 12)
+                                    .padding(.top, 7)
+                                    .padding(.bottom, 3)
                                 ForEach(group.visits) { visit in
-                                    visitRow(visit)
+                                    HistoryEntry(visit: visit,
+                                                 open: {
+                                                     window.navigateSelected(visit.url)
+                                                     dismiss()
+                                                 },
+                                                 delete: { window.workspace.deleteVisit(visit.id) })
                                 }
                             }
                         }
                     }
+                    .padding(.bottom, 22)
+                }
+                .scrollIndicators(.hidden)
+                .mask {
+                    if results.count > 7 {
+                        LinearGradient(
+                            stops: [.init(color: .black, location: 0),
+                                    .init(color: .black, location: 0.88),
+                                    .init(color: .clear, location: 1)],
+                            startPoint: .top, endPoint: .bottom)
+                    } else {
+                        Rectangle().fill(.black)
+                    }
                 }
             }
         }
-        .padding(22)
-        .frame(width: 680, height: 560)
-        .background { AetherSheetBackground() }
+        .padding(26)
+        .frame(width: 720, height: 555)
+        .background(theme.background)
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         .confirmationDialog("Clear history for this profile?", isPresented: $confirmClear) {
-            Button("Clear History", role: .destructive) { window.workspace.clearHistory(window.activeProfileID) }
-        } message: { Text("Browsing history for this profile will be removed from Aether's shell history.") }
-    }
-
-    private func visitRow(_ visit: BrowserVisit) -> some View {
-        HoverSurface(radius: 12) {
-            HStack(spacing: 12) {
-                DomainIcon(visit.url, size: 22)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(visit.title).font(AetherType.body(12.5)).lineLimit(1)
-                    Text(visit.url).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                Text(visit.visitedAt, style: .time)
-                    .font(AetherType.caption(11)).foregroundStyle(theme.soft)
-                ChromeButton(.close, help: "Delete visit", size: 24) {
-                    window.workspace.deleteVisit(visit.id)
-                }
+            Button("Clear History", role: .destructive) {
+                window.workspace.clearHistory(window.activeProfileID)
             }
-            .padding(.horizontal, 10)
-            .frame(height: 40)
-            .contentShape(Rectangle())
+        } message: {
+            Text("Browsing history for this profile will be removed from Aether's shell history.")
         }
-        .aetherPointingCursor()
-        .onTapGesture { window.navigateSelected(visit.url); dismiss() }
+    }
+}
+
+private struct HistoryEntry: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    @State private var hovering = false
+    let visit: BrowserVisit
+    let open: () -> Void
+    let delete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button(action: open) {
+                HStack(spacing: 12) {
+                    DomainIcon(visit.url, size: 22)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(visit.title)
+                            .font(AetherType.emphasis(13))
+                            .foregroundStyle(theme.textStrong)
+                            .lineLimit(1)
+                        Text(visit.url)
+                            .font(AetherType.caption(11))
+                            .foregroundStyle(theme.muted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer(minLength: 8)
+                    Text(visit.visitedAt, style: .time)
+                        .font(AetherType.caption(12))
+                        .foregroundStyle(theme.muted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .aetherPointingCursor()
+            .focusEffectDisabled()
+            Button(action: delete) {
+                Image(systemName: "xmark")
+                    .font(AetherType.symbol(12))
+                    .foregroundStyle(theme.muted)
+                    .frame(width: 29, height: 29)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .aetherPointingCursor()
+            .focusEffectDisabled()
+            .help("Delete visit")
+            .opacity(hovering ? 1 : 0)
+            .allowsHitTesting(hovering)
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 52)
+        .background(hovering ? theme.hover : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .onHover { inside in
+            withAnimation(AetherMotion.hover(reduced)) { hovering = inside }
+        }
     }
 }
