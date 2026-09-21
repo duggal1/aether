@@ -1,13 +1,10 @@
 import SwiftUI
 
-public enum AetherGlassVariant: Sendable {
-    case regular
-    case clear
-}
+// Browser-owned content is opaque. Native material belongs only to the sidebar.
+public enum AetherGlassVariant: Sendable { case regular, clear }
 
 public struct AetherGlassSurface: View {
     @Environment(\.aetherTheme) private var theme
-
     public let radius: CGFloat
     public let variant: AetherGlassVariant
     public let interactive: Bool
@@ -21,71 +18,62 @@ public struct AetherGlassSurface: View {
         self.minimal = minimal
     }
 
-    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
-
     public var body: some View {
-        Color.clear
-            .aetherGlass(variant, in: shape, interactive: interactive)
-            .modifier(AetherGlassShadow(enabled: minimal, dark: theme.dark))
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+            .fill(theme.card)
+            .overlay {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(theme.hairline, lineWidth: 0.5)
+            }
             .accessibilityHidden(true)
     }
 }
 
-private struct AetherGlassShadow: ViewModifier {
-    let enabled: Bool
-    let dark: Bool
+private struct AetherOpaqueButtonStyle: ButtonStyle {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    let prominent: Bool
 
-    @ViewBuilder func body(content: Content) -> some View {
-        if enabled {
-            let shadow = AetherShadow.minimal(dark)
-            content.shadow(color: shadow.color, radius: shadow.radius, y: shadow.y)
-        } else {
-            content
-        }
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(theme.ink)
+            .padding(.horizontal, 11)
+            .frame(minHeight: 29)
+            .background(
+                configuration.isPressed ? theme.selected : (prominent ? theme.hover : theme.card),
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(theme.hairline, lineWidth: 0.5)
+            }
+            .scaleEffect(configuration.isPressed && !reduced ? 0.985 : 1)
+            .animation(AetherMotion.press(reduced), value: configuration.isPressed)
     }
 }
 
 public extension View {
-    @ViewBuilder
+    // Retained for source compatibility. Do not reintroduce transparent glass in browser content.
     func aetherGlass(_ variant: AetherGlassVariant = .regular,
                      in shape: some Shape, interactive: Bool = false) -> some View {
-        switch variant {
-        case .regular:
-            if interactive {
-                glassEffect(.regular.interactive(true), in: shape)
-            } else {
-                glassEffect(.regular, in: shape)
-            }
-        case .clear:
-            if interactive {
-                glassEffect(.clear.interactive(true), in: shape)
-            } else {
-                glassEffect(.clear, in: shape)
-            }
-        }
+        self.background(AetherGlassSurface(radius: AetherMetrics.menuRadius, variant: variant,
+                                          interactive: interactive))
     }
 
-    @ViewBuilder
     func aetherGlassButton() -> some View {
-        buttonStyle(.glass).pointerStyle(.link)
+        buttonStyle(AetherOpaqueButtonStyle(prominent: false)).pointerStyle(.link)
     }
 
-    @ViewBuilder
     func aetherGlassProminentButton() -> some View {
-        buttonStyle(.glassProminent).pointerStyle(.link)
+        buttonStyle(AetherOpaqueButtonStyle(prominent: true)).pointerStyle(.link)
     }
 }
 
+// A layout container, NOT a glass compositor. Animations are handled by AetherMotion.
 public struct AetherGlassCluster<Content: View>: View {
-    private let spacing: CGFloat
     private let content: Content
-
     public init(spacing: CGFloat = 8, @ViewBuilder content: () -> Content) {
-        self.spacing = spacing
         self.content = content()
     }
-
-    public var body: some View {
-        GlassEffectContainer(spacing: spacing) { content }
-    }
+    public var body: some View { content }
 }
