@@ -14,8 +14,8 @@ public struct AetherField: View {
     }
 
     public var body: some View {
-        HStack(spacing: 9) {
-            if let icon { BrowserIconView(icon: icon, tint: theme.fieldIcon).iconSize(13) }
+        HStack(spacing: 11) {
+            if let icon { BrowserIconView(icon: icon, tint: theme.fieldIcon).iconSize(16) }
             TextField(hint, text: $text)
                 .textFieldStyle(.plain)
                 .font(AetherType.body(13))
@@ -23,11 +23,11 @@ public struct AetherField: View {
                 .focused($focused)
                 .onSubmit { onSubmit?() }
         }
-        .padding(.horizontal, 11)
-        .frame(height: 34)
+        .padding(.horizontal, 14)
+        .frame(height: 40)
         .background {
             RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-                .fill(focused ? theme.inputFocus : theme.inset)
+                .fill(theme.selected)
         }
         .animation(AetherMotion.focus(reduced), value: focused)
     }
