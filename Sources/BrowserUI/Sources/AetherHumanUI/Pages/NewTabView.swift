@@ -119,8 +119,8 @@ public struct NewTabView: View {
             .opacity(hoveredShortcut == item.id ? 1 : 0)
             .allowsHitTesting(hoveredShortcut == item.id)
             .aetherPointingCursor()
-            .help("Shortcut actions for \\(item.name)")
-            .accessibilityLabel("Shortcut actions for \\(item.name)")
+            .help("Shortcut actions for \(item.name)")
+            .accessibilityLabel("Shortcut actions for \(item.name)")
         }
         .frame(width: 108, height: 94)
         .contentShape(Rectangle())
