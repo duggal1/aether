@@ -21,13 +21,16 @@ public final class BrowserWorkspace {
         profiles = all
         bookmarks = archive.bookmarks.filter { item in all.contains(where: { $0.id == item.profileID }) }
         visits = archive.visits.filter { item in all.contains(where: { $0.id == item.profileID }) }
-        // Seed unpinned new-tab shortcuts once; pinning is always an explicit action.
-        shortcuts = archive.shortcuts.isEmpty ? [
+        // A one-time migration: removing all shortcuts must not resurrect defaults.
+        let shouldSeed = archive.shortcuts.isEmpty
+            && !UserDefaults.standard.bool(forKey: "aether.shortcuts.seeded.v1")
+        shortcuts = shouldSeed ? [
             BrowserShortcut(name: "YouTube", url: "https://www.youtube.com/"),
             BrowserShortcut(name: "Safari", url: "https://www.apple.com/safari/"),
             BrowserShortcut(name: "Slack", url: "https://slack.com/"),
             BrowserShortcut(name: "GitHub", url: "https://github.com/")
         ] : archive.shortcuts
+        UserDefaults.standard.set(true, forKey: "aether.shortcuts.seeded.v1")
         defaultProfileID = all.contains(where: { $0.id == archive.defaultProfileID }) ? archive.defaultProfileID! : all[0].id
     }
 
