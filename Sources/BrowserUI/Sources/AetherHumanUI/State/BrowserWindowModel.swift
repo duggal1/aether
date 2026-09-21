@@ -180,6 +180,7 @@ public final class BrowserWindowModel: Identifiable {
         }
         guard let destination = AddressResolver.resolve(text, provider: workspace.preferences.provider) else { return }
         tab.url = destination.absoluteString
+        tab.siteSurface = nil
         tab.loadState = .loading
         if tab.id == selectedID { beginNavigationGlow() }
         navigationTasks[tab.id]?.cancel()
@@ -208,6 +209,7 @@ public final class BrowserWindowModel: Identifiable {
         navigationTasks[tab.id]?.cancel()
         navigationTasks[tab.id] = nil
         tab.title = query
+        tab.siteSurface = nil
         tab.url = nil
         tab.canGoBack = false
         tab.canGoForward = false
@@ -275,6 +277,7 @@ public final class BrowserWindowModel: Identifiable {
             return
         }
         tab.title = state.title.isEmpty ? (state.url ?? "New Tab") : state.title
+        if tab.url != state.url { tab.siteSurface = nil }
         tab.url = state.url
         tab.canGoBack = state.canGoBack
         tab.canGoForward = state.canGoForward
