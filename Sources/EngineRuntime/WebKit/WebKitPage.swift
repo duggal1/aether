@@ -156,7 +156,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   }
 
   private func wait(for navigation: WKNavigation?, settle: PageReadiness = .complete) async throws {
-    guard let navigation else { throw BrowserRuntimeError.historyUnavailable }
+    guard let navigation else { return }
     let key = ObjectIdentifier(navigation)
     try await withTaskCancellationHandler {
       try Task.checkCancellation()

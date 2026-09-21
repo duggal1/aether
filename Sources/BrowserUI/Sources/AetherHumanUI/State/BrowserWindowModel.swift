@@ -166,11 +166,18 @@ public final class BrowserWindowModel: Identifiable {
         select(tabs[(i + direction + tabs.count) % tabs.count].id)
     }
 
-    public func navigateSelected(_ text: String) {
+    public func navigateSelected(_ text: String, intelligence: Bool = false) {
         guard let selected else { return }
-        navigate(selected, text: text)
+        navigate(selected, text: text, intelligence: intelligence)
     }
-    public func navigate(_ tab: BrowserTab, text: String) {
+    public func navigate(_ tab: BrowserTab, text: String, intelligence: Bool = false) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if AddressResolver.directURL(trimmed) == nil,
+           intelligence || workspace.preferences.provider.usesIntelligence {
+            startJevSearch(tab, query: trimmed)
+            return
+        }
         guard let destination = AddressResolver.resolve(text, provider: workspace.preferences.provider) else { return }
         tab.url = destination.absoluteString
         tab.loadState = .loading
@@ -197,6 +204,45 @@ public final class BrowserWindowModel: Identifiable {
             }
         }
     }
+    public func startJevSearch(_ tab: BrowserTab, query: String) {
+        navigationTasks[tab.id]?.cancel()
+        navigationTasks[tab.id] = nil
+        tab.title = query
+        tab.url = nil
+        tab.canGoBack = false
+        tab.canGoForward = false
+        tab.loadProgress = 0
+        tab.loadState = .search(query)
+        if tab.id == selectedID { beginNavigationGlow() }
+    }
+
+    public func searchSignals(limit: Int = 240) -> [BrowserSearchSignal] {
+        var signals: [BrowserSearchSignal] = []
+        var seen = Set<String>()
+        let now = Date().timeIntervalSince1970
+        for tab in tabs {
+            guard let url = tab.url, !url.isEmpty, seen.insert(url).inserted else { continue }
+            signals.append(BrowserSearchSignal(kind: .openTab, title: tab.title, url: url,
+                                               visits: 1, lastVisit: now))
+        }
+        for mark in workspace.bookmarks(for: activeProfileID) where seen.insert(mark.url).inserted {
+            signals.append(BrowserSearchSignal(kind: .bookmark, title: mark.title, url: mark.url,
+                                               visits: 1,
+                                               lastVisit: mark.createdAt.timeIntervalSince1970))
+        }
+        for item in workspace.shortcuts where seen.insert(item.url).inserted {
+            signals.append(BrowserSearchSignal(kind: .shortcut, title: item.name, url: item.url,
+                                               visits: 1, lastVisit: 0))
+        }
+        for visit in workspace.history(for: activeProfileID, limit: limit)
+        where seen.insert(visit.url).inserted {
+            signals.append(BrowserSearchSignal(kind: .history, title: visit.title, url: visit.url,
+                                               visits: 1,
+                                               lastVisit: visit.visitedAt.timeIntervalSince1970))
+        }
+        return signals
+    }
+
     public func refresh(_ tab: BrowserTab) async throws {
         guard let page = tab.enginePageID else { throw BrowserPortError.pageUnavailable }
         let state = try await workspace.engine.snapshot(pageID: page)
@@ -221,6 +267,7 @@ public final class BrowserWindowModel: Identifiable {
         }
     }
     private func apply(_ state: EnginePageSnapshot, to tab: BrowserTab) {
+        if case .search = tab.loadState { return }
         if state.closed {
             tab.enginePageID = nil
             tab.loadState = .failed("The engine page was closed.")

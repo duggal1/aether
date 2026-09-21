@@ -10,6 +10,7 @@ public enum TabLoadState: Equatable {
     case newTab
     case loading
     case ready
+    case search(String)
     case failed(String)
 }
 

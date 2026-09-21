@@ -22,4 +22,20 @@ Theme: propagate app appearance to WKWebView so standards-based prefers-color-sc
 
 Search: Google already default. Fix input routing and expose Google AI Mode via documented google.com/ai and Google search links, without paid API credentials. Availability remains Google-controlled.
 
+### Google search and AI Mode resolution (measured)
+
+Root cause: `WebKitAppearance.install(in:)` was an empty function, so the single `WKWebView` construction site sent the bare `AppleWebKit/605.1.15 (KHTML, like Gecko)` user agent with no `Version/… Safari/…` token. Google classified the client as a non-browser and refused to serve a normal results document: `/search` returned its JavaScript bootstrap (`/httpservice/retry/enablejs`, 0 links, "if you are not redirected within a few seconds"), `udm=50` was stripped, and `google.com/ai` bounced to `webhp?aep=11`.
+
+Fix: `WebKitAppearance` sets `configuration.applicationNameForUserAgent = "Version/<OS major>.0 Safari/605.1.15"` and keeps content JavaScript explicitly enabled. `AddressResolver` builds search URLs with `URLComponents`/`URLQueryItem`; `.googleAI` routes to `search?udm=50&q=`, and `google.com/ai` is the AI Mode homepage. The omnibox AI Mode button and the settings dropdown read those same provider properties, so chrome, homepage and agent navigation cannot disagree.
+
+Measured with `browserctl` against live Google at the URLs the resolver produces:
+
+| Input | Result |
+| --- | --- |
+| `/search?q=swift%20programming` | `swift programming - Google Search`, 97 links, hydrates with `&sei=` |
+| `/search?udm=50&q=swift%20programming` | `udm=50` preserved, hydrates with `mstk=`/`csuir=1`, 40 links |
+| `/ai` | resolves to `/search?udm=50&aep=11` |
+
+Constraint for future work: Google `/search` commits a JavaScript bootstrap shell first; results exist only after client-side hydration (0 links immediately after commit, full results after several seconds). Any change that interrupts or re-issues navigation during hydration returns the user to Google's interstitial. Google's routing parameters are web-interface details, not a versioned API, and remain Google-controlled.
+
 Compile then install and reproduce address edit/search/repeated navigation/tab switches in real UI; verify screenshots and absence of popover-window growth. Retain prior work and close out original verification.

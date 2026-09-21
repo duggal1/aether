@@ -11,7 +11,9 @@
 
 This file is the fastest correct path into this repository. It describes **the code that exists**, not the code we wish existed. `TODO.md` holds the work plan, `RULES.md` holds the process, `DESIGN.md` owns every native UI decision, `ENHANCE-DESIGN.md` owns the UI polish pass, `HANDOFF.md` holds the previous agent's handoff, `Docs/` holds deeper protocol/architecture notes.
 
-Snapshot basis: `Package.swift` + all of `Sources/` — 128 engine Swift files, ~28,650 lines, plus a native macOS UI (`Sources/BrowserUI/`, 76 files, ~7.9k lines) that is macOS 27-only. All numbers below were counted from the files, not estimated.
+Snapshot basis: `Package.swift` + all of `Sources/` — 278 Swift files across the engine and the native macOS UI. All numbers below were counted from the files, not estimated.
+
+**Read this first.** The rendering engine is **Apple WebKit** (`WKWebView`), not a custom HTML/CSS/layout renderer. WebKit does all production page rendering. Aether's custom runtime provides tabs, navigation, profiles, the agent protocol, structured page data, and session management *around* WebKit. Several custom engine modules (`HTML`, `CSS`, `Style`, `Layout`, `Display`, `Graphics` renderers, `JavaScript`, `WebAPI`, `Navigation`) still exist in the tree but are **being retired** — see `work/plan/backend/retire-custom-engine.md`. Do not build rendering features there; do not claim the custom engine renders the modern web.
 
 ## 0. What this project is
 
@@ -48,7 +50,7 @@ Additional laws specific to this repository:
 - **WebKit for rendering, custom runtime for control.** WebKit handles HTML/CSS/JS rendering. Aether's custom runtime provides tabs, navigation, profiles, agent protocol, and structured page data. Do not rebuild WebKit's rendering capabilities.
 - **No AI inference in the browser command path.** Commands are deterministic. The model that decides *what* to do lives outside the browser.
 - **Structured state beats pixels.** Screenshots are a fallback for genuinely visual tasks, never the primary control protocol. Leverage WebKit's JavaScript execution and DOM inspection APIs where available.
-- **A native macOS UI exists** at `Sources/BrowserUI/Sources/AetherHumanUI` (76 files, ~7.9k lines) and it is **macOS 27-only**: both manifests pin `.macOS("27.0")`, so Liquid Glass (`glassEffect`, `GlassEffectContainer`, `glassEffectID/Transition/Union`, `.buttonStyle(.glass/.glassProminent)`, `.pickerStyle(.tabs)`) is used **unconditionally, with no availability guards**. Read `Sources/BrowserUI/Documentation/ENHANCED_DESIGN.md` before editing it, and verify with `cd Sources/BrowserUI && swift build` (standalone manifest — fast, 0 warnings expected). UI never lives inside engine modules.
+- **A native macOS UI exists** at `Sources/BrowserUI/Sources/AetherHumanUI` (86 files) and it is **macOS 27-only**: both manifests pin `.macOS("27.0")`, so Liquid Glass (`glassEffect`, `GlassEffectContainer`, `glassEffectID/Transition/Union`, `.buttonStyle(.glass/.glassProminent)`, `.pickerStyle(.tabs)`) is used **unconditionally, with no availability guards**. Read `Sources/BrowserUI/Documentation/ENHANCED_DESIGN.md` before editing it, and verify with `cd Sources/BrowserUI && swift build` (standalone manifest — fast, 0 warnings expected). UI never lives inside engine modules.
 
 ## 2. Architecture diagrams
 
@@ -87,7 +89,7 @@ BrowserEngine = EngineRuntime + AgentProtocol + AetherCapture + Graphics + Diagn
                 (public facade + JSON command dispatcher)
 ```
 
-**Note:** WebKit (`WKWebView`) is integrated in `EngineRuntime/WebKit/` and handles all production web rendering. Custom engine modules (HTML, CSS, Style, Layout, etc.) support agent-facing operations and structured data access.
+**Note:** WebKit (`WKWebView`) is integrated in `EngineRuntime/WebKit/` and handles all production web rendering. The custom engine modules (`HTML`, `CSS`, `Style`, `Layout`, `Display`, `Graphics`, `JavaScript`, `WebAPI`, `Navigation`) are **retiring**, not rendering — see `work/plan/backend/retire-custom-engine.md`. Do not build rendering features in them.
 
 ### 2.2 Two interfaces, one runtime
 
@@ -127,12 +129,12 @@ Agent Navigation Request
 
 For agent-facing operations:
   → JavaScript execution via WKWebView.evaluateJavaScript()
-  → DOM inspection via JavaScript queries
+  → DOM inspection via JavaScript queries (see `EngineRuntime/WebKit/WebKitDOMScript.swift`)
   → Element geometry via JavaScript + viewport calculations
-  → Structured data extraction via custom runtime modules
+  → Structured data extraction via the runtime's WebKit-backed agent surface
 ```
 
-**Note:** The custom engine modules (HTML, CSS, Style, Layout, Display) support agent-facing operations like structured DOM access and testing, but WebKit handles all production web rendering.
+**Note:** WebKit handles all production web rendering. The custom engine modules (`HTML`, `CSS`, `Style`, `Layout`, `Display`, `Graphics`, `JavaScript`, `WebAPI`, `Navigation`) are **retiring**, not rendering — see `work/plan/backend/retire-custom-engine.md`. Do not build rendering features in them.
 
 ### 2.4 Agent command path
 
@@ -141,13 +143,13 @@ agent (Codex / Claude Code / OpenCode / any process)
    │  newline-delimited JSON over a Unix-domain socket
    ▼
 browserd --socket /tmp/native-browser-engine.sock
-   → AgentSocketServer.run { request → AgentCommandDispatcher.handle(request) }
-   → switch on AgentMethod (76 methods)
-   → BrowserRuntime public API (80 public funcs) or CaptureCoordinator
-   → AgentResponse { id, result | error { code, message } }
+→ AgentSocketServer.run { request → AgentCommandDispatcher.handle(request) }
+    → switch on AgentMethod (87 methods)
+    → BrowserRuntime public API (87 public funcs) or CaptureCoordinator
+    → AgentResponse { id, result | error { code, message } }
 ```
 
-`browserctl` speaks the same protocol over the same socket (79 CLI subcommands) and also has socket-free local commands: `inspect`, `render`, `eval`, `shell`, `capture`, `bench-info`.
+`browserctl` speaks the same protocol over the same socket (111 subcommands) and also has socket-free local commands: `inspect`, `render`, `eval`, `shell`, `capture`, `bench-info`.
 
 ### 2.5 Page lifecycle / fleet state machine
 
@@ -175,15 +177,15 @@ CaptureCoordinator.capture(url:into:options:)
 
 | Path | What it is | Status |
 |---|---|---|
-| `Package.swift` | SwiftPM manifest: 23 library targets, 3 executables, 14 test targets, Swift 6 language mode, macOS 15 minimum, tools 6.2 | source of truth |
-| `Sources/` | The engine: 25 module directories, 128 Swift files, ~28.6k lines | active |
-| `Sources/BrowserUI/` | The native macOS UI: 76 Swift files, ~7.9k lines, own `Package.swift` (macOS 27 floor). Targets `AetherHumanUI` (library), `AetherHumanPreview` (app), `AetherHumanUITests` | active |
-| `Tests/` | 18 Swift Testing files (~1.88k lines; 138 `@Test` including nested) | active |
+| `Package.swift` | SwiftPM manifest: 2 library targets, 8 executables, 18 test targets, Swift 6 language mode, macOS 15 minimum, tools 6.2 | source of truth |
+| `Sources/` | The engine + WebKit integration: 278 Swift files | active |
+| `Sources/BrowserUI/` | The native macOS UI: 86 Swift files, own `Package.swift` (macOS 27 floor). Targets `AetherHumanUI` (library), `AetherHumanPreview` (app), `AetherHumanUITests` | active |
+| `Tests/` | 33 Swift Testing files (260 `@Test` including nested) | active |
 | `Benchmarks/enginebench/` | `enginebench` executable: 10k-row HTML → parse/style/layout timings | active |
 | `Fixtures/` | `basic.html`, `forms.html`, `scripts.html` — local test/demo pages | active |
-| `Docs/` | `ARCHITECTURE.md`, `AGENT_PROTOCOL.md`, `IMPLEMENTATION_STATUS.md`, `ROADMAP.md`, `VALIDATION.md`, `PERFORMANCE.md` | partly stale |
-| `Scripts/` | **empty** — no automation scripts exist yet | placeholder |
-| `agents/codex/test-freeze/` | Raw evidence from a past agent: `plan/plan.md`, `results/*.json` (RSS/CPU watchdog samples) | evidence |
+| `Docs/` | `ARCHITECTURE.md`, `AGENT_PROTOCOL.md`, `IMPLEMENTATION_STATUS.md`, `ROADMAP.md`, `VALIDATION.md`, `PERFORMANCE.md`, plus agent integration/qualification docs | partly stale |
+| `Scripts/` | 10 scripts: `test_macos.py`, `verify_browser.py`, `benchmark_aether_app.py`, `aether_app_protocol.py`, `build_aether_app.sh`, `make_app_icon.sh`, `aether_page_probe.js` | active |
+| `agents/` | Per-harness agent memory: `codex/`, `buffy/`, each with `plan/`, `results/`, `conclusion/`, `notes/` | evidence |
 | `Sources/NativeCapture/` | Nested sub-package: own `Package.swift`, `README.md`, `Examples/`, `Sources/AetherCapture/`, `Tests/` | vendored |
 | `.build/` | SwiftPM build output (git-ignored) | generated |
 
@@ -217,7 +219,7 @@ Format: `file` — role (lines).
 | `Semantics.swift` | `SemanticNode` + `DOMSemantics`: role/name/value/href/enabled/editable/visible |
 | `Snapshot.swift` | `DOMSnapshot`, `DOMSnapshotNode`: serializable tree with attributes, text, parent/children, version |
 
-### 4.3 HTML (5 files, 1395 lines)
+### 4.3 HTML (5 files, 1395 lines) — **retiring; do not build rendering features here**
 
 | File | Role |
 |---|---|
@@ -227,7 +229,7 @@ Format: `file` — role (lines).
 | `HTMLParser.swift` | `HTMLParser.parse` entry point + `HTMLParseResult` |
 | `HTMLSerialization.swift` | serializes a live DOM back to HTML (used by capture) |
 
-### 4.4 CSS (6 files, 1200 lines)
+### 4.4 CSS (6 files, 1200 lines) — **retiring; do not build rendering features here**
 
 | File | Role |
 |---|---|
@@ -395,7 +397,7 @@ Format: `file` — role (lines).
 
 | File | Role |
 |---|---|
-| `AgentMessages.swift` | `AgentMethod` (76 methods), `AgentRequest`, `AgentResponse`, `AgentError` |
+| `AgentMessages.swift` | `AgentMethod` (87 methods), `AgentRequest`, `AgentResponse`, `AgentError` |
 | `JSONValue.swift` | `JSONValue` — the wire type, no engine dependency |
 | `AgentCodec.swift` | encode/decode helpers |
 | `UnixSocket.swift` | `AgentSocketClient`, `AgentSocketServer`, `AgentTransportError` (Darwin/Glibc) |

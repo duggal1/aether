@@ -106,6 +106,12 @@ public enum AetherPalette {
     public static func tabHover(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.hover, lightHex: AetherNeutral.lightHover)
     }
+    public static func tabTitle(_ dark: Bool) -> Color {
+        neutral(dark, darkHex: AetherNeutral.muted, lightHex: AetherNeutral.lightMuted)
+    }
+    public static func selection(_ dark: Bool) -> Color {
+        neutral(dark, darkHex: AetherNeutral.hover, lightHex: AetherNeutral.lightHover)
+    }
     public static func modal(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
     }

@@ -131,7 +131,10 @@ private struct OmniboxSuggestionRow: View {
         let match = min(row.matched, row.title.count)
         let head = String(row.title.prefix(match))
         let tail = String(row.title.dropFirst(match))
-        return (Text(head).foregroundColor(theme.ink) + Text(tail).foregroundColor(theme.muted))
+        return HStack(spacing: 0) {
+            Text(head).foregroundColor(theme.ink)
+            Text(tail).foregroundColor(theme.muted)
+        }
             .lineLimit(1)
             .truncationMode(.tail)
     }

@@ -71,7 +71,7 @@ public struct OmniboxView: View {
                 }
                 .onChange(of: window.selected?.loadProgress) { _, _ in trackRealProgress() }
             if !focused {
-                Button { window.navigateSelected("https://www.google.com/ai") } label: {
+                Button { window.navigateSelected(SearchProvider.googleAI.homepage.absoluteString) } label: {
                     Text("AI Mode").font(AetherType.body(11)).foregroundStyle(theme.muted)
                 }
                 .buttonStyle(.plain)

@@ -32,6 +32,8 @@ public struct BrowserContentView: View {
                     } else {
                         AetherEmptyState(icon: .globe, heading: "Preparing page", description: "Waiting for the existing browser engine.")
                     }
+                case .search(let query):
+                    JevSearchResultsView(query: query, window: window)
                 case .failed(let message):
                     errorPage(message, tab: tab)
                 }

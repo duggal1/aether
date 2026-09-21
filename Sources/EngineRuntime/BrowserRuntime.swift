@@ -8,6 +8,7 @@ import Foundation
 import HTML
 import Images
 import JavaScript
+import JevSearch
 import Layout
 import Media
 import Navigation
@@ -113,6 +114,7 @@ public actor BrowserRuntime {
   private let sessionCounter = AtomicCounter()
   private let metricsCollector = MetricsCollector()
   private let scheduler = EngineScheduler()
+  let searchIntelligence = SearchIntelligence()
   var contexts: [ContextID: ContextRecord] = [:] {
     didSet {
       if let pageStateUpdate { publishPageState(pageStateUpdate) }

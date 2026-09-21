@@ -19,10 +19,11 @@ let package = Package(
       sources: ["AetherHumanUI", "icons"],
       resources: [.copy("AetherHumanUI/Resources/Fonts")],
       swiftSettings: [.swiftLanguageMode(.v5)]),
-    .executableTarget(name: "AetherApp", dependencies: ["AetherHumanUI", "BrowserEngine", "EngineRuntime", "EngineCore", "AgentProtocol", "Graphics", "Display", "DOM", "Media", "ContentBlocker"], exclude: ["Resources"]),
+    .executableTarget(name: "AetherApp", dependencies: ["AetherHumanUI", "BrowserEngine", "EngineRuntime", "EngineCore", "AgentProtocol", "Graphics", "Display", "DOM", "Media", "ContentBlocker", "JevSearch"], exclude: ["Resources"]),
     .testTarget(name: "AetherHumanUITests", dependencies: ["AetherHumanUI"], path: "Sources/BrowserUI/Tests/AetherHumanUITests", swiftSettings: [.swiftLanguageMode(.v5)]),
     .testTarget(name: "HumanIntegrationTests", dependencies: ["AetherApp", "EngineRuntime", "EngineCore", "AetherHumanUI"]),
     .target(name: "EngineCore"),
+    .target(name: "JevSearch"),
     .target(name: "DOM", dependencies: ["EngineCore"]),
     .target(name: "HTML", dependencies: ["EngineCore", "DOM"]),
     .target(name: "CSS", dependencies: ["EngineCore"]),
@@ -60,13 +61,13 @@ let package = Package(
       dependencies: [
         "EngineCore", "DOM", "Navigation", "Graphics", "Storage", "Scheduler", "Diagnostics",
         "Networking", "JavaScript", "Style", "Layout", "Display", "WebSecurity", "Persistence",
-        "CSS", "WebAPI", "AetherCapture", "Media", "ContentBlocker",
+        "CSS", "WebAPI", "AetherCapture", "Media", "ContentBlocker", "JevSearch",
       ]),
     .target(
       name: "BrowserEngine",
       dependencies: [
         "EngineCore", "DOM", "AgentProtocol", "EngineRuntime", "Graphics", "Diagnostics",
-        "AetherCapture", "Media",
+        "AetherCapture", "Media", "JevSearch",
       ]),
     .executableTarget(
       name: "browserctl",
@@ -95,6 +96,7 @@ let package = Package(
     .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript", "Networking"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage", "EngineCore"]),
     .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
+    .testTarget(name: "JevSearchTests", dependencies: ["JevSearch"]),
     .testTarget(name: "SecurityTests", dependencies: ["WebSecurity"]),
     .testTarget(
       name: "BlockerTests",

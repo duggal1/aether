@@ -84,7 +84,7 @@ public struct NewTabView: View {
         let text = ask.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         ask = ""
-        window.navigateSelected(text)
+        window.navigateSelected(text, intelligence: true)
     }
 
     private func shortcut(_ item: BrowserShortcut) -> some View {

@@ -22,7 +22,7 @@ public final class BrowserPreferences {
         self.defaults = defaults
         arrangement = TabArrangement(rawValue: defaults.string(forKey: "aether.tabs") ?? "") ?? .top
         appearance = AetherAppearance(rawValue: defaults.string(forKey: "aether.appearance") ?? "") ?? .system
-        provider = SearchProvider(rawValue: defaults.string(forKey: "aether.provider") ?? "") ?? .google
+        provider = SearchProvider(rawValue: defaults.string(forKey: "aether.provider") ?? "") ?? .jev
         restoreWindows = defaults.object(forKey: "aether.restore.v2") as? Bool ?? false
         showFavorites = defaults.object(forKey: "aether.favorites") as? Bool ?? true
         showFullAddress = defaults.object(forKey: "aether.fullAddress") as? Bool ?? false

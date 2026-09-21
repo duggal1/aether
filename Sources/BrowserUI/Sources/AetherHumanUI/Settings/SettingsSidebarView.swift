@@ -3,7 +3,6 @@ import SwiftUI
 public struct SettingsSidebarView: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @Namespace private var sectionGlass
     @Binding var selection: SettingsSection
     public init(selection: Binding<SettingsSection>) { _selection = selection }
     public var body: some View {
@@ -13,8 +12,7 @@ public struct SettingsSidebarView: View {
                 .foregroundStyle(theme.heading)
                 .padding(.horizontal, 12).padding(.top, 22).padding(.bottom, 20)
             ForEach(SettingsSection.allCases) { section in
-                    settingsRow(section)
-                }
+                settingsRow(section)
             }
             Spacer(minLength: 0)
         }
@@ -28,31 +26,31 @@ public struct SettingsSidebarView: View {
         Button {
             withAnimation(AetherMotion.snappy(reduced)) { selection = section }
         } label: {
-                    HStack(spacing: 11) {
-                        Image(systemName: nativeIcon(for: section).rawValue)
-                            .font(AetherType.symbol(16))
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(selection == section ? theme.ink : theme.muted)
-                            .frame(width: 20)
-                        Text(section.rawValue).font(AetherType.body(13)).lineLimit(1)
-                        Spacer(minLength: 0)
-                    }
+            HStack(spacing: 11) {
+                Image(systemName: nativeIcon(for: section).rawValue)
+                    .font(AetherType.symbol(16))
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(selection == section ? theme.ink : theme.muted)
-                    .padding(.horizontal, 12).frame(height: 34)
-                    .background {
-                        if selection == section {
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .fill(theme.hover)
-                        }
-                    }
-                    .contentShape(Rectangle())
+                    .frame(width: 20)
+                Text(section.rawValue).font(AetherType.body(13)).lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(selection == section ? theme.ink : theme.muted)
+            .padding(.horizontal, 12).frame(height: 34)
+            .background {
+                if selection == section {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(theme.hover)
                 }
-                .buttonStyle(.plain)
-                .aetherFocusTreatment(radius: 6)
-                .focusEffectDisabled()
-                .aetherPointingCursor()
-                .accessibilityAddTraits(selection == section ? .isSelected : [])
-                .animation(AetherMotion.selection(reduced), value: selection)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .aetherFocusTreatment(radius: 6)
+        .focusEffectDisabled()
+        .aetherPointingCursor()
+        .accessibilityAddTraits(selection == section ? .isSelected : [])
+        .animation(AetherMotion.selection(reduced), value: selection)
     }
 
     private func nativeIcon(for section: SettingsSection) -> AetherSymbol {

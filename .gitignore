@@ -3,3 +3,6 @@
 .DS_Store
 *.xcuserstate
 DerivedData/
+.env
+.env.*
+!.env.example

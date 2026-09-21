@@ -79,6 +79,9 @@ public final class BrowserWorkspace {
     public func bookmarks(for profileID: UUID) -> [BrowserBookmark] {
         bookmarks.filter { $0.profileID == profileID }
     }
+    public func history(for profileID: UUID, limit: Int = 200) -> [BrowserVisit] {
+        Array(visits.lazy.filter { $0.profileID == profileID }.prefix(max(0, limit)))
+    }
     public func isBookmarked(_ url: String?, profileID: UUID) -> Bool {
         guard let url else { return false }
         return bookmarks.contains { $0.profileID == profileID && $0.url == url }
