@@ -58,21 +58,19 @@ public struct TabItemView: View {
                 tabTitleText
             }
             if tab.loadState == .loading {
-                ProgressView().controlSize(.mini).frame(width: 12, height: 12)
+                TerminalLoader().frame(width: 16, height: 16)
             } else if tab.isPinned {
                 BrowserIconView(icon: .pin, tint: theme.soft).iconSize(10)
                     .frame(width: 16, alignment: .center)
             }
             if !compact {
                 Button { window.close(tab.id) } label: {
-                    BrowserIconView(icon: .close, tint: theme.muted).iconSize(9)
-                        .frame(width: 16, height: 16)
-                        .background(theme.hover.opacity(0.65), in: RoundedRectangle(cornerRadius: 4))
+                    BrowserIconView(icon: .close, tint: theme.muted).iconSize(13)
+                        .frame(width: 19, height: 19)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .aetherPointingCursor()
-                .aetherFocusTreatment(radius: 4)
                 .focusEffectDisabled()
                 .help("Close tab")
                 .opacity((hovering || (selected && topFused)) ? 1 : 0)
