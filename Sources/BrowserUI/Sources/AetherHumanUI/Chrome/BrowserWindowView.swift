@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 public struct BrowserWindowView: View {
     @Environment(\.aetherTheme) private var theme
@@ -8,14 +9,51 @@ public struct BrowserWindowView: View {
     public init(window: BrowserWindowModel) { self.window = window }
 
     private var activeSurface: Color {
-        if let url = window.selected?.url, !url.isEmpty, url != "about:blank" {
-            AetherPalette.activeSite(theme.dark)
+        if let tab = window.selected, let url = tab.url, !url.isEmpty, url != "about:blank" {
+            tab.siteSurface.map { AetherPalette.siteSurface($0) } ?? AetherPalette.activeSite(theme.dark)
         } else {
             AetherPalette.activeNewTab(theme.dark)
         }
     }
 
-    public var body: some View {        ZStack(alignment: .topTrailing) {            HStack(spacing: 0) {
+    private var appearanceRequestKey: String {
+        let tab = window.selected
+        return "\(tab?.id.uuidString ?? "")|\(tab?.url ?? "")|\(tab?.loadState == .ready)"
+    }
+
+    @MainActor private func syncAppearance() async {
+        guard let tab = window.selected, tab.loadState == .ready,
+              let pageID = tab.enginePageID,
+              let webView = window.workspace.engine.surface(pageID: pageID) as? WKWebView else { return }
+        let expectedURL = tab.url
+        // DOM background is the source of truth, not a palette guessed from the hostname.
+        let source = """
+        (() => {
+          const points = [
+            document.elementFromPoint(Math.floor(innerWidth / 2), 8),
+            document.body, document.documentElement
+          ];
+          for (const root of points) {
+            for (let el = root; el; el = el.parentElement) {
+              const value = getComputedStyle(el).backgroundColor;
+              const m = /^rgba?\\((\\d+)[, ]+(\\d+)[, ]+(\\d+)(?:[, /]+([\\d.]+))?\\)/.exec(value);
+              if (!m || (m[4] && Number(m[4]) < 0.92)) { continue; }
+              return "#" + [m[1], m[2], m[3]]
+                .map(x => Number(x).toString(16).padStart(2, "0")).join("");
+            }
+          }
+          return null;
+        })()
+        """
+        guard let hex = (try? await webView.evaluateJavaScript(source)) as? String,
+              hex.hasPrefix("#"), let color = UInt(hex.dropFirst(), radix: 16),
+              !Task.isCancelled, tab.url == expectedURL else { return }
+        tab.siteSurface = color
+    }
+
+    public var body: some View {
+        ZStack(alignment: .topTrailing) {
+            HStack(spacing: 0) {
                 if window.arrangement == .sidebar && !window.sidebarCollapsed {
                     SidebarTabListView(window: window)
                         .transition(.move(edge: .leading).combined(with: .opacity))
@@ -56,7 +94,8 @@ public struct BrowserWindowView: View {
             }
         }
         .frame(minWidth: 760, minHeight: 460)
-        .background(theme.chrome)
+        .background(window.arrangement == .sidebar && !window.sidebarCollapsed ? Color.clear : theme.chrome)
+        .task(id: appearanceRequestKey) { await syncAppearance() }
         .preferredColorScheme(window.workspace.preferences.appearance.colorScheme)
         .animation(AetherMotion.panel(reduced), value: window.showsTabSearch)
         .animation(AetherMotion.sidebar(reduced), value: window.sidebarCollapsed)
