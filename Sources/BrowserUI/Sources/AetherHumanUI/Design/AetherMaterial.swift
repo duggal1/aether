@@ -92,84 +92,73 @@ struct AetherDitherOverlay: View {
     }
 }
 
+// Only the sidebar samples macOS native material. All browser-content chrome is opaque.
+private struct AetherNativeSidebarMaterial: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .active
+    }
+}
+
 public struct AetherChromeBackground: View {
     @Environment(\.aetherTheme) private var theme
     public let role: AetherChromeRole
-
     public init(_ role: AetherChromeRole) { self.role = role }
 
     public var body: some View {
         ZStack {
-            Color.clear.aetherGlass(.regular, in: Rectangle())
-            veil
-            if theme.dark { AetherDitherOverlay() }
+            if role == .sidebar {
+                AetherNativeSidebarMaterial()
+                theme.chrome.opacity(theme.dark ? 0.86 : 0.91)
+            } else {
+                theme.chrome
+            }
         }
         .accessibilityHidden(true)
-    }
-
-    @ViewBuilder private var veil: some View {
-        if role == .sidebar {
-            AetherSmoothGradient(stops: [
-                AetherPalette.raised(theme.dark),
-                AetherPalette.control(theme.dark),
-                AetherPalette.control(theme.dark),
-                AetherPalette.card(theme.dark),
-            ])
-            .opacity(0.38)
-        } else {
-            AetherSmoothGradient(stops: [
-                AetherPalette.chromeHover(theme.dark),
-                AetherPalette.chrome(theme.dark),
-                AetherPalette.chrome(theme.dark),
-            ])
-            .opacity(0.40)
-        }
     }
 }
 
 public struct AetherPopoverBackground: View {
+    @Environment(\.aetherTheme) private var theme
     public init() {}
-
     public var body: some View {
-        AetherGlassSurface(radius: AetherMetrics.menuRadius, interactive: true, minimal: false)
+        RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
+            .fill(theme.card)
+            .overlay {
+                RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
+                    .strokeBorder(theme.hairline, lineWidth: 0.5)
+            }
     }
 }
 
 public struct AetherSheetBackground: View {
+    @Environment(\.aetherTheme) private var theme
     public init() {}
-
-    public var body: some View {
-        AetherGlassSurface(radius: 0, minimal: false)
-    }
+    public var body: some View { theme.modal }
 }
 
 public struct AetherCardBackground: View {
+    @Environment(\.aetherTheme) private var theme
     public let radius: CGFloat
     public init(radius: CGFloat = AetherMetrics.cardRadius) { self.radius = radius }
     public var body: some View {
-        AetherGlassSurface(radius: radius, minimal: false)
+        RoundedRectangle(cornerRadius: radius, style: .continuous).fill(theme.card)
     }
 }
 
 public extension View {
-    func aetherGlassShadow(dark: Bool) -> some View {
-        self.shadow(color: .black.opacity(dark ? 0.30 : 0.12), radius: 18, y: 8)
-            .shadow(color: .black.opacity(dark ? 0.18 : 0.08), radius: 3, y: 1)
-    }
-    func aetherDarkGlassShadow(dark: Bool) -> some View {
-        self.shadow(color: .black.opacity(dark ? 0.45 : 0.16), radius: 24, y: 10)
-            .shadow(color: .black.opacity(dark ? 0.22 : 0.08), radius: 4, y: 1)
-    }
-    func aetherRestingShadow(dark: Bool) -> some View {
-        let spec = AetherShadow.resting(dark)
-        return self.shadow(color: spec.color, radius: spec.radius, y: spec.y)
-    }
-    func aetherFloatingShadow(dark: Bool) -> some View {
-        let spec = AetherShadow.floating(dark)
-        return self.shadow(color: spec.color, radius: spec.radius, y: spec.y)
-    }
-    func aetherSheetShadow(dark: Bool) -> some View {
-        let spec = AetherShadow.sheet(dark)
-        return self.shadow(color: spec.color, radius: spec.radius, y: spec.y)
-    }
+    // No synthetic glass glow or layered diffuse shadows inside browser content.
+    func aetherGlassShadow(dark: Bool) -> some View { self }
+    func aetherDarkGlassShadow(dark: Bool) -> some View { self }
+    func aetherRestingShadow(dark: Bool) -> some View { self }
+    func aetherFloatingShadow(dark: Bool) -> some View { self }
+    func aetherSheetShadow(dark: Bool) -> some View { self }
 }

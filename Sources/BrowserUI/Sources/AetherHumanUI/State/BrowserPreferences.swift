@@ -35,7 +35,7 @@ public final class BrowserPreferences {
             blockTrackers: defaults.object(forKey: "aether.blockTrackers") as? Bool ?? true,
             handleCookieBanners: defaults.object(forKey: "aether.cookieBanners") as? Bool ?? true
         )
-        progressColor = AetherProgressColor(rawValue: defaults.string(forKey: "aether.progressColor") ?? "") ?? .neutral
+        progressColor = AetherProgressColor(rawValue: defaults.string(forKey: "aether.progressColor") ?? "") ?? .violet
     }
     private func save() {
         defaults.set(arrangement.rawValue, forKey: "aether.tabs")

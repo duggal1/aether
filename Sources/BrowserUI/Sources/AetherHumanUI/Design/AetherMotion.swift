@@ -23,7 +23,7 @@ public enum AetherMotion {
     }
 
     public static func panelTransition(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : .opacity
+        reduced ? .opacity : .opacity.combined(with: .move(edge: .top))
     }
 
     public static func sheetTransition(_ reduced: Bool) -> AnyTransition {
@@ -39,7 +39,7 @@ public enum AetherMotion {
     }
 
     public static func contentSwap(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : .opacity.combined(with: .scale(scale: 0.998))
+        reduced ? .opacity : .opacity.combined(with: .move(edge: .trailing))
     }
 }
 

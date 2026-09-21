@@ -56,7 +56,7 @@ public struct BrowserWindowView: View {
             }
         }
         .frame(minWidth: 760, minHeight: 460)
-        .background { AetherChromeBackground(.sidebar) }
+        .background(theme.chrome)
         .preferredColorScheme(window.workspace.preferences.appearance.colorScheme)
         .animation(AetherMotion.panel(reduced), value: window.showsTabSearch)
         .animation(AetherMotion.sidebar(reduced), value: window.sidebarCollapsed)

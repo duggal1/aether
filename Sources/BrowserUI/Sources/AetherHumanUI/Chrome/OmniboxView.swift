@@ -308,20 +308,10 @@ private struct DiaProgressLayers: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            LinearGradient(stops: editorialStops(peak: 1), startPoint: .leading, endPoint: .trailing)
-                .frame(width: width, height: 11)
-                .blur(radius: 10)
-                .opacity(focused ? 0.48 : 0.28)
-                .mask {
-                    LinearGradient(stops: [
-                        Gradient.Stop(color: .clear, location: 0),
-                        Gradient.Stop(color: .black, location: 1),
-                    ], startPoint: .top, endPoint: .bottom)
-                }
+            // Crisp chromatic progress line. Never blur or illuminate the address bar.
             LinearGradient(stops: editorialStops(peak: 1), startPoint: .leading, endPoint: .trailing)
                 .frame(width: width, height: 2)
-                .blur(radius: focused ? 1 : 1.5)
-                .opacity(focused ? 0.95 : 0.65)
+                .opacity(focused ? 1 : 0.9)
         }
         .frame(width: width, height: height, alignment: .bottomLeading)
         .animation(.easeOut(duration: 0.28), value: focused)

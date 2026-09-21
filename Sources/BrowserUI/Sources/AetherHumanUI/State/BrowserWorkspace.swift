@@ -21,8 +21,22 @@ public final class BrowserWorkspace {
         profiles = all
         bookmarks = archive.bookmarks.filter { item in all.contains(where: { $0.id == item.profileID }) }
         visits = archive.visits.filter { item in all.contains(where: { $0.id == item.profileID }) }
-        shortcuts = archive.shortcuts
+        // A one-time migration: removing all shortcuts must not resurrect defaults.
+        let shouldSeed = archive.shortcuts.isEmpty
+            && !UserDefaults.standard.bool(forKey: "aether.shortcuts.seeded.v1")
+        shortcuts = shouldSeed ? [
+            BrowserShortcut(name: "YouTube", url: "https://www.youtube.com/"),
+            BrowserShortcut(name: "Safari", url: "https://www.apple.com/safari/"),
+            BrowserShortcut(name: "Slack", url: "https://slack.com/"),
+            BrowserShortcut(name: "GitHub", url: "https://github.com/")
+        ] : archive.shortcuts
         defaultProfileID = all.contains(where: { $0.id == archive.defaultProfileID }) ? archive.defaultProfileID! : all[0].id
+        if shouldSeed {
+            // Make the first launch durable before recording the migration flag.
+            BrowserPersistence.save(BrowserArchive(profiles: all, bookmarks: bookmarks,
+                visits: visits, shortcuts: shortcuts, defaultProfileID: defaultProfileID))
+        }
+        UserDefaults.standard.set(true, forKey: "aether.shortcuts.seeded.v1")
     }
 
     public func loadEngineLibraries() async {
@@ -131,7 +145,7 @@ public final class BrowserWorkspace {
     public func addShortcut(name: String, url: String) {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
               let destination = AddressResolver.resolve(url), destination.scheme == "https" || destination.scheme == "http" else { return }
-        shortcuts.append(BrowserShortcut(name: name, url: destination.absoluteString, isPinned: true)); persist()
+        shortcuts.append(BrowserShortcut(name: name, url: destination.absoluteString, isPinned: false)); persist()
     }
     public func editShortcut(_ id: UUID, name: String, url: String) {
         guard let i = shortcuts.firstIndex(where: { $0.id == id }), let resolved = AddressResolver.resolve(url) else { return }

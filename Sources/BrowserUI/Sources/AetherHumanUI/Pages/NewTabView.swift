@@ -20,18 +20,16 @@ public struct NewTabView: View {
                         .frame(width: 46)
                         .accessibilityLabel("Aether")
                     askCard
-                    if window.arrangement == .top || window.sidebarCollapsed || !window.workspace.preferences.showFavorites {
-                        LazyVGrid(columns: columns, alignment: .center, spacing: 18) {
-                            ForEach(window.workspace.pinnedShortcuts()) { item in shortcut(item) }
-                            addTile
-                        }
-                        .frame(maxWidth: 438)
-                        .padding(.top, 4)
+                    LazyVGrid(columns: columns, alignment: .center, spacing: 18) {
+                        ForEach(window.workspace.shortcuts) { item in shortcut(item) }
+                        addTile
                     }
+                    .frame(maxWidth: 438)
+                    .padding(.top, 8)
                 }
-                .frame(maxWidth: 640)
+                .frame(maxWidth: 760)
                 .padding(.horizontal, 32)
-                .padding(.top, max(44, geometry.size.height * 0.24))
+                .padding(.top, max(44, geometry.size.height * 0.20))
                 .padding(.bottom, 36)
                 .frame(maxWidth: .infinity)
             }
@@ -77,7 +75,27 @@ public struct NewTabView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(theme.omnibox)
         }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(LinearGradient(colors: accentColors,
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(height: askFocused ? 2 : 1)
+                .padding(.horizontal, 11)
+        }
         .animation(AetherMotion.focus(reduced), value: askFocused)
+    }
+
+    // Neutral shell, chromatic 1–2px accent only. Theme changes reorder the gradient.
+    private var accentColors: [Color] {
+        let violet = Color(red: 0.60, green: 0.40, blue: 0.96)
+        let orange = Color(red: 0.98, green: 0.55, blue: 0.28)
+        let green = Color(red: 0.30, green: 0.76, blue: 0.49)
+        switch window.workspace.preferences.progressColor {
+        case .violet: return [violet, orange, green]
+        case .orange: return [orange, green, violet]
+        case .green: return [green, violet, orange]
+        case .neutral: return [theme.muted, theme.ink]
+        }
     }
 
     private func submitAsk() {
@@ -88,25 +106,48 @@ public struct NewTabView: View {
     }
 
     private func shortcut(_ item: BrowserShortcut) -> some View {
-        Button { window.navigateSelected(item.url) } label: {
-            VStack(spacing: 9) {
-                DomainIcon(item.url, size: 24)
-                    .frame(width: 54, height: 54)
-                    .background { AetherCardBackground(radius: 12) }
-                Text(item.name)
-                    .font(AetherType.body(11)).foregroundStyle(theme.muted)
-                    .lineLimit(1).frame(width: 92)
+        ZStack(alignment: .topTrailing) {
+            Button { window.navigateSelected(item.url) } label: {
+                VStack(spacing: 9) {
+                    DomainIcon(item.url, size: 24)
+                        .frame(width: 54, height: 54)
+                        .background { AetherCardBackground(radius: 9) }
+                    Text(item.name)
+                        .font(AetherType.body(11)).foregroundStyle(theme.muted)
+                        .lineLimit(1).frame(width: 92)
+                }
+                .frame(width: 96, height: 84)
             }
-            .frame(width: 96, height: 84)
+            .buttonStyle(AetherPressStyle(reduced: reduced))
+            .help(item.url)
+            .contextMenu { shortcutActions(item) }
+
+            Menu {
+                shortcutActions(item)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(theme.muted)
+                    .frame(width: 23, height: 23)
+                    .background(theme.hover, in: RoundedRectangle(cornerRadius: 5))
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .aetherPointingCursor()
+            .help("Shortcut actions for \(item.name)")
+            .accessibilityLabel("Shortcut actions for \(item.name)")
         }
-        .buttonStyle(AetherPressStyle(reduced: reduced))
-        .help(item.url)
-        .contextMenu {
-            Button("Open in New Tab") { _ = window.newTab(url: item.url) }
-            Button(item.isPinned ? "Unpin" : "Pin") { window.workspace.toggleShortcutPin(item.id) }
-            Button("Edit Shortcut") { editing = item }
-            Button("Remove Shortcut", role: .destructive) { window.workspace.removeShortcut(item.id) }
+    }
+
+    @ViewBuilder private func shortcutActions(_ item: BrowserShortcut) -> some View {
+        Button("Open in New Tab") { _ = window.newTab(url: item.url) }
+        Button(item.isPinned ? "Unpin from Toolbar" : "Pin to Toolbar") {
+            window.workspace.toggleShortcutPin(item.id)
         }
+        Button("Edit Shortcut") { editing = item }
+        Button("Remove Shortcut", role: .destructive) { window.workspace.removeShortcut(item.id) }
     }
 
     private var addTile: some View {

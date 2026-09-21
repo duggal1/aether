@@ -28,7 +28,7 @@ public struct JevSearchResultsView: View {
                     AetherEmptyState(icon: .search, heading: "No results", description: "Jev found nothing relevant for “\(query)”.")
                         .padding(.top, 60)
                 } else if let outcome {
-                    LazyVStack(alignment: .leading, spacing: 2) {
+                    LazyVStack(alignment: .leading, spacing: 6) {
                         ForEach(outcome.candidates) { candidate in
                             row(candidate)
                         }
@@ -36,8 +36,8 @@ public struct JevSearchResultsView: View {
                     .padding(.top, 6)
                 }
             }
-            .frame(maxWidth: 720, alignment: .leading)
-            .padding(.horizontal, 28)
+            .frame(maxWidth: 850, alignment: .leading)
+            .padding(.horizontal, 34)
             .padding(.top, 34)
             .padding(.bottom, 48)
             .frame(maxWidth: .infinity)
@@ -55,15 +55,15 @@ public struct JevSearchResultsView: View {
             }
             HStack(spacing: 7) {
                 if let outcome {
-                    chip(label(outcome), tint: outcome.degraded ? theme.error : theme.muted)
+                    AetherBadge(label(outcome), variant: outcome.degraded ? .rose : .violet)
                     if outcome.retrievalCount > 0 {
-                        chip("\(outcome.retrievalCount) retrieved", tint: theme.muted)
+                        AetherBadge("\(outcome.retrievalCount) retrieved", variant: .green)
                     }
                     if let model = outcome.model {
-                        chip(model, tint: theme.soft)
+                        AetherBadge(model, variant: .sky)
                     }
                 } else {
-                    chip("Jev search", tint: theme.muted)
+                    AetherBadge("Jev search", variant: .orange)
                 }
             }
             if let outcome, outcome.degraded {
@@ -77,15 +77,6 @@ public struct JevSearchResultsView: View {
     private func label(_ outcome: BrowserSearchOutcome) -> String {
         let percent = Int((max(0, min(1, outcome.confidence)) * 100).rounded())
         return "\(outcome.intent) · \(percent)%"
-    }
-
-    private func chip(_ text: String, tint: Color) -> some View {
-        Text(text)
-            .font(AetherType.body(11))
-            .foregroundStyle(tint)
-            .padding(.horizontal, 8)
-            .frame(height: 20)
-            .background(theme.raised, in: Capsule())
     }
 
     private func row(_ candidate: BrowserSearchCandidate) -> some View {
@@ -109,13 +100,12 @@ public struct JevSearchResultsView: View {
                 Spacer(minLength: 12)
                 if candidate.kind == .navigate || candidate.kind == .web
                     || candidate.kind == .google {
-                    Text(reason(candidate.kind))
-                        .font(AetherType.body(11))
-                        .foregroundStyle(theme.soft)
+                    AetherBadge(reason(candidate.kind), variant: candidate.kind == .web ? .green : .sky)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
