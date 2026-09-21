@@ -19,8 +19,8 @@ public struct JevSearchResultsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 header
                 if loading && outcome == nil {
-                    AetherEmptyState(icon: .search, heading: "Searching", description: "Jev is judging candidates for “\(query)”.")
-                        .padding(.top, 60)
+                    searchSkeletons
+                        .padding(.top, 14)
                 } else if let failure {
                     AetherEmptyState(icon: .warning, heading: "Search unavailable", description: failure)
                         .padding(.top, 60)
@@ -47,6 +47,28 @@ public struct JevSearchResultsView: View {
         .animation(AetherMotion.dropdown(reduced), value: outcome?.candidates.count ?? 0)
     }
 
+    private var searchSkeletons: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 9) {
+                TerminalLoader()
+                Text("Searching").font(AetherType.emphasis(13)).foregroundStyle(theme.muted)
+            }
+            .padding(.bottom, 8)
+            ForEach(0..<6, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 9) {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(theme.selected).frame(width: 270, height: 11)
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(theme.hover).frame(width: 170, height: 9)
+                }
+                .padding(.horizontal, 17)
+                .frame(maxWidth: .infinity, minHeight: 69, alignment: .leading)
+                .background(theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+        }
+        .accessibilityLabel("Searching")
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 9) {
@@ -55,7 +77,7 @@ public struct JevSearchResultsView: View {
             }
             HStack(spacing: 7) {
                 if let outcome {
-                    AetherBadge(label(outcome), variant: outcome.degraded ? .rose : .violet)
+                    AetherBadge(outcome.degraded ? "Search limited" : label(outcome), variant: outcome.degraded ? .rose : .violet)
                     if outcome.retrievalCount > 0 {
                         AetherBadge("\(outcome.retrievalCount) retrieved", variant: .green)
                     }
@@ -82,9 +104,8 @@ public struct JevSearchResultsView: View {
     private func row(_ candidate: BrowserSearchCandidate) -> some View {
         Button { open(candidate) } label: {
             HStack(alignment: .top, spacing: 10) {
-                BrowserIconView(icon: icon(candidate.kind), tint: theme.muted)
-                    .iconSize(13)
-                    .frame(width: 18, height: 18, alignment: .center)
+                DomainIcon(candidate.kind == .google ? "https://www.google.com/" : candidate.url, size: 21)
+                    .frame(width: 22, height: 22, alignment: .center)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(candidate.title)
                         .font(AetherType.body(13))
@@ -144,6 +165,7 @@ public struct JevSearchResultsView: View {
             return
         }
         loading = true
+        outcome = nil
         failure = nil
         do {
             let result = try await provider.jevSearch(query: query, local: window.searchSignals())
