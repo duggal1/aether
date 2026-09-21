@@ -96,22 +96,40 @@ public struct NewTabView: View {
     }
 
     private func shortcut(_ item: BrowserShortcut) -> some View {
-        Button { window.navigateSelected(item.url) } label: {
-            VStack(spacing: 9) {
-                DomainIcon(item.url, size: 24)
-                    .frame(width: 54, height: 54)
-                    .background { AetherCardBackground(radius: 9) }
-                Text(item.name)
-                    .font(AetherType.body(11)).foregroundStyle(theme.muted)
-                    .lineLimit(1).frame(width: 92)
+        ZStack(alignment: .topTrailing) {
+            Button { window.navigateSelected(item.url) } label: {
+                VStack(spacing: 9) {
+                    DomainIcon(item.url, size: 24)
+                        .frame(width: 54, height: 54)
+                        .background { AetherCardBackground(radius: 9) }
+                    Text(item.name)
+                        .font(AetherType.body(11)).foregroundStyle(theme.muted)
+                        .lineLimit(1).frame(width: 92)
+                }
+                .frame(width: 96, height: 84)
             }
-            .frame(width: 96, height: 84)
-        }
-        .buttonStyle(AetherPressStyle(reduced: reduced))
-        .help(item.url)
-        .contextMenu { shortcutActions(item) }
-    }
+            .buttonStyle(AetherPressStyle(reduced: reduced))
+            .help(item.url)
+            .contextMenu { shortcutActions(item) }
 
+            Menu {
+                shortcutActions(item)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(theme.muted)
+                    .frame(width: 23, height: 23)
+                    .background(theme.hover, in: RoundedRectangle(cornerRadius: 5))
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .aetherPointingCursor()
+            .help("Shortcut actions for \\(item.name)")
+            .accessibilityLabel("Shortcut actions for \\(item.name)")
+        }
+    }
 
     @ViewBuilder private func shortcutActions(_ item: BrowserShortcut) -> some View {
         Button("Open in New Tab") { _ = window.newTab(url: item.url) }
