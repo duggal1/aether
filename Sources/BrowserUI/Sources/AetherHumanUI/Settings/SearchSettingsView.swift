@@ -8,7 +8,7 @@ public struct SearchSettingsView: View {
             AetherRow("Search provider", symbol: "magnifyingglass") {
                 AetherDropdown(
                     selection: Binding(get: { workspace.preferences.provider }, set: { workspace.preferences.provider = $0 }),
-                    options: SearchProvider.allCases.map { AetherDropdownOption(value: $0, title: $0.rawValue) },
+                    options: SearchProvider.allCases.map { AetherDropdownOption(value: $0, title: $0.rawValue, iconURL: $0.homepage.absoluteString) },
                     help: "Choose the default search provider",
                     label: "Default search provider")
             }
