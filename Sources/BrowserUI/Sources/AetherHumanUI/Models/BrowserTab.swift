@@ -9,6 +9,8 @@ public final class BrowserTab: Identifiable {
     public var title: String
     public var url: String?
     public var isPinned: Bool = false
+    /// Resolved from the actual loaded page background; nil keeps neutral chrome.
+    public var siteSurface: UInt? = nil
     public var loadState: TabLoadState = .newTab
     public var loadProgress: Double = 0
     public var canGoBack = false
