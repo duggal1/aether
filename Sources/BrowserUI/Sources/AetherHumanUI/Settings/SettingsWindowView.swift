@@ -10,36 +10,41 @@ public struct SettingsWindowView: View {
     public var body: some View {
         HStack(spacing: 0) {
             SettingsSidebarView(selection: $selection)
-                .frame(width: AetherMetrics.settingsSidebar)
-            Rectangle()
-                .fill(theme.control)
-                .frame(width: 0.5)
+                .frame(width: 208)
+            Rectangle().fill(theme.hairline).frame(width: 0.5)
             VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text(selection.rawValue)
-                        .font(AetherType.emphasis(19)).foregroundStyle(theme.heading)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 28).padding(.top, 26).padding(.bottom, 24)
+                Text(selection.rawValue)
+                    .font(AetherType.panelTitle(23))
+                    .foregroundStyle(theme.textStrong)
+                    .padding(.horizontal, 26)
+                    .padding(.top, 26)
+                    .padding(.bottom, 22)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 22) { sectionContent }
+                    VStack(alignment: .leading, spacing: 23) { sectionContent }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 28).padding(.bottom, 30)
+                        .padding(.horizontal, 26)
+                        .padding(.bottom, 30)
                         .id(selection)
                         .transition(AetherMotion.contentSwap(reduced))
                 }
-                .animation(AetherMotion.snappy(reduced), value: selection)
+                .scrollIndicators(.hidden)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background { AetherSheetBackground() }
+            .background(theme.background)
         }
-        .frame(width: 820, height: 570)
-        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous))
+        .frame(width: 800, height: 550)
+        .background(theme.background)
+        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .strokeBorder(theme.hairline, lineWidth: 0.5)
+                .allowsHitTesting(false)
+        }
         .toggleStyle(.switch)
         .controlSize(.regular)
-        .tint(.accentColor)
         .aetherTypography()
-        .aetherDarkGlassShadow(dark: theme.dark)
         .preferredColorScheme(workspace.preferences.appearance.colorScheme)
     }
 
