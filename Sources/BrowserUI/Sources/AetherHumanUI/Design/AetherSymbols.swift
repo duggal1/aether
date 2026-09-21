@@ -129,21 +129,7 @@ public enum AetherSymbol: String, CaseIterable, Sendable {
         case .chat: "Chat"
         }
     }
-    public var customIcon: AetherCustomIcon? {
-        switch self {
-        case .search, .inspect: .search
-        case .history, .recentlyClosed, .rewind: .historyLeft
-        case .reload: .historyRight
-        case .download, .downloads: .download
-        case .settings: .gear
-        case .privacy: .lockPrivacy
-        case .lock, .unlock: .lock
-        case .globe: .globe
-        case .bookmarkCollection: .bookmarkSelected
-        case .openInPage: .terminalUpRight
-        default: nil
-        }
-    }
+
 }
 
 public struct AetherSymbolView: View {
@@ -158,17 +144,10 @@ public struct AetherSymbolView: View {
     }
 
     public var body: some View {
-        Group {
-            if let custom = symbol.customIcon {
-                AetherCustomIconView(custom, tint: tint, size: size)
-            } else {
-                Image(systemName: symbol.rawValue)
-                    .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
-                    .symbolRenderingMode(.hierarchical)
-                    .imageScale(.medium)
-                    .foregroundStyle(tint ?? Color.primary)
-            }
-        }
+        Image(systemName: symbol.rawValue)
+            .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint ?? Color.primary)
         .frame(width: AetherIconStyle.canvas, height: AetherIconStyle.canvas, alignment: .center)
         .accessibilityHidden(true)
     }
