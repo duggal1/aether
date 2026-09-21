@@ -26,9 +26,9 @@ public struct DomainIcon: View {
                     .frame(width: size * 0.9, height: size * 0.9)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
             } else {
-                AetherLogo()
-                    .frame(width: size * 0.85, height: size * 0.85)
-                    .opacity(0.65)
+                Image(systemName: host == nil ? "square.dashed" : "globe")
+                    .font(.system(size: size * 0.77, weight: .regular))
+                    .foregroundStyle(.secondary)
             }
         }
         .frame(width: size, height: size)
