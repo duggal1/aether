@@ -12,8 +12,14 @@ public struct HoverSurface<Content: View>: View {
     }
     public var body: some View {
         content
-            .background(selected ? theme.selection : hover ? theme.hover : .clear,
-                        in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background { surface }
             .onHover { on in withAnimation(AetherMotion.hover(reduced)) { hover = on } }
+    }
+
+    @ViewBuilder private var surface: some View {
+        if selected || hover {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(selected ? theme.selection : theme.hover)
+        }
     }
 }

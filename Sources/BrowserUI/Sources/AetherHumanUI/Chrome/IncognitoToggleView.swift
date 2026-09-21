@@ -9,7 +9,7 @@ public struct IncognitoToggleView: View {
 
     public var body: some View {
         Button { showing.toggle() } label: {
-            BrowserIconView(icon: .incognito, tint: window.isIncognito ? AetherProgressColor.violet.color : theme.muted)
+            BrowserIconView(icon: .incognito, tint: window.isIncognito ? AetherProgressColor.neutral.color : theme.muted)
                 .iconSize(15)
                 .frame(width: 26, height: 30)
                 .contentShape(Rectangle())
@@ -22,7 +22,7 @@ public struct IncognitoToggleView: View {
             VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 9) {
                         BrowserIconView(icon: .incognito,
-                                        tint: window.isIncognito ? AetherProgressColor.violet.color : theme.muted)
+                                        tint: window.isIncognito ? AetherProgressColor.neutral.color : theme.muted)
                             .iconSize(16)
                         Text("Incognito")
                             .font(AetherType.rowTitle(13))

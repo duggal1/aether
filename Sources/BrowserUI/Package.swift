@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "AetherHumanUI",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS("27.0")],
     products: [
         .library(name: "AetherHumanUI", targets: ["AetherHumanUI"]),
         .executable(name: "AetherHumanPreview", targets: ["AetherHumanPreview"])

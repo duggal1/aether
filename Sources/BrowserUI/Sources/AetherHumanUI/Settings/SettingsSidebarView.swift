@@ -13,9 +13,21 @@ public struct SettingsSidebarView: View {
                 .foregroundStyle(theme.heading)
                 .padding(.horizontal, 12).padding(.top, 22).padding(.bottom, 20)
             ForEach(SettingsSection.allCases) { section in
-                Button {
-                    withAnimation(AetherMotion.snappy(reduced)) { selection = section }
-                } label: {
+                    settingsRow(section)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 9)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { AetherChromeBackground(.sidebar) }
+    }
+
+    private func settingsRow(_ section: SettingsSection) -> some View {
+        Button {
+            withAnimation(AetherMotion.snappy(reduced)) { selection = section }
+        } label: {
                     HStack(spacing: 11) {
                         Image(systemName: nativeIcon(for: section).rawValue)
                             .font(AetherType.symbol(16))
@@ -31,7 +43,6 @@ public struct SettingsSidebarView: View {
                         if selection == section {
                             RoundedRectangle(cornerRadius: 7, style: .continuous)
                                 .fill(theme.hover)
-                                .matchedGeometryEffect(id: AetherGlassNamespace.settingsSection, in: sectionGlass, isSource: true)
                         }
                     }
                     .contentShape(Rectangle())
@@ -41,13 +52,7 @@ public struct SettingsSidebarView: View {
                 .focusEffectDisabled()
                 .aetherPointingCursor()
                 .accessibilityAddTraits(selection == section ? .isSelected : [])
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 9)
-        .padding(.bottom, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.canvas)
+                .animation(AetherMotion.selection(reduced), value: selection)
     }
 
     private func nativeIcon(for section: SettingsSection) -> AetherSymbol {

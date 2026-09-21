@@ -77,13 +77,6 @@ public struct NewTabView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(theme.omnibox)
         }
-        .overlay {
-            if askFocused {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(theme.raised, lineWidth: 1)
-                    .allowsHitTesting(false)
-            }
-        }
         .animation(AetherMotion.focus(reduced), value: askFocused)
     }
 

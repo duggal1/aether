@@ -46,22 +46,24 @@ public struct SidebarTabListView: View {
             .padding(.horizontal, 6)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    if !window.tabs.filter(\.isPinned).isEmpty {
-                        sectionHeader("Pinned")
-                        ForEach(window.tabs.filter(\.isPinned)) { tab in
+                AetherGlassCluster(spacing: 4) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if !window.tabs.filter(\.isPinned).isEmpty {
+                            sectionHeader("Pinned")
+                            ForEach(window.tabs.filter(\.isPinned)) { tab in
+                                TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
+                                            window: window, namespace: tabGlass)
+                            }
+                        }
+                        ForEach(window.tabs.filter { !$0.isPinned }) { tab in
                             TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
                                         window: window, namespace: tabGlass)
                         }
                     }
-                    ForEach(window.tabs.filter { !$0.isPinned }) { tab in
-                        TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
-                                    window: window, namespace: tabGlass)
-                    }
+                    .padding(.horizontal, 6)
+                    .padding(.top, 2)
+                    .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 6)
-                .padding(.top, 2)
-                .padding(.bottom, 12)
             }
             .scrollClipDisabled()
             .padding(.top, 6)
@@ -89,15 +91,9 @@ public struct SidebarTabListView: View {
         Button { _ = window.newTab(url: item.url) } label: {
             DomainIcon(item.url, size: 17)
                 .frame(maxWidth: .infinity).frame(height: 41)
-                .background(
-                    LinearGradient(colors: [AetherPalette.pinTop(theme.dark),
-                                            AetherPalette.pinBottom(theme.dark)],
-                                   startPoint: .top, endPoint: .bottom),
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay {
+                .background {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
-                        .allowsHitTesting(false)
+                        .fill(theme.card)
                 }
         }
         .buttonStyle(SidebarTileStyle(reduced: reduced))

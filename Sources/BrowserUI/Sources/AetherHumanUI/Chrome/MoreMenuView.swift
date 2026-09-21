@@ -12,9 +12,15 @@ struct AetherMenuRow<Content: View>: View {
     }
     var body: some View {
         content
-            .background(hovering ? theme.hover : .clear,
-                        in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background { surface }
             .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
+    }
+
+    @ViewBuilder private var surface: some View {
+        if hovering {
+            RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(theme.hover)
+        }
     }
 }
 

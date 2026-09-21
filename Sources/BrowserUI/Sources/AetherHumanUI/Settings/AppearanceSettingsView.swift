@@ -66,7 +66,7 @@ public struct AppearanceSettingsView: View {
             }
             .foregroundStyle(theme.ink)
             .padding(9)
-            .background(selected ? theme.settingsRaised : theme.canvas,
+            .background(selected ? theme.settingsRaised : theme.background,
                         in: RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
             .contentShape(Rectangle())
         }

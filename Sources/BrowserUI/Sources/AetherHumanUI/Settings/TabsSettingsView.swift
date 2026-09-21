@@ -48,8 +48,10 @@ public struct TabsSettingsView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity)
-            .background(selected ? theme.settingsRaised : theme.canvas,
-                        in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .background {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(selected ? theme.settingsRaised : theme.background)
+            }
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
         .focusEffectDisabled()
@@ -65,7 +67,7 @@ public struct TabsSettingsView: View {
                     Spacer()
                 }
                 Capsule().fill(theme.soft.opacity(0.4)).frame(height: 4)
-                RoundedRectangle(cornerRadius: 3).fill(theme.surface).frame(height: 39)
+                RoundedRectangle(cornerRadius: 3).fill(theme.background).frame(height: 39)
             } else {
                 HStack(spacing: 5) {
                     VStack(spacing: 5) {
@@ -78,7 +80,7 @@ public struct TabsSettingsView: View {
                     RoundedRectangle(cornerRadius: 1).fill(theme.soft.opacity(0.25)).frame(width: 1)
                     VStack(spacing: 5) {
                         Capsule().fill(theme.soft.opacity(0.4)).frame(height: 4)
-                        RoundedRectangle(cornerRadius: 3).fill(theme.surface).frame(height: 39)
+                        RoundedRectangle(cornerRadius: 3).fill(theme.background).frame(height: 39)
                     }
                 }
             }

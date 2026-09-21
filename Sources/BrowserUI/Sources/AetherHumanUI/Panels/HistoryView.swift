@@ -38,7 +38,7 @@ public struct HistoryView: View {
                 Text("History").font(AetherType.panelTitle(20)).foregroundStyle(theme.heading)
                 Spacer(minLength: 8)
                 Button("Clear History") { confirmClear = true }
-                    .aetherButtonStyle()
+                    .aetherGlassButton()
                     .tint(theme.error)
                     .disabled(results.isEmpty)
                 ChromeButton(.close, help: "Close") { dismiss() }

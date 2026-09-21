@@ -129,14 +129,30 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   func loadHTML(_ html: String, url: URL) async throws {
     stop()
     lastError = nil
-    try await wait(for: view.loadHTMLString(html, baseURL: url))
+    let navigation = view.loadHTMLString(html, baseURL: url)
+    if let navigation {
+      try await wait(for: navigation, settle: .complete)
+    } else {
+      await Task.yield()
+      publish()
+    }
   }
 
-  func back() async throws { try await wait(for: view.goBack()) }
-  func forward() async throws { try await wait(for: view.goForward()) }
+  func back() async throws {
+    if let navigation = view.goBack() {
+      try await wait(for: navigation, settle: .complete)
+    }
+  }
+  func forward() async throws {
+    if let navigation = view.goForward() {
+      try await wait(for: navigation, settle: .complete)
+    }
+  }
   func reload(bypassCache: Bool) async throws {
     lastError = nil
-    try await wait(for: bypassCache ? view.reloadFromOrigin() : view.reload())
+    if let navigation = bypassCache ? view.reloadFromOrigin() : view.reload() {
+      try await wait(for: navigation, settle: .complete)
+    }
   }
 
   private func wait(for navigation: WKNavigation?, settle: PageReadiness = .complete) async throws {

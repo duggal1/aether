@@ -31,7 +31,7 @@ public struct SettingsWindowView: View {
                 .animation(AetherMotion.snappy(reduced), value: selection)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(theme.settingsCanvas)
+            .background { AetherSheetBackground() }
         }
         .frame(width: 820, height: 570)
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous))

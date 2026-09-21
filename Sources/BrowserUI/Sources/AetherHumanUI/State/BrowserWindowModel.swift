@@ -20,6 +20,7 @@ public final class BrowserWindowModel: Identifiable {
     public var showsSettings = false
     public var findQuery = ""
     public var addressFocusNonce = 0
+    public let suggestions = OmniboxSuggestionModel()
     public var alert: String?
     public private(set) var glow = AetherNavigationGlowState()
     @ObservationIgnored private var glowSettleTask: Task<Void, Never>?

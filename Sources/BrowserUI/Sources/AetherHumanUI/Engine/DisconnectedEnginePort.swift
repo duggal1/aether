@@ -2,9 +2,11 @@ import AppKit
 import Foundation
 
 @MainActor
-public final class DisconnectedEnginePort: BrowserEnginePort {
+public final class DisconnectedEnginePort: BrowserEnginePort, BrowserSearchSuggesting {
     public init() {}
     public var isConnected: Bool { false }
+    public func searchCompletions(prefix: String, limit: Int, providerEndpoint: URL?) async throws -> [String] { [] }
+    public func warmSearchCompletions(providerEndpoint: URL?) async {}
     public func createPage(profileID: UUID) async throws -> String { throw BrowserPortError.notConnected }
     public func snapshot(pageID: String) async throws -> EnginePageSnapshot { throw BrowserPortError.notConnected }
     public func navigate(pageID: String, url: URL) async throws { throw BrowserPortError.notConnected }

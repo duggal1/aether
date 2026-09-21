@@ -5,63 +5,40 @@ public enum AetherGlassVariant: Sendable {
     case clear
 }
 
-public enum AetherGlassTransition: Sendable {
-    case identity
-    case matchedGeometry
-    case materialize
-
-    @available(macOS 26.0, *)
-    var value: GlassEffectTransition {
-        switch self {
-        case .identity: .identity
-        case .matchedGeometry: .matchedGeometry
-        case .materialize: .materialize
-        }
-    }
-}
-
-public struct AetherGlassBackdrop: View {
+public struct AetherGlassSurface: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorSchemeContrast) private var contrast
 
     public let radius: CGFloat
-    public let interactive: Bool
     public let variant: AetherGlassVariant
-    public init(radius: CGFloat = AetherMetrics.fieldRadius, interactive: Bool = false,
-                variant: AetherGlassVariant = .regular) {
+    public let interactive: Bool
+    public let minimal: Bool
+
+    public init(radius: CGFloat = AetherMetrics.menuRadius, variant: AetherGlassVariant = .regular,
+                interactive: Bool = false, minimal: Bool = true) {
         self.radius = radius
-        self.interactive = interactive
         self.variant = variant
+        self.interactive = interactive
+        self.minimal = minimal
     }
 
-    private var isOpaque: Bool { reduceTransparency || contrast == .increased }
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
 
-    @ViewBuilder public var body: some View {
-        if isOpaque {
-            RoundedRectangle(cornerRadius: radius, style: .continuous).fill(theme.raised)
-        } else if #available(macOS 26.0, *) {
-            Color.clear
-                .glassEffect(variant == .clear ? .clear : .regular.tint(theme.raised.opacity(0.55)).interactive(interactive),
-                             in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-        } else {
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(.ultraThinMaterial)
-        }
+    public var body: some View {
+        Color.clear
+            .aetherGlass(variant, in: shape, interactive: interactive)
+            .modifier(AetherGlassShadow(enabled: minimal, dark: theme.dark))
+            .accessibilityHidden(true)
     }
 }
 
-public struct AetherGlassGroup<Content: View>: View {
-    private let spacing: CGFloat
-    private let content: Content
-    public init(spacing: CGFloat = 8, @ViewBuilder content: () -> Content) {
-        self.spacing = spacing
-        self.content = content()
-    }
+private struct AetherGlassShadow: ViewModifier {
+    let enabled: Bool
+    let dark: Bool
 
-    @ViewBuilder public var body: some View {
-        if #available(macOS 26.0, *) {
-            GlassEffectContainer(spacing: spacing) { content }
+    @ViewBuilder func body(content: Content) -> some View {
+        if enabled {
+            let shadow = AetherShadow.minimal(dark)
+            content.shadow(color: shadow.color, radius: shadow.radius, y: shadow.y)
         } else {
             content
         }
@@ -70,41 +47,45 @@ public struct AetherGlassGroup<Content: View>: View {
 
 public extension View {
     @ViewBuilder
-    func aetherGlassMorph<ID: Hashable & Sendable>(_ id: ID, in namespace: Namespace.ID,
-                                                  transition: AetherGlassTransition = .matchedGeometry) -> some View {
-        if #available(macOS 26.0, *) {
-            glassEffectID(id, in: namespace).glassEffectTransition(transition.value)
-        } else {
-            self
+    func aetherGlass(_ variant: AetherGlassVariant = .regular,
+                     in shape: some Shape, interactive: Bool = false) -> some View {
+        switch variant {
+        case .regular:
+            if interactive {
+                glassEffect(.regular.interactive(true), in: shape)
+            } else {
+                glassEffect(.regular, in: shape)
+            }
+        case .clear:
+            if interactive {
+                glassEffect(.clear.interactive(true), in: shape)
+            } else {
+                glassEffect(.clear, in: shape)
+            }
         }
     }
 
     @ViewBuilder
-    func aetherGlassUnion<ID: Hashable & Sendable>(_ id: ID, in namespace: Namespace.ID) -> some View {
-        if #available(macOS 26.0, *) {
-            glassEffectUnion(id: id, namespace: namespace)
-        } else {
-            self
-        }
+    func aetherGlassButton() -> some View {
+        buttonStyle(.glass).pointerStyle(.link)
     }
 
     @ViewBuilder
-    func aetherButtonStyle() -> some View {
-        if #available(macOS 26.0, *) {
-            buttonStyle(.glass)
-        } else {
-            buttonStyle(.bordered)
-        }
-        pointerStyle(.link)
+    func aetherGlassProminentButton() -> some View {
+        buttonStyle(.glassProminent).pointerStyle(.link)
+    }
+}
+
+public struct AetherGlassCluster<Content: View>: View {
+    private let spacing: CGFloat
+    private let content: Content
+
+    public init(spacing: CGFloat = 8, @ViewBuilder content: () -> Content) {
+        self.spacing = spacing
+        self.content = content()
     }
 
-    @ViewBuilder
-    func aetherProminentButtonStyle() -> some View {
-        if #available(macOS 26.0, *) {
-            buttonStyle(.glassProminent)
-        } else {
-            buttonStyle(.borderedProminent)
-        }
-        pointerStyle(.link)
+    public var body: some View {
+        GlassEffectContainer(spacing: spacing) { content }
     }
 }

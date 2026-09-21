@@ -14,7 +14,7 @@ public struct DownloadsView: View {
             HStack(spacing: 10) {
                 Text("Downloads").font(AetherType.panelTitle(20)).foregroundStyle(theme.heading)
                 Spacer(minLength: 8)
-                Button("Refresh") { Task { await reload() } }.aetherButtonStyle()
+                Button("Refresh") { Task { await reload() } }.aetherGlassButton()
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
             if entries.isEmpty {
@@ -58,7 +58,7 @@ public struct DownloadsView: View {
         }
         .padding(22)
         .frame(width: 620, height: 500)
-        .background(theme.raised)
+        .background { AetherSheetBackground() }
         .task { await reload() }
     }
 

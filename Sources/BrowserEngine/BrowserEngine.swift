@@ -7,8 +7,8 @@ import Foundation
 public final class NativeBrowserEngine: Sendable {
   public let runtime: BrowserRuntime
 
-  public init() {
-    runtime = BrowserRuntime()
+  public init(runtime: BrowserRuntime = BrowserRuntime()) {
+    self.runtime = runtime
   }
 
   public func createContext(name: String) async -> BrowserContextInfo {

@@ -50,19 +50,22 @@ Use Apple's own frameworks:
 - Native SwiftUI animations for state transitions.
 - Metal only when the existing architecture genuinely requires custom rendering.
 
-Preferred native APIs:
+Preferred native APIs (verified present in the installed macOS 27.0 SDK before use):
 
 - `glassEffect(_:in:)`
-- `GlassEffectContainer`
+- `GlassEffectContainer` — required for any `glassEffectID`/`glassEffectUnion` morph; a container with **no** glass children is inert
 - `glassEffectID(_:in:)`
 - `glassEffectTransition(_:)`
-- `Glass.interactive()`
-- `NSVisualEffectView`
-- SwiftUI `Material`
+- `glassEffectUnion(id:namespace:)`
+- `Glass.interactive(_:)`
+- `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)`
+- `.pickerStyle(.tabs)` for tab-role selectors
 - `withAnimation`
 - `.smooth`
 - `.snappy`
 - `.spring`
+
+Not used in this codebase: `NSVisualEffectView` and SwiftUI `Material`. Both were removed in the macOS 27 pass — the package floor is `.macOS("27.0")`, so Liquid Glass is called unconditionally and no availability fallback exists. `NSGlassEffectView`, `NSGlassEffectContainerView`, `NSSegmentedControlRole.tabs` and `NSMenuItem.preferredImageVisibility` are available if an AppKit surface ever needs them.
 
 Use SwiftUI or AppKit according to existing component ownership.
 
@@ -123,6 +126,8 @@ Requirements:
 
 Use a `GlassEffectContainer` where multiple adjacent glass controls should visually cooperate.
 
+A container only does something when its children actually carry glass effects — wrapping plain views in one is inert and was removed wherever it happened. Identity-based glass morphing (`glassEffectID` + `glassEffectTransition`) and merging (`glassEffectUnion`) both **require** a container, so the container is added together with the glass child, never alone.
+
 Use stable glass effect identities for suitable transitions.
 
 Do not force the entire tab bar into one morphing glass shape if this reduces clarity.
@@ -172,7 +177,7 @@ Keep hit targets practical while preserving compact visual dimensions.
 
 Do not force a new radius, size, or icon style onto every control.
 
-Do not convert every button into an individual glass capsule.
+Do not convert every toolbar icon into a permanent individual glass capsule. Persistent glass is reserved for structural surfaces (chrome, sidebar, tab strip, popovers, sheets, panels); toolbar and menu-row controls take a bounded glass reaction on hover/selected, and discrete actions use the native `.glass` / `.glassProminent` button styles rather than hand-built fills.
 
 ### E. Agent-Native UI
 

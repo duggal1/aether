@@ -2,7 +2,7 @@
 
 ## Build
 
-- [ ] `swift build` succeeds with a macOS 15+ SDK and Swift 6.2+.
+- [ ] `swift build` succeeds with a macOS 27 SDK and Swift 6.2+ (`cd Sources/BrowserUI && swift build` builds the UI alone, expects 0 warnings).
 - [ ] `swift test` passes on macOS.
 - [ ] Preview opens with native traffic lights and no SwiftUI console warnings.
 - [ ] Light, dark and live System appearance switching retain the correct semantic palette in **every** modal and popover.

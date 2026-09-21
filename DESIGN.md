@@ -296,6 +296,24 @@ Liquid Glass automatically honors three system settings; do not build a custom o
 
 If building the web fallback path, replicate these three toggles by reading `prefers-reduced-transparency`, `prefers-contrast`, and `prefers-reduced-motion` media queries.
 
+### 6.7 Implementation status — macOS 27 only (verified)
+
+The package floor is **macOS 27.0**, so none of the above needs an availability guard. What the UI actually calls, from `Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherGlass.swift`:
+
+| Need | API used |
+|---|---|
+| A single glass surface | `glassEffect(_:in:)` |
+| Grouped / adjacent glass | `GlassEffectContainer` (exposed as `AetherGlassCluster`) |
+| Selection that morphs instead of cross-fading | `glassEffectID(_:in:)` + `glassEffectTransition(_:)` |
+| Several shapes forming one capsule | `glassEffectUnion(id:namespace:)` |
+| Pointer/touch reaction on controls | `Glass.interactive(_:)` |
+| Buttons | `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)` |
+| Tab-style selector | `.pickerStyle(.tabs)` |
+
+`Glass.interactive()` is preferred over hand-rolled hover fills, and Reduce Transparency / Increase Contrast are **not** re-implemented — the material handles them (§6.6). No `NSVisualEffectView`, `Material`, or `#available(macOS 26…)` branch remains in the UI.
+
+Verified: those symbols exist in the installed SDK 27.0 (compiling probe), and `cd Sources/BrowserUI && swift build` completes with 0 errors / 0 warnings. **Not** verified: on-screen appearance, Instruments frame times, and desktop-wallpaper refraction — the window is still opaque, so chrome glass refracts within the window only (`Sources/BrowserUI/Documentation/ENHANCED_DESIGN.md` §4). Never present these as measured results.
+
 ---
 
 ## 7. Iconography

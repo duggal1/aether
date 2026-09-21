@@ -25,12 +25,9 @@ public struct AetherField: View {
         }
         .padding(.horizontal, 11)
         .frame(height: 34)
-        .background(focused ? theme.inputFocus : theme.inset,
-                    in: RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
-        .overlay {
+        .background {
             RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-                .strokeBorder(Color.white.opacity(focused ? 0.13 : 0.07), lineWidth: 1)
-                .allowsHitTesting(false)
+                .fill(focused ? theme.inputFocus : theme.inset)
         }
         .animation(AetherMotion.focus(reduced), value: focused)
     }

@@ -23,11 +23,7 @@ public struct ChromeButton: View {
             BrowserIconView(icon: icon, tint: tint)
                 .iconSize(iconSize)
                 .frame(width: size, height: size)
-                .background {
-                    if enabled && (hovering || selected) {
-                        RoundedRectangle(cornerRadius: 7).fill(theme.hover)
-                    }
-                }
+                .background { surface }
         }
         .buttonStyle(AetherPressStyle(reduced: reduceMotion))
         .focusEffectDisabled()
@@ -37,8 +33,15 @@ public struct ChromeButton: View {
         .onHover { value in withAnimation(AetherMotion.hover(reduceMotion)) { hovering = value } }
     }
 
+    @ViewBuilder private var surface: some View {
+        if enabled && (hovering || selected) {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(theme.hover)
+        }
+    }
+
     private var tint: Color {
         guard enabled else { return theme.soft }
-        return hovering || selected ? theme.ink : AetherPalette.navigation(theme.dark)
+        return hovering || selected ? theme.ink : theme.muted
     }
 }

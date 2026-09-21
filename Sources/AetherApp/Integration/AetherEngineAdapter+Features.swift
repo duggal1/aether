@@ -6,7 +6,19 @@ import EngineRuntime
 import Foundation
 
 extension AetherEngineAdapter: BrowserInspectionProviding, BrowserReaderProviding,
-  BrowserDownloadsProviding, BrowserFindProviding {
+  BrowserDownloadsProviding, BrowserFindProviding, BrowserSearchSuggesting {
+  func searchCompletions(prefix: String, limit: Int, providerEndpoint: URL?) async throws
+    -> [String]
+  {
+    guard !prefix.isEmpty else { return [] }
+    return await engine.runtime.searchCompletions(
+      prefix: prefix, limit: limit, endpoint: providerEndpoint)
+  }
+
+  func warmSearchCompletions(providerEndpoint: URL?) async {
+    await engine.runtime.warmSearchSuggestions(endpoint: providerEndpoint)
+  }
+
   func inspect(pageID: String) async throws -> BrowserInspectionSnapshot {
     let id = try page(pageID)
     let snapshot = try await engine.snapshot(pageID: id)

@@ -36,14 +36,14 @@ public struct BookmarksView: View {
                         }
                     } catch { transferError = error.localizedDescription }
                 }
-                .aetherButtonStyle()
+                .aetherGlassButton()
                 Button("Export") {
                     do {
                         _ = try BookmarkTransfer.export(window.workspace.bookmarks(for: window.activeProfileID),
                             profileName: window.workspace.name(for: window.activeProfileID))
                     } catch { transferError = error.localizedDescription }
                 }
-                .aetherButtonStyle()
+                .aetherGlassButton()
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
             if let transferError {
@@ -70,7 +70,7 @@ public struct BookmarksView: View {
         }
         .padding(22)
         .frame(width: 680, height: 560)
-        .background(theme.raised)
+        .background { AetherSheetBackground() }
     }
 }
 

@@ -11,17 +11,21 @@
 
 This file is the fastest correct path into this repository. It describes **the code that exists**, not the code we wish existed. `TODO.md` holds the work plan, `RULES.md` holds the process, `DESIGN.md` owns every native UI decision, `ENHANCE-DESIGN.md` owns the UI polish pass, `HANDOFF.md` holds the previous agent's handoff, `Docs/` holds deeper protocol/architecture notes.
 
-Snapshot basis: `Package.swift` + all of `Sources/` — 128 Swift files, ~28,650 lines. All numbers below were counted from the files, not estimated.
+Snapshot basis: `Package.swift` + all of `Sources/` — 128 engine Swift files, ~28,650 lines, plus a native macOS UI (`Sources/BrowserUI/`, 76 files, ~7.9k lines) that is macOS 27-only. All numbers below were counted from the files, not estimated.
 
 ## 0. What this project is
 
-One native macOS browser, two first-class users. Humans get an exceptionally clean, fast browser. Terminal AI agents (Codex, Claude Code, OpenCode) get a programmable execution environment with the same engine underneath.
+One native macOS browser, two first-class users. Humans get an exceptionally clean, fast browser. Terminal AI agents (Codex, Claude Code, OpenCode) get a programmable execution environment with the same browser runtime underneath.
 
 **The agent owns its sessions. The browser is an execution environment, not the agent's supervisor.**
 
-No Chromium, WebKit, Electron, Tauri, Rust, React, webview, or Cloud control plane. Apple frameworks are used where they are the correct systems primitive: Metal, CoreText/CoreGraphics, ImageIO, Foundation/Network, Swift structured concurrency.
+**Architecture: Two-layer system**
+- **Layer 1 (Rendering):** Apple WebKit (`WKWebView`) handles all HTML, CSS, JavaScript rendering. WebKit manages web security, process isolation, and platform APIs.
+- **Layer 2 (Runtime):** Aether's custom browser runtime provides tabs, navigation, profiles, agent control protocol, structured page data, and session management.
 
-Current honest state: **Engine 0** — a real end-to-end engine (network bytes → DOM → CSS → layout → display list → pixels) with a compact-but-incomplete JS interpreter, a 76-method local agent protocol, fleet/lifecycle management, and design capture. It is **not** Chrome/Safari-class and is **not** a hardened sandbox for hostile content.
+Apple frameworks are used where they are the correct systems primitive: WebKit for rendering, Metal for GPU, CoreText/CoreGraphics for text, ImageIO for images, Foundation/Network for I/O, Swift structured concurrency for async.
+
+Current honest state: **WebKit-based browser with custom runtime** — WebKit handles production rendering, while Aether's runtime provides agent control (76 methods), fleet/lifecycle management, structured DOM access, and design capture. It is **not** Chrome/Safari-class and is **not** a hardened sandbox for hostile content.
 
 ## 1. Engineering laws (non-negotiable)
 
@@ -40,10 +44,11 @@ Build the engine as a serious systems project, not a demo.
 
 Additional laws specific to this repository:
 
-- **One engine, two faces.** Human UI and agent automation must call the *same* runtime. Never build a second automation path that bypasses `BrowserRuntime`.
-- **No AI inference in the browser command path.** Commands are deterministic. The model that decides *what* to do lives outside the engine.
-- **Structured state beats pixels.** Screenshots are a fallback for genuinely visual tasks, never the primary control protocol.
-- **No UI exists yet.** There is currently **zero** SwiftUI/AppKit code in this package (verified: no `import SwiftUI`, `AppKit`, `NSWindow`, or `CAMetalLayer` anywhere under `Sources/`, `Tests/`, `Benchmarks/`). Any UI work starts from scratch and must obey `DESIGN.md`.
+- **One runtime, two faces.** Human UI and agent automation must call the *same* `BrowserRuntime`. Never build a second automation path that bypasses the runtime.
+- **WebKit for rendering, custom runtime for control.** WebKit handles HTML/CSS/JS rendering. Aether's custom runtime provides tabs, navigation, profiles, agent protocol, and structured page data. Do not rebuild WebKit's rendering capabilities.
+- **No AI inference in the browser command path.** Commands are deterministic. The model that decides *what* to do lives outside the browser.
+- **Structured state beats pixels.** Screenshots are a fallback for genuinely visual tasks, never the primary control protocol. Leverage WebKit's JavaScript execution and DOM inspection APIs where available.
+- **A native macOS UI exists** at `Sources/BrowserUI/Sources/AetherHumanUI` (76 files, ~7.9k lines) and it is **macOS 27-only**: both manifests pin `.macOS("27.0")`, so Liquid Glass (`glassEffect`, `GlassEffectContainer`, `glassEffectID/Transition/Union`, `.buttonStyle(.glass/.glassProminent)`, `.pickerStyle(.tabs)`) is used **unconditionally, with no availability guards**. Read `Sources/BrowserUI/Documentation/ENHANCED_DESIGN.md` before editing it, and verify with `cd Sources/BrowserUI && swift build` (standalone manifest — fast, 0 warnings expected). UI never lives inside engine modules.
 
 ## 2. Architecture diagrams
 
@@ -72,7 +77,7 @@ Navigation    = EngineCore + Networking + HTML + DOM + CSS + Style + Layout
 
 EngineRuntime = Navigation + Graphics + Storage + Scheduler + Diagnostics
                 + Persistence + JavaScript + CSS + WebAPI + Display + Layout
-                (stateful runtime: contexts, pages, fleet, profiles)
+                + WebKit integration                           (stateful runtime: contexts, pages, fleet, profiles)
 
 AgentProtocol = EngineCore                                    (transport models only)
 
@@ -82,10 +87,12 @@ BrowserEngine = EngineRuntime + AgentProtocol + AetherCapture + Graphics + Diagn
                 (public facade + JSON command dispatcher)
 ```
 
+**Note:** WebKit (`WKWebView`) is integrated in `EngineRuntime/WebKit/` and handles all production web rendering. Custom engine modules (HTML, CSS, Style, Layout, etc.) support agent-facing operations and structured data access.
+
 ### 2.2 Two interfaces, one runtime
 
 ```text
-     HUMAN (not built yet)                    AGENT (built)
+     HUMAN (built)                        AGENT (built)
               │                                   │
               │  SwiftUI / AppKit                 │  browserctl (local, or --socket)
               ▼                                   ▼
@@ -108,25 +115,24 @@ BrowserEngine = EngineRuntime + AgentProtocol + AetherCapture + Graphics + Diagn
 
 Both faces must mutate the same `BrowserRuntime`. There is exactly one actor for browser state.
 
-### 2.3 Page load → pixels pipeline
+### 2.3 Page load → rendering pipeline
 
 ```text
-HTTPRequest
-  → NetworkSession (actor) ── HTTPCache (actor) ─ CookieJar (mutex)
-  → response bytes
-  → HTMLParser → HTMLTokenizer (streaming) → HTMLTreeBuilder → DOMDocument
-      └ generational NodeID slots + mutation journal + version counter
-  → ResourceDiscovery  ──┬─ stylesheets ─┐
-                         ├─ images ──────┼─ concurrent load, ordered scripts
-                         └─ scripts ─────┘
-  → StyleResolver (+ SelectorMatcher, MediaQuery, LayerOrder) → StyledDocument
-  → LayoutEngine (block / inline / flex / grid / position / overflow / forms)
-      └ LayoutTree of LayoutBox + LayoutFragment, HitTesting for input
-  → DisplayListBuilder → DisplayList (rect / text / image / clip commands)
-  → SoftwareRenderer  (deterministic RGBA8 — headless + tests)
-    MetalRenderer     (macOS only — GPU path foundation)
-  → PixelBuffer (+ dirty regions, PaintChunkIndex, TileCache, GlyphAtlas)
+Agent Navigation Request
+  → BrowserRuntime.navigate()
+  → WebKitPage.navigate() via WKWebView
+  → WebKit handles: HTTP request, HTML parsing, CSS, JavaScript, rendering
+  → WebKit uses Metal for GPU rendering
+  → BrowserRuntime tracks: navigation state, history, loading progress
+
+For agent-facing operations:
+  → JavaScript execution via WKWebView.evaluateJavaScript()
+  → DOM inspection via JavaScript queries
+  → Element geometry via JavaScript + viewport calculations
+  → Structured data extraction via custom runtime modules
 ```
+
+**Note:** The custom engine modules (HTML, CSS, Style, Layout, Display) support agent-facing operations like structured DOM access and testing, but WebKit handles all production web rendering.
 
 ### 2.4 Agent command path
 
@@ -157,16 +163,12 @@ active ──► background ──► suspended ─► frozen ──► discarde
 
 ```text
 CaptureCoordinator.capture(url:into:options:)
-  → AetherCaptureEngine (implemented by BrowserCaptureEngine in EngineRuntime)
-  → AetherCaptureSession (implemented by NativeCaptureSession)
-  → scroll pass 1 (load lazy content) → scroll pass 2 (render real viewport tiles)
-  → SectionDetector → FullPageAssembler → RasterCropper (overlap removed, coords kept)
-  → ResourceCollector + CSSURLScanner (from engine cache — never re-fetched)
-  → NativeImageEncoder (WebP if ImageIO offers it, else JPEG; PNG on request)
-  → design-reference/
-        manifest.json  website.html  computed-styles.json
-        styles/*.css   assets/*      sections/*  screenshots/001.jpg …
-        design-reference.md
+  → Uses WebKit to load and render the page
+  → JavaScript for scrolling and lazy-content discovery
+  → Screenshot capture via WKWebView
+  → Resource collection from WebKit's cache
+  → CSS and asset extraction
+  → Design reference export
 ```
 
 ## 3. Folder map (every top-level folder)
@@ -175,6 +177,7 @@ CaptureCoordinator.capture(url:into:options:)
 |---|---|---|
 | `Package.swift` | SwiftPM manifest: 23 library targets, 3 executables, 14 test targets, Swift 6 language mode, macOS 15 minimum, tools 6.2 | source of truth |
 | `Sources/` | The engine: 25 module directories, 128 Swift files, ~28.6k lines | active |
+| `Sources/BrowserUI/` | The native macOS UI: 76 Swift files, ~7.9k lines, own `Package.swift` (macOS 27 floor). Targets `AetherHumanUI` (library), `AetherHumanPreview` (app), `AetherHumanUITests` | active |
 | `Tests/` | 18 Swift Testing files (~1.88k lines; 138 `@Test` including nested) | active |
 | `Benchmarks/enginebench/` | `enginebench` executable: 10k-row HTML → parse/style/layout timings | active |
 | `Fixtures/` | `basic.html`, `forms.html`, `scripts.html` — local test/demo pages | active |
@@ -514,7 +517,7 @@ swift test --no-parallel        # 138 @Test cases across 14 test targets
 | Change lifecycle/fleet policy | `Scheduler/FleetScheduler.swift` + `BrowserRuntime.sweepFleet`; prove it in `Tests/AgentTests/AgentFleetTests.swift` |
 | Change persistence | `Persistence/ProfileStore.swift` → `SQLiteStore.swift`; prove it in `Tests/PersistenceTests/` |
 | Change capture output | `NativeCapture/Sources/AetherCapture/` (plus `Types.swift` for the manifest) and `EngineRuntime/CaptureSessionAdapter.swift`; prove it in the nested `CaptureTests.swift` |
-| Build the human UI | **Nothing exists yet.** Follow `DESIGN.md`, then `ENHANCE-DESIGN.md`. Add a new app target; never put UI inside engine modules |
+| Change the human UI | `Sources/BrowserUI/Sources/AetherHumanUI/` — glass system: `Design/AetherGlass.swift`; surfaces: `Design/AetherMaterial.swift`; motion: `Design/AetherMotion.swift`; tokens: `Design/AetherPalette.swift`. Verify with `cd Sources/BrowserUI && swift build`. Never put UI inside engine modules |
 | Add a test | Swift Testing (`import Testing`, `@Test`, `#expect`) — that is the convention in all 138 existing tests |
 
 ## 9. Doc map and staleness warnings

@@ -470,9 +470,15 @@ struct BrowserControl {
         params: ["context": .number(context), "url": .string(args[2])])
     case "context-suggest":
       guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
-      request = AgentRequest(
-        method: .contextSuggest,
-        params: ["context": .number(context), "prefix": .string(args[2])])
+      var suggestParams: [String: JSONValue] = [
+        "context": .number(context), "prefix": .string(args[2]),
+      ]
+      for argument in args.dropFirst(3) {
+        if argument == "--local" { suggestParams["network"] = .bool(false) }
+        else if let limit = Int(argument) { suggestParams["limit"] = .number(Double(limit)) }
+        else { throw CLIError.usage }
+      }
+      request = AgentRequest(method: .contextSuggest, params: suggestParams)
     case "context-search-provider":
       guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
@@ -767,7 +773,7 @@ struct BrowserControl {
     browserctl --socket <path> context-bookmark-add <context> <url> [title]
     browserctl --socket <path> context-bookmarks <context>
     browserctl --socket <path> context-bookmark-remove <context> <url>
-    browserctl --socket <path> context-suggest <context> <prefix>
+    browserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]
     browserctl --socket <path> context-search-provider <context>
     browserctl --socket <path> context-set-search-provider <context> <endpoint>
     browserctl --socket <path> session-create <name>

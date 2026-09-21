@@ -26,9 +26,9 @@ public struct InspectorView: View {
                 Text("Inspector").font(AetherType.panelTitle(19)).foregroundStyle(theme.heading)
                 Spacer(minLength: 8)
                 if let inspected {
-                    Button("Copy HTML") { copy(inspected.documentHTML) }.aetherButtonStyle()
-                    Button("Copy CSS") { copy(inspected.availableCSS) }.aetherButtonStyle()
-                    Button("Export") { export(inspected.documentHTML, name: "aether-document.html") }.aetherButtonStyle()
+                    Button("Copy HTML") { copy(inspected.documentHTML) }.aetherGlassButton()
+                    Button("Copy CSS") { copy(inspected.availableCSS) }.aetherGlassButton()
+                    Button("Export") { export(inspected.documentHTML, name: "aether-document.html") }.aetherGlassButton()
                 }
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
@@ -37,7 +37,7 @@ public struct InspectorView: View {
                 Picker("", selection: $mode) {
                     ForEach(Mode.allCases) { item in Text(item.rawValue).tag(item) }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.tabs)
                 .labelsHidden()
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
@@ -83,7 +83,7 @@ public struct InspectorView: View {
             }
         }
         .frame(width: 820, height: 560)
-        .background(theme.raised)
+        .background { AetherSheetBackground() }
         .task {
             guard let page = window.selected?.enginePageID,
                   let port = window.workspace.engine as? any BrowserInspectionProviding else { return }

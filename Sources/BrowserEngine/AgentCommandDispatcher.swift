@@ -533,10 +533,12 @@ public final class AgentCommandDispatcher: Sendable {
         }
         let limit = request.params["limit"] == nil ? 8 : try integer(request.params, "limit")
         guard limit >= 1 && limit <= 50 else { throw DispatchError.badParameter("limit") }
+        let network = request.params["network"]?.bool ?? true
+        let endpoint = request.params["endpoint"]?.string.flatMap { URL(string: $0) }
         result = .array(
           try await engine.runtime.suggestNavigation(
             contextID: ContextID(rawValue: try uint64(request, "context")), prefix: prefix,
-            limit: limit
+            limit: limit, includeNetwork: network, endpoint: endpoint
           ).map(suggestionJSON))
       case .contextSearchProvider:
         result = providerJSON(

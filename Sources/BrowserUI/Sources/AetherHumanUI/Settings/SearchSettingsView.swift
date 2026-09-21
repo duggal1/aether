@@ -16,6 +16,8 @@ public struct SearchSettingsView: View {
         }
         AetherSection("Address bar") {
             SettingsToggle("Show full website address", subtitle: "Keep the complete URL visible outside editing.", value: Binding(get: { workspace.preferences.showFullAddress }, set: { workspace.preferences.showFullAddress = $0 }))
+            SettingsToggle("Show suggestions while typing", subtitle: "Open tabs, bookmarks, and history appear under the address field.", value: Binding(get: { workspace.preferences.showSearchSuggestions }, set: { workspace.preferences.showSearchSuggestions = $0 }))
+            SettingsToggle("Suggestions from \(workspace.preferences.provider.searchName)", subtitle: "Completions are fetched over a private connection; nothing typed is stored.", value: Binding(get: { workspace.preferences.providerSuggestions }, set: { workspace.preferences.providerSuggestions = $0 }))
         }
     }
 }

@@ -10,6 +10,7 @@ struct NativeAddressField: NSViewRepresentable {
     let onSubmit: () -> Void
     let onEscape: () -> Void
     let onMove: (Int) -> Void
+    let onComplete: () -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -91,6 +92,10 @@ struct NativeAddressField: NSViewRepresentable {
             }
             if selector == #selector(NSResponder.moveDown(_:)) {
                 parent.onMove(1)
+                return true
+            }
+            if selector == #selector(NSResponder.insertTab(_:)) {
+                parent.onComplete()
                 return true
             }
             return false

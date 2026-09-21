@@ -19,14 +19,14 @@ public struct ReaderView: View {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(markdown, forType: .string)
                     }
-                    .aetherButtonStyle()
+                    .aetherGlassButton()
                     Button("Export .md") {
                         let panel = NSSavePanel(); panel.nameFieldStringValue = "article.md"
                         if panel.runModal() == .OK, let url = panel.url {
                             try? markdown.write(to: url, atomically: true, encoding: .utf8)
                         }
                     }
-                    .aetherButtonStyle()
+                    .aetherGlassButton()
                 }
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
@@ -47,7 +47,7 @@ public struct ReaderView: View {
             }
         }
         .frame(width: 800, height: 560)
-        .background(theme.raised)
+        .background { AetherSheetBackground() }
         .task {
             guard let page = window.selected?.enginePageID,
                   let provider = window.workspace.engine as? any BrowserReaderProviding else { return }

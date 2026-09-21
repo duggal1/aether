@@ -1,23 +1,77 @@
 # Handoff to the next AI agent
 
-I successfully built the Engine 0 implementation and the hard architectural skeleton. Do not restart this repository, replace it with a wrapper, or collapse it into a monolith. Continue the independent engine that already exists.
+## Architecture Clarification
 
-The repository already contains typed core identifiers, generational DOM storage, mutation journaling and snapshots, streaming HTML parsing with raw-text handling, CSS/style/layout separation, display lists, text/image offscreen rendering, a native Metal foundation, concurrent resource loading, networking/cookies/cache, navigation/history/forms, browser contexts, a custom JavaScript interpreter, DOM/event/localStorage bindings, diagnostics, local agent protocol, persistent Unix-socket daemon, CLI, fixtures, tests, and benchmarks.
+**This is critical: Aether uses Apple WebKit for web rendering, not a custom rendering engine.**
 
-The brutal work left is standards depth, incremental rendering, security isolation, and production GPU composition. Prioritize it in this order:
+### Two-Layer Architecture
 
-1. Run `swift test`, a release build, and `enginebench` before changing behavior. Preserve regressions as tests.
-2. Expand HTML parsing toward the WHATWG tree-construction algorithm with insertion modes, malformed-markup fixtures, templates, foreign content, foster parenting, encodings, and conformance cases.
-3. Deepen CSS selectors/cascade/custom properties and implement substantially more complete flex, grid, tables, positioning, intrinsic sizing, overflow, scrolling, and replaced-element behavior.
-4. Turn the JavaScript interpreter into a substantially complete ECMAScript runtime. Add robust GC/runtime semantics, modules, promises/microtasks, typed arrays, and then deepen DOM/events/fetch/streams/Web APIs.
-5. Replace broad recomputation after mutations with dependency-driven style invalidation, subtree layout invalidation, display-list damage, retained tiles, and compositor-only updates when possible.
-6. Harden navigation, redirects, cookies, origin policy, CORS, CSP, permissions, storage partitioning, focus/selection, files, downloads, and form edge cases.
-7. Build renderer-process isolation and a real macOS sandbox boundary before presenting hostile-web execution as safe.
-8. Deepen Metal into the production renderer: tiles, texture residency/eviction, image textures, glyph atlases, clip/transform stacks, alpha blending, asynchronous uploads, damage tracking, scrolling, animation, and `CAMetalLayer` presentation for a future UI client.
-9. Add page freezing/discard/restore and bounded renderer pools so agent fleets can own many logical pages without keeping every page hot in RAM.
-10. Add Canvas, WebAssembly, workers, WebSockets, service workers, hardware media decode, WebAudio, WebGL/WebGPU, accessibility, IME, WebRTC, and other platform features only as clean modules with tests.
-11. Continuously run standards fixtures, fuzz parsers/runtime boundaries, profile memory/latency/frame cost, and refuse compatibility claims that lack tests.
+**Layer 1: Rendering (WebKit)**
+- Apple's WebKit (`WKWebView`) handles all HTML, CSS, JavaScript rendering
+- Production web content display uses WebKit exclusively
+- WebKit manages web security, process isolation, and platform APIs
+- Do not replace, modify, or rebuild WebKit's rendering capabilities
 
-Do not add a chatbot, cloud control plane, Chromium, WebKit, Tauri, Rust, React, Electron, or browser UI. The external AI agent decides what to do. This engine is the local deterministic instrument it controls.
+**Layer 2: Browser Runtime (Custom)**
+- Aether's custom engine provides:
+  - Browser runtime state (tabs, navigation, profiles, contexts)
+  - Agent control protocol (76 methods via `browserctl`/`browserd`)
+  - Structured page data for agents (DOM inspection, element geometry, navigation state)
+  - Cookie management, storage, content blocking
+  - Session management and fleet scheduling
+- Custom engine modules (HTML, CSS, Style, Layout, etc.) support agent-facing operations
+- These modules enable structured intelligence beyond what WebKit exposes
 
-Keep `AGENTS.md` as the operating contract. Preserve small public APIs, one-way dependencies, bounded state, structured agent primitives, and truthful scope. The architecture is already here; your job is to do the ugly standards/security/performance work rather than invent another skeleton.
+### What This Means
+
+**We are NOT:**
+- Building another HTML/CSS rendering engine
+- Replacing WebKit
+- Reimplementing web standards for rendering
+
+**We ARE:**
+- Building a browser runtime that agents can control programmatically
+- Providing structured access to page data (DOM, geometry, state)
+- Optimizing agent operations (fast DOM queries, efficient state management)
+- Extending WebKit's capabilities for agent control where APIs allow
+
+## Current State
+
+The repository contains:
+- WebKit integration (`Sources/EngineRuntime/WebKit/`) - production rendering
+- Custom browser runtime (`EngineRuntime`) - tabs, navigation, profiles, agent protocol
+- Agent protocol (`AgentProtocol`) - 76 methods for agent control
+- Native macOS UI (`Sources/BrowserUI/`) - SwiftUI interface
+- Content blocking, storage, networking, diagnostics modules
+- Unix-socket daemon (`browserd`) and CLI (`browserctl`)
+
+## Priorities
+
+1. **Run `swift test`, release build, and benchmarks** before changing behavior
+2. **Optimize agent operations** - fast DOM queries, efficient state management, low-overhead protocol
+3. **Deepen agent-facing capabilities** - better DOM inspection, element geometry, JavaScript execution, navigation state
+4. **Improve browser runtime performance** - tab management, session handling, fleet scheduling
+5. **Enhance security and isolation** - respect WebKit's security model, add runtime safeguards
+6. **Optimize memory and GPU usage** - efficient state management, leverage WebKit's Metal rendering
+7. **Expand agent protocol** - add missing capabilities within WebKit's API constraints
+8. **Improve testing** - cover agent workflows, integration tests, performance benchmarks
+
+## What NOT To Do
+
+- Do not add a chatbot or cloud control plane
+- Do not replace WebKit or rebuild rendering capabilities
+- Do not remove existing browser infrastructure
+- Do not break the agent protocol or UI
+- Do not claim capabilities that WebKit doesn't provide
+
+## Key Principle
+
+The external AI agent (Claude Code, Codex, OpenCode) decides what to do. Aether provides:
+- A clean, fast browser runtime
+- Structured access to page data
+- Deterministic agent control
+- Integration with WebKit's rendering
+
+Your job is to optimize the agent control layer and browser runtime, not rebuild web rendering.
+
+Keep `AGENTS.md` as the operating contract. Preserve small public APIs, one-way dependencies, bounded state, and truthful scope.

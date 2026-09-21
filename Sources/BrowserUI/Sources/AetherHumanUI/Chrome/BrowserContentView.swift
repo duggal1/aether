@@ -11,7 +11,7 @@ public struct BrowserContentView: View {
     }
     public var body: some View {
         ZStack {
-            theme.canvas.ignoresSafeArea()
+            theme.background.ignoresSafeArea()
             if let tab = window.selected {
                 switch tab.loadState {
                 case .newTab:
@@ -60,10 +60,9 @@ public struct BrowserContentView: View {
                 if let url = tab.url { Button("Try again") { window.navigate(tab, text: url) } }
                 Button("New Tab") { _ = window.newTab() }
             }
-            .buttonStyle(.bordered)
-            .pointerStyle(.link)
+            .aetherGlassButton()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.canvas)
+        .background(theme.background)
     }
 }

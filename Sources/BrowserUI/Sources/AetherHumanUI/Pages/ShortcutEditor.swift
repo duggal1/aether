@@ -59,10 +59,10 @@ public struct ShortcutEditor: View {
         HStack(spacing: 8) {
             Spacer()
             Button("Cancel") { dismiss() }
-                .buttonStyle(AetherDialogButtonStyle(kind: .cancel, reduced: reduced))
+                .aetherGlassButton()
                 .focusEffectDisabled()
             Button("Save") { save() }
-                .buttonStyle(AetherDialogButtonStyle(kind: .primary, reduced: reduced))
+                .aetherGlassProminentButton()
                 .keyboardShortcut(.defaultAction)
                 .focusEffectDisabled()
                 .disabled(!canSave)

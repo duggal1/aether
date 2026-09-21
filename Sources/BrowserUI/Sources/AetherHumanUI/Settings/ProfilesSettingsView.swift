@@ -61,13 +61,13 @@ public struct ProfilesSettingsView: View {
             HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel", action: cancel)
-                    .buttonStyle(AetherDialogButtonStyle(kind: .cancel, reduced: reduced))
+                    .aetherGlassButton()
                     .focusEffectDisabled()
                 Button("Save", action: save).disabled(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .buttonStyle(AetherDialogButtonStyle(kind: .primary, reduced: reduced))
+                    .aetherGlassProminentButton()
                     .keyboardShortcut(.defaultAction)
                     .focusEffectDisabled()
             }
-        }.padding(24).frame(width: 350).background(theme.canvas)
+        }.padding(24).frame(width: 350).background(theme.background)
     }
 }

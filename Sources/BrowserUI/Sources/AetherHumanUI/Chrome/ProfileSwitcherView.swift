@@ -119,8 +119,7 @@ public struct ProfileSwitcherView: View {
                         profileName = ""; newProfileColor = 0; creating = false; showing = false
                     }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .tint(theme.hover)
+                    .aetherGlassProminentButton()
                     .disabled(profileName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }

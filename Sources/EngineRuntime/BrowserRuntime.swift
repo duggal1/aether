@@ -139,7 +139,12 @@ public actor BrowserRuntime {
   var webEphemeralStores: [ContextID: AnyObject] = [:]
   var webContextRules: [ContextID: AnyObject] = [:]
 
-  public init() {}
+  let suggestService: SearchSuggestService
+
+  public init(suggestTransport: (any SuggestTransport)? = nil) {
+    suggestService = SearchSuggestService(
+      transport: suggestTransport ?? URLSessionSuggestTransport())
+  }
 
   public func createContext(name: String) -> BrowserContextInfo {
     let id = ContextID(rawValue: contextCounter.next())
@@ -660,41 +665,131 @@ public actor BrowserRuntime {
     return true
   }
 
+  public func searchCompletions(prefix: String, limit: Int = 10, endpoint: URL? = nil) async
+    -> [String]
+  {
+    let provider = endpoint.map { SearchProvider(endpoint: $0) } ?? .defaultProvider
+    guard let suggest = provider.suggestEndpoint else { return [] }
+    return await suggestService.completions(endpoint: suggest, prefix: prefix, limit: limit)
+  }
+
+  public func warmSearchSuggestions(endpoint: URL? = nil) async {
+    let provider = endpoint.map { SearchProvider(endpoint: $0) } ?? .defaultProvider
+    guard let suggest = provider.suggestEndpoint else { return }
+    await suggestService.warm(endpoint: suggest)
+  }
+
+  public func suggestSnapshot() async -> SearchSuggestService.Snapshot {
+    await suggestService.snapshot()
+  }
+
   public func suggestNavigation(
-    contextID: ContextID, prefix: String, limit: Int = 8
-  ) throws -> [NavigationSuggestion] {
+    contextID: ContextID, prefix: String, limit: Int = 8, includeNetwork: Bool = true,
+    endpoint: URL? = nil
+  ) async throws -> [NavigationSuggestion] {
     guard let context = contexts[contextID] else {
       throw BrowserRuntimeError.contextNotFound(contextID)
     }
-    let needle = prefix.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    guard !needle.isEmpty else {
+    let raw = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !raw.isEmpty else {
       throw BrowserRuntimeError.invalidNavigation("A suggestion prefix is required")
     }
     guard limit >= 1 && limit <= 50 else {
       throw BrowserRuntimeError.invalidNavigation("Suggestion limit must be 1 through 50")
     }
-    var suggestions: [NavigationSuggestion] = []
-    var seen = Set<String>()
-    for bookmark in context.bookmarks
-      where bookmark.url.lowercased().contains(needle)
-        || bookmark.title.lowercased().contains(needle)
-    {
-      suggestions.append(
-        NavigationSuggestion(kind: "bookmark", url: bookmark.url, title: bookmark.title))
-      seen.insert(bookmark.url)
-      if suggestions.count >= limit { return suggestions }
+    let needle = raw.lowercased()
+    let provider = endpoint.map { SearchProvider(endpoint: $0) }
+      ?? (try? searchProvider(contextID: contextID))
+    var ranked: [RankedNavigationSuggestion] = []
+    if let typed = Self.typedAddress(raw), let url = URL(string: typed) {
+      ranked.append(
+        RankedNavigationSuggestion(
+          suggestion: NavigationSuggestion(kind: "url", url: url.absoluteString), score: 400))
     }
-    let recent = context.pages.values.sorted { $0.lastActive > $1.lastActive }
-    for page in recent {
+    for bookmark in context.bookmarks {
+      guard let score = Self.matchScore(needle: needle, url: bookmark.url, title: bookmark.title)
+      else { continue }
+      ranked.append(
+        RankedNavigationSuggestion(
+          suggestion: NavigationSuggestion(
+            kind: "bookmark", url: bookmark.url, title: bookmark.title),
+          score: score + 40))
+    }
+    var recency = 0
+    for page in context.pages.values.sorted(by: { $0.lastActive > $1.lastActive }) {
       for url in page.history.reversed() {
+        recency += 1
         let absolute = url.absoluteString
-        guard !seen.contains(absolute), absolute.lowercased().contains(needle) else { continue }
-        seen.insert(absolute)
-        suggestions.append(NavigationSuggestion(kind: "history", url: absolute))
-        if suggestions.count >= limit { return suggestions }
+        guard let score = Self.matchScore(needle: needle, url: absolute, title: nil) else {
+          continue
+        }
+        ranked.append(
+          RankedNavigationSuggestion(
+            suggestion: NavigationSuggestion(kind: "history", url: absolute),
+            score: score + 20 - Double(min(recency, 20))))
       }
     }
-    return suggestions
+    if includeNetwork, let provider, let suggest = provider.suggestEndpoint {
+      let completions = await suggestService.completions(
+        endpoint: suggest, prefix: raw, limit: limit)
+      for (index, completion) in completions.enumerated() {
+        guard let url = try? provider.searchURL(for: completion) else { continue }
+        ranked.append(
+          RankedNavigationSuggestion(
+            suggestion: NavigationSuggestion(
+              kind: "search", url: url.absoluteString, title: completion),
+            score: 240 - Double(index)))
+      }
+    }
+    return Self.rank(ranked, limit: limit)
+  }
+
+  static func rank(_ candidates: [RankedNavigationSuggestion], limit: Int) -> [NavigationSuggestion] {
+    var seenURL = Set<String>()
+    var seenText = Set<String>()
+    var result: [NavigationSuggestion] = []
+    for candidate in candidates.sorted(by: { $0.score > $1.score }) {
+      let url = candidate.suggestion.url
+      guard seenURL.insert(url.lowercased()).inserted else { continue }
+      if let title = candidate.suggestion.title, !title.isEmpty {
+        let key = candidate.suggestion.kind + "|" + title.lowercased()
+        guard seenText.insert(key).inserted else { continue }
+      }
+      result.append(candidate.suggestion)
+      if result.count == limit { break }
+    }
+    return result
+  }
+
+  static func typedAddress(_ raw: String) -> String? {
+    if raw.contains("://") {
+      guard let url = URL(string: raw), let scheme = url.scheme?.lowercased(),
+        ["http", "https"].contains(scheme), url.host?.isEmpty == false,
+        url.user == nil, url.password == nil
+      else { return nil }
+      return url.absoluteString
+    }
+    guard !raw.contains(where: { $0.isWhitespace }),
+      raw.contains(".") || raw.lowercased().hasPrefix("localhost")
+    else { return nil }
+    guard let url = URL(string: "https://" + raw), let host = url.host, !host.isEmpty,
+      host.contains(".") || host.lowercased() == "localhost", url.user == nil, url.password == nil
+    else { return nil }
+    return url.absoluteString
+  }
+
+  static func matchScore(needle: String, url: String, title: String?) -> Double? {
+    guard let host = URL(string: url)?.host?.lowercased() else {
+      let haystack = (title ?? url).lowercased()
+      guard haystack.contains(needle) else { return nil }
+      return 80
+    }
+    let bare = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    if host.hasPrefix(needle) || bare.hasPrefix(needle) { return 300 }
+    if let title, title.lowercased().hasPrefix(needle) { return 220 }
+    if title?.lowercased().contains(needle) == true { return 120 }
+    if url.lowercased().contains(needle) { return 80 }
+    return nil
   }
 
   public func searchProvider(contextID: ContextID) throws -> SearchProvider {
@@ -2167,3 +2262,9 @@ public actor BrowserRuntime {
       .replacingOccurrences(of: "%20", with: "+")
   }
 }
+
+struct RankedNavigationSuggestion: Sendable {
+  var suggestion: NavigationSuggestion
+  var score: Double
+}
+

@@ -30,24 +30,32 @@ public struct TabItemView: View {
         isNewTab ? AetherPalette.activeNewTab(theme.dark) : AetherPalette.activeSite(theme.dark)
     }
 
+    private var truncationMask: some View {
+        LinearGradient(colors: [.white, .clear], startPoint: .leading, endPoint: .trailing)
+            .frame(width: 16)
+    }
+
+    private var tabTitleText: some View {
+        Text(tab.title)
+            .font(AetherType.emphasis(12))
+            .lineLimit(1)
+            .foregroundStyle(selected ? theme.ink : AetherPalette.tabTitle(theme.dark))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .mask {
+                HStack(spacing: 0) {
+                    Rectangle().fill(.white)
+                    truncationMask
+                }
+            }
+            .offset(y: topFused ? 0.35 : 0.3)
+    }
+
     public var body: some View {
         HStack(spacing: topFused ? 10 : 10) {
             DomainIcon(tab.url, size: 16)
                 .frame(width: 16, alignment: .center)
             if !compact {
-                Text(tab.title)
-                    .font(AetherType.emphasis(12))
-                    .lineLimit(1)
-                    .foregroundStyle(selected ? theme.ink : AetherPalette.tabTitle(theme.dark))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .mask {
-                        HStack(spacing: 0) {
-                            Rectangle().fill(.white)
-                            LinearGradient(colors: [.white, .clear], startPoint: .leading, endPoint: .trailing)
-                                .frame(width: 16)
-                        }
-                    }
-                    .offset(y: topFused ? 0.35 : 0.3)
+                tabTitleText
             }
             if tab.loadState == .loading {
                 ProgressView().controlSize(.mini).frame(width: 12, height: 12)
@@ -130,39 +138,28 @@ public struct TabItemView: View {
     @ViewBuilder private var selectionBackground: some View {
         if topFused {
             if selected {
-                if let namespace {
-                    fusedActive
-                        .matchedGeometryEffect(id: AetherGlassNamespace.tab, in: namespace, isSource: true)
-                } else {
-                    fusedActive
-                }
+                fusedActive
             } else if hovering {
                 UnevenRoundedRectangle(topLeadingRadius: AetherMetrics.fieldRadius + 2,
                                        topTrailingRadius: AetherMetrics.fieldRadius + 2)
                     .fill(AetherPalette.tabHover(theme.dark))
             }
         } else if selected {
-            if let namespace {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(AetherPalette.canvas(theme.dark))
-                    .matchedGeometryEffect(id: AetherGlassNamespace.tabActive, in: namespace, isSource: true)
-            } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(AetherPalette.canvas(theme.dark))
-            }
+            sidebarActive
         } else if hovering {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(AetherPalette.selection(theme.dark))
         }
     }
 
-    private var fusedActive: some View {
-        FusedTopTabShape(leftFoot: !(isFirst && topFused))
-            .fill(activeSurface)
-            .overlay {
-                FusedTopTabShape(leftFoot: !(isFirst && topFused))
-                    .stroke(theme.hairline, lineWidth: 0.5)
-            }
+    @ViewBuilder private var sidebarActive: some View {
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        shape.fill(theme.tabActive)
+    }
+
+    @ViewBuilder private var fusedActive: some View {
+        let shape = FusedTopTabShape(leftFoot: !(isFirst && topFused))
+        shape.fill(activeSurface)
     }
 }
 
@@ -183,14 +180,11 @@ private struct SidebarHoverPreview: View {
         }
         .padding(EdgeInsets(top: 10, leading: 10, bottom: 11, trailing: 10))
         .frame(width: 185, alignment: .leading)
-        .background(theme.raised)
-        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
-        .overlay {
+        .background {
             RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous)
-                .strokeBorder(theme.hairline, lineWidth: 1)
-                .allowsHitTesting(false)
+                .fill(theme.card)
         }
-        .aetherGlassShadow(dark: theme.dark)
+        .shadow(color: Color.black.opacity(theme.dark ? 0.08 : 0.04), radius: 6, y: 2)
         .allowsHitTesting(false)
     }
 }

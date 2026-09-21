@@ -10,6 +10,8 @@ public final class BrowserPreferences {
     public var restoreWindows: Bool { didSet { save() } }
     public var showFavorites: Bool { didSet { save() } }
     public var showFullAddress: Bool { didSet { save() } }
+    public var showSearchSuggestions: Bool { didSet { save() } }
+    public var providerSuggestions: Bool { didSet { save() } }
     public var sidebarWidth: Double { didSet { save() } }
     public var transientSidebarWidth: Double?
     public var downloadFolder: String { didSet { save() } }
@@ -24,6 +26,8 @@ public final class BrowserPreferences {
         restoreWindows = defaults.object(forKey: "aether.restore.v2") as? Bool ?? false
         showFavorites = defaults.object(forKey: "aether.favorites") as? Bool ?? true
         showFullAddress = defaults.object(forKey: "aether.fullAddress") as? Bool ?? false
+        showSearchSuggestions = defaults.object(forKey: "aether.suggest") as? Bool ?? true
+        providerSuggestions = defaults.object(forKey: "aether.suggest.web") as? Bool ?? true
         sidebarWidth = max(188, min(324, defaults.object(forKey: "aether.sidebarWidth") as? Double ?? 190))
         downloadFolder = defaults.string(forKey: "aether.downloads") ?? "Downloads"
         privacy = BrowserPrivacyPolicy(
@@ -31,7 +35,7 @@ public final class BrowserPreferences {
             blockTrackers: defaults.object(forKey: "aether.blockTrackers") as? Bool ?? true,
             handleCookieBanners: defaults.object(forKey: "aether.cookieBanners") as? Bool ?? true
         )
-        progressColor = AetherProgressColor(rawValue: defaults.string(forKey: "aether.progressColor") ?? "") ?? .violet
+        progressColor = AetherProgressColor(rawValue: defaults.string(forKey: "aether.progressColor") ?? "") ?? .neutral
     }
     private func save() {
         defaults.set(arrangement.rawValue, forKey: "aether.tabs")
@@ -40,6 +44,8 @@ public final class BrowserPreferences {
         defaults.set(restoreWindows, forKey: "aether.restore.v2")
         defaults.set(showFavorites, forKey: "aether.favorites")
         defaults.set(showFullAddress, forKey: "aether.fullAddress")
+        defaults.set(showSearchSuggestions, forKey: "aether.suggest")
+        defaults.set(providerSuggestions, forKey: "aether.suggest.web")
         defaults.set(sidebarWidth, forKey: "aether.sidebarWidth")
         defaults.set(downloadFolder, forKey: "aether.downloads")
         defaults.set(privacy.blockAds, forKey: "aether.blockAds")

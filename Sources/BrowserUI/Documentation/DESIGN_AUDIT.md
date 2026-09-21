@@ -10,7 +10,7 @@ The supplied Dia screenshots are **structural references only**. The root reposi
 6. **Omnibox:** One compact URL/search field. No AI prompt or duplicate giant new-tab search; editable, focusable, with local structured suggestions.
 7. **New tab:** One quiet mark and an editable 4-column shortcut grid centered in ample negative space. No chatbot, feed, marketing card, decorative gradient or oversized search pill.
 8. **Settings:** Fixed narrow sidebar, one readable scrollable content area, reusable AetherRow/AetherSection/SettingsDivider. Dark/light color relationship remains consistent in every section.
-9. **Motion:** Only hovered controls and actual structural transitions animate, with Reduce Motion support. No web renderer animations, pulse, bounce or invented Liquid Glass simulation. A later enhancement pass adds official Apple Liquid Glass and AppKit blur to the bounded chrome locations documented in ENHANCED_DESIGN.md.
+9. **Motion:** Only hovered controls and actual structural transitions animate, with Reduce Motion support. No web renderer animations, pulse, bounce, or hand-drawn glass imitation. The material pass uses Apple's own APIs exclusively — `glassEffect`, `GlassEffectContainer`, `glassEffectID`/`glassEffectTransition`/`glassEffectUnion`, `.buttonStyle(.glass)`/`.glassProminent`, `.pickerStyle(.tabs)` — unconditionally (macOS 27 floor) with no `NSVisualEffectView` bridge and no availability fallback. Surface-by-surface map and honest limits: `ENHANCED_DESIGN.md`.
 10. **Realism:** Unsupported engine features never display fake successful browsing. Inspector/reader/download panels use typed optional providers and honest empty states.
 
 ## Screenshot mapping

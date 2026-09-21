@@ -12,32 +12,38 @@ public struct NavigationBarView: View {
 
     public var body: some View {
         HStack(spacing: 4) {
-            if window.arrangement == .sidebar {
-                ChromeButton(.sidebar, help: window.sidebarCollapsed ? "Show sidebar" : "Hide sidebar") {
-                    window.sidebarCollapsed.toggle()
+            AetherGlassCluster(spacing: 4) {
+                HStack(spacing: 4) {
+                    if window.arrangement == .sidebar {
+                        ChromeButton(.sidebar, help: window.sidebarCollapsed ? "Show sidebar" : "Hide sidebar") {
+                            window.sidebarCollapsed.toggle()
+                        }
+                    }
+                    ChromeButton(.arrowLeft, help: "Back \u{2318}[", enabled: window.selected?.canGoBack == true, iconSize: 14) { window.perform(.back) }
+                    ChromeButton(.arrowRight, help: "Forward \u{2318}]", enabled: window.selected?.canGoForward == true, iconSize: 14) { window.perform(.forward) }
+                    ChromeButton(window.selected?.loadState == .loading ? .close : .refresh,
+                                 help: window.selected?.loadState == .loading ? "Stop loading" : "Reload \u{2318}R",
+                                 enabled: window.selected?.enginePageID != nil, iconSize: 14) {
+                        window.perform(window.selected?.loadState == .loading ? .stop : .reload)
+                    }
                 }
-            }
-            ChromeButton(.arrowLeft, help: "Back \u{2318}[", enabled: window.selected?.canGoBack == true, iconSize: 14) { window.perform(.back) }
-            ChromeButton(.arrowRight, help: "Forward \u{2318}]", enabled: window.selected?.canGoForward == true, iconSize: 14) { window.perform(.forward) }
-            ChromeButton(window.selected?.loadState == .loading ? .close : .refresh,
-                         help: window.selected?.loadState == .loading ? "Stop loading" : "Reload \u{2318}R",
-                         enabled: window.selected?.enginePageID != nil, iconSize: 14) {
-                window.perform(window.selected?.loadState == .loading ? .stop : .reload)
             }
             OmniboxView(window: window).padding(.horizontal, 7)
-            HStack(spacing: 2) {
-                ChromeButton(.search, help: "Search tabs, history, bookmarks \u{21E7}\u{2318}A",
-                             selected: window.showsTabSearch) { window.showsTabSearch.toggle() }
-                ChromeButton(.history, help: "History \u{2318}Y", selected: window.showsHistory) {
-                    window.showsHistory.toggle()
+            AetherGlassCluster(spacing: 2) {
+                HStack(spacing: 2) {
+                    ChromeButton(.search, help: "Search tabs, history, bookmarks \u{21E7}\u{2318}A",
+                                 selected: window.showsTabSearch) { window.showsTabSearch.toggle() }
+                    ChromeButton(.history, help: "History \u{2318}Y", selected: window.showsHistory) {
+                        window.showsHistory.toggle()
+                    }
+                    ChromeButton(.download, help: "Downloads", selected: window.showsDownloads) {
+                        window.showsDownloads.toggle()
+                    }
+                    ChromeButton(.moreHorizontal, help: "More browser actions", selected: showsMore) {
+                        showsMore.toggle()
+                    }
+                    .popover(isPresented: $showsMore) { MoreMenuView(window: window) }
                 }
-                ChromeButton(.download, help: "Downloads", selected: window.showsDownloads) {
-                    window.showsDownloads.toggle()
-                }
-                ChromeButton(.moreHorizontal, help: "More browser actions", selected: showsMore) {
-                    showsMore.toggle()
-                }
-                .popover(isPresented: $showsMore) { MoreMenuView(window: window) }
             }
         }
         .padding(.leading, window.arrangement == .sidebar && window.sidebarCollapsed ? 78 : 4)

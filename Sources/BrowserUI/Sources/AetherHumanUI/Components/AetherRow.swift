@@ -51,7 +51,7 @@ public struct AetherSection<Content: View>: View {
                 .foregroundStyle(theme.muted)
                 .padding(.leading, 4)
             VStack(spacing: 0) { content }
-                .background(theme.settingsCard, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background { AetherCardBackground(radius: 12) }
             if let footer {
                 Text(footer).font(AetherType.caption(12)).foregroundStyle(theme.muted).padding(.leading, 4)
             }

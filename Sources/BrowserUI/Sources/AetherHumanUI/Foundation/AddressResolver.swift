@@ -16,6 +16,15 @@ public enum SearchProvider: String, CaseIterable, Codable, Identifiable {
         case .brave: "https://search.brave.com/search?q="
         }
     }
+    public var searchName: String {
+        switch self {
+        case .google, .googleAI: "Google"
+        case .duckDuckGo: "DuckDuckGo"
+        case .bing: "Bing"
+        case .brave: "Brave"
+        }
+    }
+    public var endpoint: URL? { URL(string: template) }
 }
 
 public enum AddressResolver {

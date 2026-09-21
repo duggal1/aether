@@ -6,8 +6,6 @@ public struct OmniboxView: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var focused = false
     @BrowserState private var draft = ""
-    @BrowserState private var selection = 0
-    @BrowserState private var showingSuggestions = false
     @BrowserState private var progressP = 0.0
     @BrowserState private var progressOpacity = 0.0
     @BrowserState private var loadCycle = 0
@@ -16,22 +14,8 @@ public struct OmniboxView: View {
 
     public init(window: BrowserWindowModel) { self.window = window }
 
-    private var matches: [OmniboxResult] {
-        let query = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return [] }
-        var items: [OmniboxResult] = []
-        for tab in window.tabs where tab.title.localizedCaseInsensitiveContains(query) || (tab.url?.localizedCaseInsensitiveContains(query) == true) {
-            items.append(OmniboxResult(id: tab.id, title: tab.title, subtitle: tab.url ?? "", kind: .tab, url: tab.url))
-        }
-        for item in window.workspace.bookmarks(for: window.activeProfileID) where item.title.localizedCaseInsensitiveContains(query) || item.url.localizedCaseInsensitiveContains(query) {
-            items.append(OmniboxResult(id: item.id, title: item.title, subtitle: item.url, kind: .bookmark, url: item.url))
-        }
-        for item in window.workspace.visits where item.profileID == window.activeProfileID && (item.title.localizedCaseInsensitiveContains(query) || item.url.localizedCaseInsensitiveContains(query)) {
-            if !items.contains(where: { $0.url == item.url }) {
-                items.append(OmniboxResult(id: item.id, title: item.title, subtitle: item.url, kind: .history, url: item.url))
-            }
-        }
-        return Array(items.prefix(7))
+    private var showsSuggestions: Bool {
+        focused && !draft.isEmpty && window.suggestions.showsRows
     }
 
     public var body: some View {
@@ -44,27 +28,40 @@ public struct OmniboxView: View {
                 fullAddress: window.selected?.url ?? "",
                 placeholder: "Search \(window.workspace.preferences.provider.rawValue) or enter URL",
                 focusRequest: window.addressFocusNonce,
-                onSubmit: { commit() }, onEscape: { showingSuggestions = false },
+                onSubmit: { commit() },
+                onEscape: {
+                    window.suggestions.dismiss()
+                    draft = displayAddress(window.selected?.url)
+                    focused = false
+                },
                 onMove: { delta in
-                    guard focused else { return }
-                    if !showingSuggestions, !draft.isEmpty { showingSuggestions = true }
-                    selection = min(matches.count, max(0, selection + delta))
-                })
+                    guard focused, window.suggestions.showsRows else { return }
+                    window.suggestions.move(delta)
+                },
+                onComplete: { completeInline() })
                 .frame(maxWidth: .infinity)
                 .frame(height: 20, alignment: .center)
                 .pointerStyle(.horizontalText)
-                .onChange(of: draft) { _, _ in
-                    showingSuggestions = focused && !draft.isEmpty && draft != window.selected?.url
-                    selection = 0
+                .onChange(of: draft) { _, value in
+                    window.suggestions.update(prefix: value, window: window)
                 }
                 .onChange(of: focused) { _, now in
-                    if !now { draft = displayAddress(window.selected?.url); showingSuggestions = false }
+                    if now { window.suggestions.warm(profileID: window.activeProfileID, window: window) }
+                    else {
+                        window.suggestions.dismiss()
+                        draft = displayAddress(window.selected?.url)
+                    }
                 }
                 .onChange(of: window.selectedID) { _, _ in
-                    draft = displayAddress(window.selected?.url); showingSuggestions = false
+                    window.suggestions.dismiss()
+                    draft = displayAddress(window.selected?.url)
                 }
                 .onChange(of: window.selected?.url) { _, url in
                     if !focused { draft = displayAddress(url) }
+                }
+                .onChange(of: window.workspace.preferences.provider) { _, _ in
+                    guard focused else { return }
+                    window.suggestions.update(prefix: draft, window: window)
                 }
                 .onChange(of: window.selected?.loadState == .loading) { _, loading in
                     if loading == true { startProgress() } else { finishProgress() }
@@ -115,73 +112,22 @@ public struct OmniboxView: View {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(theme.omnibox)
         }
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(focused ? theme.hairline : Color.clear, lineWidth: 1)
+        }
         .modifier(DiaProgressEffect(p: progressP, opacity: progressOpacity, focused: focused,
                                     trio: window.workspace.preferences.progressColor.gradientTrio))
         .animation(AetherMotion.focus(reduced), value: focused)
-        .animation(AetherMotion.dropdown(reduced), value: showingSuggestions)
+        .animation(AetherMotion.dropdown(reduced), value: showsSuggestions)
         .onAppear { draft = displayAddress(window.selected?.url) }
         .overlay(alignment: .topLeading) {
-            if showingSuggestions { suggestions }
-        }
-    }
-
-    private var suggestions: some View {
-        VStack(spacing: 2) {
-            suggestionRow(offset: 0, selected: selection == 0) {
-                HStack(spacing: 9) {
-                    BrowserIconView(icon: .search, tint: theme.muted).iconSize(12)
-                    Text("Search or open \"\(draft)\"").lineLimit(1)
-                    Spacer(minLength: 4)
-                    Text("\u{21A9}").foregroundStyle(theme.soft)
+            if showsSuggestions {
+                OmniboxSuggestionsView(model: window.suggestions, prefix: draft) { row in
+                    choose(row)
                 }
-            } action: { commit() }
-            ForEach(Array(matches.enumerated()), id: \.element.id) { offset, item in
-                suggestionRow(offset: offset + 1, selected: selection == offset + 1) {
-                    HStack(spacing: 10) {
-                        DomainIcon(item.url, size: 20)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(item.title).font(AetherType.rowTitle(12)).lineLimit(1)
-                            Text(item.subtitle).font(AetherType.caption(11)).foregroundStyle(theme.muted).lineLimit(1)
-                        }
-                        Spacer(minLength: 4)
-                    }
-                } action: { choose(item) }
             }
         }
-        .padding(6)
-        .frame(maxWidth: 470)
-        .fixedSize(horizontal: false, vertical: true)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(theme.composer)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(theme.faintLine, lineWidth: 1)
-                .allowsHitTesting(false)
-        }
-        .aetherFloatingShadow(dark: theme.dark)
-        .offset(y: 38)
-        .zIndex(2)
-        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
-    }
-
-    @ViewBuilder private func suggestionRow<Content: View>(offset: Int, selected: Bool, @ViewBuilder content: () -> Content, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            content()
-                .font(AetherType.body(12))
-                .foregroundStyle(theme.ink)
-                .padding(.horizontal, 9)
-                .frame(height: 32)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(selected ? theme.suggestionSelected : .clear,
-                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .aetherFocusTreatment(radius: 7)
-        .focusEffectDisabled()
-        .aetherPointingCursor()
     }
 
     private func displayAddress(_ url: String?) -> String {
@@ -189,16 +135,33 @@ public struct OmniboxView: View {
         if window.workspace.preferences.showFullAddress { return url }
         return URL(string: url)?.host ?? url
     }
+
+    private func completeInline() {
+        guard focused, let completion = window.suggestions.completionText else { return }
+        draft = completion
+        window.suggestions.update(prefix: completion, window: window)
+    }
+
     private func commit() {
-        if selection > 0 && selection <= matches.count { choose(matches[selection - 1]); return }
+        if let row = window.suggestions.selectedRow { choose(row); return }
         let text = draft
-        focused = false; showingSuggestions = false
+        focused = false
+        window.suggestions.dismiss()
         window.navigateSelected(text)
     }
-    private func choose(_ item: OmniboxResult) {
-        focused = false; showingSuggestions = false
-        if item.kind == .tab { window.select(item.id) }
-        else if let url = item.url { window.navigateSelected(url) }
+
+    private func choose(_ row: OmniboxSuggestion) {
+        window.suggestions.record(row, profileID: window.activeProfileID)
+        focused = false
+        window.suggestions.dismiss()
+        switch row.kind {
+        case .tab:
+            if let id = row.tabID { window.select(id) }
+        default:
+            let destination = row.url ?? row.completionText ?? draft
+            if let url = row.url { draft = displayAddress(url) }
+            window.navigateSelected(destination)
+        }
     }
 
     private func isLoadingNow() -> Bool { window.selected?.loadState == .loading }
@@ -293,6 +256,10 @@ private extension Color {
     }
 }
 
+private func neutralProgress(_ deep: UInt, _ mid: UInt, _ pale: UInt) -> (UInt, UInt, UInt) {
+    (deep, mid, pale)
+}
+
 private struct DiaProgressLayers: View {
     let p: Double
     let width: Double
@@ -363,16 +330,4 @@ private struct DiaProgressLayers: View {
     }
 }
 
-private struct OmniboxResult: Identifiable {
-    enum Kind {
-        case tab, bookmark, history
-        var icon: BrowserIcon {
-            switch self { case .tab: .web; case .bookmark: .bookmark; case .history: .history }
-        }
-    }
-    var id: UUID
-    var title: String
-    var subtitle: String
-    var kind: Kind
-    var url: String?
-}
+ 
