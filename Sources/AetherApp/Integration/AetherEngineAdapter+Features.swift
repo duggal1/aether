@@ -73,3 +73,11 @@ extension AetherEngineAdapter: BrowserInspectionProviding, BrowserReaderProvidin
     return try await engine.runtime.findWebText(pageID: page(pageID), query: query, forward: forward)
   }
 }
+
+extension AetherEngineAdapter: BrowserSessionStateProviding {
+  func sessionState(pageID: String) async -> EngineSessionState {
+    guard let id = try? page(pageID) else { return .notLoaded }
+    let state = await engine.runtime.sessionAuthState(pageID: id)
+    return EngineSessionState(rawValue: state.rawValue) ?? .notLoaded
+  }
+}

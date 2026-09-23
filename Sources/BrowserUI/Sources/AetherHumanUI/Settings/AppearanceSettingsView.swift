@@ -14,8 +14,9 @@ public struct AppearanceSettingsView: View {
             .padding(10)
         }
         AetherSection("Loading indicator") {
-            AetherRow("Progress line color") {
-                HStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
+                AetherRow("Progress line color", symbol: "timer") { EmptyView() }
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 5), spacing: 4) {
                     ForEach(AetherProgressColor.allCases) { option in
                         AetherColorChoice(title: option.rawValue,
                                           color: option.color,
@@ -24,6 +25,8 @@ public struct AppearanceSettingsView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 8)
             }
         }
     }
@@ -50,11 +53,6 @@ public struct AppearanceSettingsView: View {
                 }
                 .frame(height: 70)
                 .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-                        .strokeBorder(selected ? theme.ink.opacity(0.55) : theme.hairline, lineWidth: 1)
-                        .allowsHitTesting(false)
-                }
                 HStack(spacing: 5) {
                     Circle()
                         .fill(selected ? theme.ink : .clear)
@@ -66,7 +64,7 @@ public struct AppearanceSettingsView: View {
             }
             .foregroundStyle(theme.ink)
             .padding(9)
-            .background(selected ? theme.settingsRaised : theme.background,
+            .background(selected ? theme.settingsRaised : Color.clear,
                         in: RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
             .contentShape(Rectangle())
         }

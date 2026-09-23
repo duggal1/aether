@@ -25,3 +25,51 @@ import Testing
   await adapter.close(pageID: b)
   await adapter.shutdown()
 }
+
+@MainActor
+@Test func adapterExposesRealPasskeyCapability() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let adapter = AetherEngineAdapter(profileDirectory: directory)
+  let capability = adapter as any BrowserPasskeyCapability
+  let state = capability.passkeyAuthorizationState()
+  #expect(PasskeyAuthorizationState.allCases.contains(state))
+  _ = capability.passkeyDeviceConfigured
+  _ = capability.passkeyLocalAuthAvailable
+  await adapter.shutdown()
+}
+
+@MainActor
+@Test func disconnectedPortReportsNoPasskeyCapability() async {
+  let port = DisconnectedEnginePort()
+  #expect(port.passkeyDeviceConfigured == false)
+  #expect(port.passkeyLocalAuthAvailable == false)
+  #expect(port.passkeyAuthorizationState() == .unavailable)
+  #expect(await port.requestPasskeyAuthorization() == .unavailable)
+  #expect(await port.sessionState(pageID: "missing") == .notLoaded)
+}
+
+@MainActor
+@Test func adapterSessionStateTracksUnknownPages() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let adapter = AetherEngineAdapter(profileDirectory: directory)
+  #expect(await adapter.sessionState(pageID: "no-such-page") == .notLoaded)
+  let pageID = try await adapter.createPage(profileID: UUID())
+  #expect(EngineSessionState.allCases.contains(await adapter.sessionState(pageID: pageID)))
+  await adapter.close(pageID: pageID)
+  await adapter.shutdown()
+}
+
+@MainActor
+@Test func unreachableExitFailsClosedWithoutLeaking() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let adapter = AetherEngineAdapter(profileDirectory: directory)
+  let profileID = UUID()
+  let route = BrowserNetworkRoute(region: .sanFrancisco, enabled: true, failClosed: true)
+  let endpoint = RouteEndpoint(host: "127.0.0.1", port: 9, region: .sanFrancisco)
+  #expect(
+    try await adapter.applyNetworkRoute(profileID: profileID, route: route, endpoint: endpoint)
+      == .blocked)
+  #expect(adapter.observedExitIP(profileID: profileID) == nil)
+  #expect(adapter.currentRouteStatus(profileID: profileID) == .blocked)
+  await adapter.shutdown()
+}

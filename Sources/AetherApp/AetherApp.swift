@@ -17,6 +17,8 @@ struct AetherApp: App {
     workspace = BrowserWorkspace(engine: adapter)
     AetherApplicationDelegate.adapter = adapter
     AetherApplicationDelegate.workspace = workspace
+    adapter.startAutomation(workspace: workspace)
+    Task { await adapter.engine.runtime.warmWebProcess() }
   }
 
   var body: some Scene {

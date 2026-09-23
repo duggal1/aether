@@ -39,6 +39,39 @@ public final class BrowserWorkspace {
         UserDefaults.standard.set(true, forKey: "aether.shortcuts.seeded.v1")
     }
 
+    public func scheduleSessionSave() {
+        flushSession()
+    }
+
+    public func flushSession() {
+        BrowserPersistence.saveSession(sessionArchive())
+    }
+
+    public func sessionArchive() -> BrowserSessionArchive {
+        let incognitoIDs = Set(profiles.filter(\.isIncognito).map(\.id))
+        let knownIDs = Set(profiles.map(\.id))
+        return BrowserSessionArchive(windows: windows.map { window in
+            BrowserSessionWindow(
+                id: window.id,
+                activeProfileID: window.activeProfileID,
+                arrangement: preferences.arrangement,
+                sidebarCollapsed: window.sidebarCollapsed,
+                selectedByProfile: window.selectionByProfile.filter { knownIDs.contains($0.key) },
+                tabs: window.tabsByProfile
+                    .filter { knownIDs.contains($0.key) && !incognitoIDs.contains($0.key) }
+                    .flatMap { $0.value }
+                    .compactMap(BrowserSessionTab.init(tab:)))
+        })
+    }
+
+    public func savedSession() -> BrowserSessionArchive { BrowserPersistence.loadSession() }
+
+    public func syncSearchKeysToEngine() async {
+        guard let intelligence = engine as? any BrowserSearchIntelligence else { return }
+        await intelligence.jevUpdateKeys(typeSafeKey: preferences.typeSafeAPIKey,
+                                         search1APIKey: preferences.search1APIKey)
+    }
+
     public func loadEngineLibraries() async {
         guard let provider = engine as? any BrowserLibraryProviding else { return }
         for profile in profiles {
@@ -84,6 +117,7 @@ public final class BrowserWorkspace {
         visits.removeAll { $0.profileID == id }
         if defaultProfileID == id { defaultProfileID = next }
         persist()
+        flushSession()
         return true
     }
     public func setDefaultProfile(_ id: UUID) {
@@ -95,6 +129,11 @@ public final class BrowserWorkspace {
     }
     public func history(for profileID: UUID, limit: Int = 200) -> [BrowserVisit] {
         Array(visits.lazy.filter { $0.profileID == profileID }.prefix(max(0, limit)))
+    }
+    public func rememberedSite(for text: String, profileID: UUID) -> URL? {
+        AddressResolver.rememberedSite(text,
+            visits: visits.filter { $0.profileID == profileID },
+            bookmarks: bookmarks.filter { $0.profileID == profileID })
     }
     public func isBookmarked(_ url: String?, profileID: UUID) -> Bool {
         guard let url else { return false }
@@ -144,11 +183,14 @@ public final class BrowserWorkspace {
     }
     public func addShortcut(name: String, url: String) {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
-              let destination = AddressResolver.resolve(url), destination.scheme == "https" || destination.scheme == "http" else { return }
+              let destination = AddressResolver.resolve(url, provider: preferences.provider,
+                  locality: preferences.searchLocality, localityTerms: preferences.localityQueryTerms), destination.scheme == "https" || destination.scheme == "http" else { return }
         shortcuts.append(BrowserShortcut(name: name, url: destination.absoluteString, isPinned: false)); persist()
     }
     public func editShortcut(_ id: UUID, name: String, url: String) {
-        guard let i = shortcuts.firstIndex(where: { $0.id == id }), let resolved = AddressResolver.resolve(url) else { return }
+        guard let i = shortcuts.firstIndex(where: { $0.id == id }),
+              let resolved = AddressResolver.resolve(url, provider: preferences.provider,
+                  locality: preferences.searchLocality, localityTerms: preferences.localityQueryTerms) else { return }
         shortcuts[i].name = name; shortcuts[i].url = resolved.absoluteString; persist()
     }
     public func removeShortcut(_ id: UUID) { shortcuts.removeAll { $0.id == id }; persist() }
@@ -157,7 +199,8 @@ public final class BrowserWorkspace {
         BrowserPersistence.save(BrowserArchive(profiles: profiles,
                                                bookmarks: bookmarks.filter { !incognitoIDs.contains($0.profileID) },
                                                visits: visits.filter { !incognitoIDs.contains($0.profileID) },
-                                               shortcuts: shortcuts, defaultProfileID: defaultProfileID))
+                                               shortcuts: shortcuts, defaultProfileID: defaultProfileID),
+                                session: sessionArchive())
         if let provider = engine as? any BrowserLibraryProviding {
             let libraries = profiles.filter { !$0.isIncognito }.map { profile in
                 (profile.id, BrowserProfileLibrary(bookmarks: bookmarks.filter { $0.profileID == profile.id },

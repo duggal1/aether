@@ -16,16 +16,16 @@ public struct TabsSettingsView: View {
         }
         if workspace.preferences.arrangement == .sidebar {
             AetherSection("Sidebar") {
-                AetherRow("Sidebar width", subtitle: "Drag or adjust the preferred width.") {
+                AetherRow("Sidebar width", symbol: "sidebar.left") {
                     Slider(value: Binding(get: { workspace.preferences.sidebarWidth },
                                           set: { workspace.preferences.sidebarWidth = $0 }), in: 188...324)
                         .frame(width: 170)
                     Text("\(Int(workspace.preferences.sidebarWidth)) pt")
-                        .font(AetherType.mono(11)).foregroundStyle(theme.muted)
+                        .font(AetherType.data(11)).foregroundStyle(theme.muted)
                         .frame(width: 46, alignment: .trailing)
                 }
                 SettingsDivider()
-                SettingsToggle("Pinned favorites in sidebar",
+                SettingsToggle("Pinned favorites in sidebar", symbol: "pin",
                                value: Binding(get: { workspace.preferences.showFavorites },
                                               set: { workspace.preferences.showFavorites = $0 }))
             }
@@ -48,7 +48,7 @@ public struct TabsSettingsView: View {
             .padding(12)
             .frame(maxWidth: .infinity)
             .background {
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(selected ? theme.settingsRaised : theme.background)
             }
         }

@@ -14,7 +14,7 @@ public struct FindBarView: View {
                         icon: .search, onSubmit: { find(true) })
                 .frame(width: 232)
             if let matches {
-                Text("\(matches) matches")
+                AetherAnimatedText(text: "\(matches) matches")
                     .font(AetherType.caption(11)).foregroundStyle(theme.muted)
                     .padding(.horizontal, 4)
             }

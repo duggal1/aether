@@ -1,14 +1,18 @@
 import AppKit
 import CryptoKit
 import Foundation
+import ImageIO
 
 @MainActor
 public final class AetherFaviconStore {
     public static let shared = AetherFaviconStore()
     public static let cacheTTL: TimeInterval = 7 * 24 * 60 * 60
     public static let requestTimeout: TimeInterval = 6
+    private static let maxMemoryIcons = 128
+    private static let maxIconPixels = 128
 
     private var memory: [String: NSImage] = [:]
+    private var memoryOrder: [String] = []
     private var inFlight: [String: Task<NSImage?, Never>] = [:]
     private var unavailable: Set<String> = []
     private let directory: URL
@@ -34,7 +38,7 @@ public final class AetherFaviconStore {
             guard let self else { return nil }
             let image = await self.load(key)
             self.inFlight[key] = nil
-            if let image { self.memory[key] = image } else { self.unavailable.insert(key) }
+            if let image { self.cache(image, for: key) } else { self.unavailable.insert(key) }
             return image
         }
         inFlight[key] = task
@@ -57,12 +61,12 @@ public final class AetherFaviconStore {
 
     private func candidates(_ host: String) -> [URL] {
         [
+            URL(string: "https://www.google.com/s2/favicons?sz=128&domain=\(host)"),
+            URL(string: "https://icons.duckduckgo.com/ip3/\(host).ico"),
             URL(string: "https://\(host)/apple-touch-icon.png"),
             URL(string: "https://\(host)/apple-touch-icon-precomposed.png"),
             URL(string: "https://\(host)/favicon.ico"),
-            URL(string: "https://\(host)/favicon.png"),
-            URL(string: "https://www.google.com/s2/favicons?sz=128&domain=\(host)"),
-            URL(string: "https://icons.duckduckgo.com/ip3/\(host).ico")
+            URL(string: "https://\(host)/favicon.png")
         ].compactMap { $0 }
     }
 
@@ -73,8 +77,8 @@ public final class AetherFaviconStore {
         request.setValue("image/*", forHTTPHeaderField: "Accept")
         guard let (data, response) = try? await URLSession.shared.data(for: request) else { return nil }
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
-        guard data.count >= 64, let image = NSImage(data: data), image.size.width >= 8 else { return nil }
-        return image
+        guard (64...2_097_152).contains(data.count) else { return nil }
+        return thumbnail(from: data as CFData)
     }
 
     private func diskImage(_ host: String) -> NSImage? {
@@ -82,8 +86,35 @@ public final class AetherFaviconStore {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: file.path),
               let modified = attributes[.modificationDate] as? Date,
               Date().timeIntervalSince(modified) < Self.cacheTTL,
-              let image = NSImage(contentsOf: file) else { return nil }
-        return image
+              let source = CGImageSourceCreateWithURL(file as CFURL,
+                  [kCGImageSourceShouldCache: false] as CFDictionary) else { return nil }
+        return thumbnail(from: source)
+    }
+
+    private func thumbnail(from data: CFData) -> NSImage? {
+        guard let source = CGImageSourceCreateWithData(data,
+            [kCGImageSourceShouldCache: false] as CFDictionary) else { return nil }
+        return thumbnail(from: source)
+    }
+
+    private func thumbnail(from source: CGImageSource) -> NSImage? {
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: Self.maxIconPixels
+        ] as CFDictionary
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options),
+              image.width >= 8, image.height >= 8 else { return nil }
+        return NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+    }
+
+    private func cache(_ image: NSImage, for host: String) {
+        if memory[host] == nil { memoryOrder.append(host) }
+        memory[host] = image
+        if memoryOrder.count > Self.maxMemoryIcons {
+            let evicted = memoryOrder.removeFirst()
+            memory.removeValue(forKey: evicted)
+        }
     }
 
     private func store(_ image: NSImage, host: String) {
@@ -99,6 +130,7 @@ public final class AetherFaviconStore {
     }
 
     private func normalized(_ host: String) -> String {
-        host.lowercased().replacingOccurrences(of: "www.", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = host.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.hasPrefix("www.") ? String(value.dropFirst(4)) : value
     }
 }

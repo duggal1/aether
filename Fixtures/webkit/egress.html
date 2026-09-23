@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aether — Egress and leak probe fixture</title>
+<style>
+:root {font-family:system-ui,sans-serif;color:#292524;background:#fafaf9}
+body {max-width:720px;margin:80px auto;padding:0 40px}
+pre {padding:24px;background:white;border-radius:12px;overflow:auto}
+</style>
+<h1>Egress and leak probe</h1>
+<p>This page reports what the browser environment exposes to websites: the public IP seen by an external endpoint, WebRTC ICE candidates, and whether fetch reaches IPv4/IPv6 test endpoints. It never sends credentials, cookies, or page content anywhere except the IP-echo request.</p>
+<pre id="egress-report">{"status":"probing"}</pre>
+<script>
+(async () => {
+  const report = { publicIP: null, ipError: null, webrtcCandidates: [], fetch4: null, fetch6: null };
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const body = await response.json();
+    report.publicIP = body.ip ?? null;
+  } catch (error) {
+    report.ipError = String(error && error.message ? error.message : error);
+  }
+  try {
+    const peer = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    peer.createDataChannel('probe');
+    const gathered = new Promise(resolve => {
+      const seen = [];
+      peer.onicecandidate = event => {
+        if (event.candidate) {
+          seen.push(event.candidate.candidate);
+        } else {
+          resolve(seen);
+        }
+      };
+      setTimeout(() => resolve(seen), 8000);
+    });
+    await peer.setLocalDescription(await peer.createOffer());
+    report.webrtcCandidates = await gathered;
+    peer.close();
+  } catch (error) {
+    report.webrtcCandidates = ['unavailable: ' + (error && error.message ? error.message : error)];
+  }
+  for (const [key, url] of [['fetch4', 'https://ipv4.icanhazip.com/'], ['fetch6', 'https://ipv6.icanhazip.com/']]) {
+    try {
+      const response = await fetch(url);
+      report[key] = (await response.text()).trim();
+    } catch (error) {
+      report[key] = 'unreachable: ' + (error && error.message ? error.message : error);
+    }
+  }
+  document.querySelector('#egress-report').textContent = JSON.stringify(report, null, 2);
+})();
+</script>
+</html>

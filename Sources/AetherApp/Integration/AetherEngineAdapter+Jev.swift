@@ -21,6 +21,10 @@ extension AetherEngineAdapter: BrowserSearchIntelligence {
   func jevIsConfigured() async -> Bool {
     await engine.jevAvailability().isReady
   }
+
+  func jevUpdateKeys(typeSafeKey: String, search1APIKey: String) async {
+    await engine.updateJevSearchKeys(typeSafeKey: typeSafeKey, search1APIKey: search1APIKey)
+  }
 }
 
 extension BrowserSearchSignal {

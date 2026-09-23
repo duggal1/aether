@@ -2,10 +2,11 @@ import SwiftUI
 
 public struct HistoryView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @Environment(\.dismiss) private var dismiss
     @BrowserState private var query = ""
     @BrowserState private var confirmClear = false
+    @State private var closeHovering = false
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
@@ -36,21 +37,25 @@ public struct HistoryView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 19) {
             HStack(spacing: 10) {
-                Text("History").font(AetherType.panelTitle(22))
+                Text("History").font(AetherType.panelTitle(22)).tracking(AetherTracking.heading)
                     .foregroundStyle(theme.textStrong)
                 Spacer(minLength: 8)
                 Button("Clear History") { confirmClear = true }
-                    .aetherGlassButton()
+                    .aetherButton()
+                    .frame(minWidth: 112, minHeight: 30)
                     .disabled(results.isEmpty)
-                Button { dismiss() } label: {
+                Button { window.showsHistory = false } label: {
                     Image(systemName: "xmark")
-                        .font(AetherType.symbol(13))
+                        .font(AetherType.symbol(11))
                         .foregroundStyle(theme.muted)
-                        .frame(width: 27, height: 27)
+                        .frame(width: 28, height: 28)
+                        .background { AetherInteractionSurface(active: closeHovering, radius: 6) }
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .focusEffectDisabled()
                 .aetherPointingCursor()
+                .onHover { closeHovering = $0 }
                 .help("Close history")
             }
 
@@ -61,12 +66,11 @@ public struct HistoryView: View {
                                  description: "Pages you visit in this profile appear here.")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    LazyVStack(alignment: .leading, spacing: 20) {
                         ForEach(groups, id: \.title) { group in
-                            VStack(alignment: .leading, spacing: 7) {
-                                Text(group.title.uppercased())
+                            LazyVStack(alignment: .leading, spacing: 7) {
+                                Text(group.title)
                                     .font(AetherType.emphasis(12))
-                                    .tracking(0.3)
                                     .foregroundStyle(theme.muted)
                                     .padding(.horizontal, 12)
                                     .padding(.top, 7)
@@ -75,7 +79,7 @@ public struct HistoryView: View {
                                     HistoryEntry(visit: visit,
                                                  open: {
                                                      window.navigateSelected(visit.url)
-                                                     dismiss()
+                                                     window.showsHistory = false
                                                  },
                                                  delete: { window.workspace.deleteVisit(visit.id) })
                                 }
@@ -84,12 +88,13 @@ public struct HistoryView: View {
                     }
                     .padding(.bottom, 22)
                 }
-                .scrollIndicators(.hidden)
+                .background { AetherOverlayScrollerTuning() }
                 .mask {
                     if results.count > 7 {
                         LinearGradient(
                             stops: [.init(color: .black, location: 0),
-                                    .init(color: .black, location: 0.88),
+                                    .init(color: .black, location: 0.82),
+                                    .init(color: .black.opacity(0.6), location: 0.92),
                                     .init(color: .clear, location: 1)],
                             startPoint: .top, endPoint: .bottom)
                     } else {
@@ -100,8 +105,8 @@ public struct HistoryView: View {
         }
         .padding(26)
         .frame(width: 720, height: 555)
-        .background(theme.background)
-        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background { AetherOverlayPanelBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
         .confirmationDialog("Clear history for this profile?", isPresented: $confirmClear) {
             Button("Clear History", role: .destructive) {
                 window.workspace.clearHistory(window.activeProfileID)
@@ -151,7 +156,7 @@ private struct HistoryEntry: View {
                 Image(systemName: "xmark")
                     .font(AetherType.symbol(12))
                     .foregroundStyle(theme.muted)
-                    .frame(width: 29, height: 29)
+                    .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -164,9 +169,8 @@ private struct HistoryEntry: View {
         .padding(.horizontal, 12)
         .frame(height: 52)
         .background(hovering ? theme.hover : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .onHover { inside in
-            withAnimation(AetherMotion.hover(reduced)) { hovering = inside }
-        }
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .animation(AetherMotion.hover(reduced), value: hovering)
+        .onHover { hovering = $0 }
     }
 }

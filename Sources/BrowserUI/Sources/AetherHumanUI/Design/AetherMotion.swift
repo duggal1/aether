@@ -9,13 +9,15 @@ public enum AetherMotion {
     public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.11) }
     public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
     public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.10) }
-    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.22) }
+    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.26) }
     public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
     public static func dropdown(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.12) }
     public static func panel(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.16) }
     public static func morph(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.24) }
     public static func snappy(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.12) }
     public static func smooth(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.18) }
+    // Coordinated, interruptible cross-fade when the resolved site appearance changes.
+    public static func appearance(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.22) }
 
     public static func glow(_ reduced: Bool, entering: Bool) -> Animation? {
         if reduced { return .easeOut(duration: 0.15) }
@@ -41,6 +43,18 @@ public enum AetherMotion {
     public static func contentSwap(_ reduced: Bool) -> AnyTransition {
         reduced ? .opacity : .opacity.combined(with: .move(edge: .trailing))
     }
+
+    public static func blurMicro(_ reduced: Bool) -> Animation? { reduced ? nil : .easeOut(duration: 0.14) }
+
+    public static func textResolve(_ reduced: Bool) -> Animation? {
+        reduced ? nil : .timingCurve(0.22, 1, 0.36, 1, duration: 0.18)
+    }
+
+    public static func blurInOut(_ reduced: Bool) -> AnyTransition {
+        reduced ? .opacity : .modifier(
+            active: AetherBlurReveal(hidden: true),
+            identity: AetherBlurReveal(hidden: false))
+    }
 }
 
 public enum AetherGlassNamespace {
@@ -63,14 +77,38 @@ public struct AetherPressStyle: ButtonStyle {
     }
 }
 
+public struct AetherBlurReveal: ViewModifier {
+    let hidden: Bool
+    public init(hidden: Bool) { self.hidden = hidden }
+    public func body(content: Content) -> some View {
+        content
+            .opacity(hidden ? 0 : 1)
+            .blur(radius: hidden ? 3 : 0)
+            .scaleEffect(hidden ? 0.988 : 1, anchor: .top)
+    }
+}
+
+public struct AetherAnimatedText: View {
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    let text: String
+    public init(text: String) { self.text = text }
+    public var body: some View {
+        ZStack {
+            Text(text)
+                .id(text)
+                .transition(.opacity)
+        }
+        .animation(AetherMotion.textResolve(reduced), value: text)
+    }
+}
+
 public struct AetherFocusedFill: View {
     @Environment(\.isFocused) private var focused
     @Environment(\.aetherTheme) private var theme
     let radius: CGFloat
     public init(radius: CGFloat = AetherMetrics.utilityRadius) { self.radius = radius }
     public var body: some View {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(focused ? theme.hover : .clear)
+        AetherInteractionSurface(active: focused, radius: radius)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }

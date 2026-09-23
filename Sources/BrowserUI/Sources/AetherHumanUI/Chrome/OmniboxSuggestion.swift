@@ -52,12 +52,13 @@ enum OmniboxSuggestionBuilder {
 
     static func rows(prefix raw: String, provider: SearchProvider, tabs: [OmniboxTabSource],
                      bookmarks: [BrowserBookmark], visits: [BrowserVisit],
-                     completions: [String], accepted: [String: Int],
+                     completions: [String], accepted: [String: Int], rememberedSite: URL? = nil,
                      limit: Int = 9) -> [OmniboxSuggestion] {
         let prefix = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prefix.isEmpty else { return [] }
         let needle = prefix.lowercased()
-        var rows: [OmniboxSuggestion] = [intentRow(prefix: prefix, provider: provider)]
+        var rows: [OmniboxSuggestion] = [intentRow(prefix: prefix, provider: provider,
+                                                   rememberedSite: rememberedSite)]
         var seenHosts = Set<String>()
         var seenTitles = Set<String>()
 
@@ -102,9 +103,14 @@ enum OmniboxSuggestionBuilder {
         return Array((head + tail).prefix(limit))
     }
 
-    static func intentRow(prefix: String, provider: SearchProvider) -> OmniboxSuggestion {
+    static func intentRow(prefix: String, provider: SearchProvider,
+                          rememberedSite: URL? = nil) -> OmniboxSuggestion {
         if let address = addressIntent(prefix) {
             return OmniboxSuggestion(kind: .open, title: address.title, url: address.url,
+                                     matched: prefix.count, score: .infinity)
+        }
+        if let rememberedSite, let host = rememberedSite.host {
+            return OmniboxSuggestion(kind: .open, title: "Open \(host)", url: rememberedSite.absoluteString,
                                      matched: prefix.count, score: .infinity)
         }
         return OmniboxSuggestion(kind: .open, title: "Search \(provider.searchName) for “\(prefix)”",
@@ -112,14 +118,39 @@ enum OmniboxSuggestionBuilder {
     }
 
     private static func addressIntent(_ prefix: String) -> (title: String, url: String)? {
-        guard !prefix.contains(where: { $0.isWhitespace }) else { return nil }
+        guard !prefix.contains(where: { $0.isWhitespace }), !prefix.contains("@") else { return nil }
         let scheme = ["https://", "http://"].first { prefix.lowercased().hasPrefix($0) }
-        let candidate = scheme == nil ? "https://" + prefix : prefix
-        guard prefix.contains(".") || prefix.lowercased().hasPrefix("localhost") || scheme != nil,
-              let url = URL(string: candidate), let host = url.host,
-              host.contains(".") || host == "localhost"
-        else { return nil }
-        return (scheme == nil ? "Open \(host)" : "Open \(url.absoluteString)", url.absoluteString)
+        if scheme != nil {
+            guard let url = URL(string: prefix),
+                  let urlScheme = url.scheme?.lowercased(), ["https", "http"].contains(urlScheme),
+                  url.host != nil, url.user == nil
+            else { return nil }
+            return ("Open \(url.absoluteString)", url.absoluteString)
+        }
+        guard let direct = AddressResolver.directURL(prefix) else { return nil }
+        let host = URL(string: direct.absoluteString)?.host ?? direct.absoluteString
+        return ("Open \(host)", direct.absoluteString)
+    }
+
+    // What Enter should open. A typed address always wins over a hover or a
+    // provider completion: a valid website address must never be routed into a
+    // search merely because it lacked an explicit scheme. A deliberate selection
+    // of a library row (tab, bookmark, history) is still honoured.
+    static func commitTarget(draft: String, selected: OmniboxSuggestion?,
+                             rememberedSite: URL? = nil) -> String? {
+        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let direct = AddressResolver.directURL(trimmed) {
+            if let selected, [.tab, .bookmark, .history].contains(selected.kind),
+               let url = selected.url {
+                return url
+            }
+            return direct.absoluteString
+        }
+        if let selected, [.tab, .bookmark, .history].contains(selected.kind),
+           let url = selected.url { return url }
+        if let rememberedSite { return rememberedSite.absoluteString }
+        guard let selected else { return nil }
+        return selected.url ?? selected.completionText ?? trimmed
     }
 
     static func matchScore(needle: String, host: String?, text: String) -> Double? {
@@ -155,4 +186,3 @@ enum OmniboxSuggestionBuilder {
         return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     }
 }
-

@@ -23,12 +23,12 @@ public struct InspectorView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
-                Text("Inspector").font(AetherType.panelTitle(19)).foregroundStyle(theme.heading)
+                Text("Inspector").font(AetherType.panelTitle(19)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
                 Spacer(minLength: 8)
                 if let inspected {
-                    Button("Copy HTML") { copy(inspected.documentHTML) }.aetherGlassButton()
-                    Button("Copy CSS") { copy(inspected.availableCSS) }.aetherGlassButton()
-                    Button("Export") { export(inspected.documentHTML, name: "aether-document.html") }.aetherGlassButton()
+                    Button("Copy HTML") { copy(inspected.documentHTML) }.aetherButton()
+                    Button("Copy CSS") { copy(inspected.availableCSS) }.aetherButton()
+                    Button("Export") { export(inspected.documentHTML, name: "aether-document.html") }.aetherButton()
                 }
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
@@ -53,7 +53,7 @@ public struct InspectorView: View {
                                         Task { try? await port.highlight(nodeID: node.id, pageID: page) }
                                     }
                                 } label: {
-                                    Text(node.summary).font(AetherType.mono(11)).lineLimit(1)
+                                    Text(node.summary).font(AetherType.data(11)).lineLimit(1)
                                         .foregroundStyle(theme.ink)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(.leading, CGFloat(min(node.depth, 12)) * 14 + 10)
@@ -67,11 +67,11 @@ public struct InspectorView: View {
                                 .contextMenu { Button("Copy Element HTML") { copy(node.html) } }
                             }
                         case .styles:
-                            Text(inspected.availableCSS).font(AetherType.mono(11)).textSelection(.enabled)
+                            Text(inspected.availableCSS).font(AetherType.data(11)).textSelection(.enabled)
                         case .console:
-                            ForEach(inspected.consoleMessages, id: \.self) { Text($0).font(AetherType.mono(11)).textSelection(.enabled) }
+                            ForEach(inspected.consoleMessages, id: \.self) { Text($0).font(AetherType.data(11)).textSelection(.enabled) }
                         case .network:
-                            ForEach(inspected.networkRequests, id: \.self) { Text($0).font(AetherType.mono(11)).textSelection(.enabled) }
+                            ForEach(inspected.networkRequests, id: \.self) { Text($0).font(AetherType.data(11)).textSelection(.enabled) }
                         }
                     }
                     .padding(.horizontal, 20).padding(.bottom, 20)
@@ -84,6 +84,7 @@ public struct InspectorView: View {
         }
         .frame(width: 820, height: 560)
         .background { AetherSheetBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
         .task {
             guard let page = window.selected?.enginePageID,
                   let port = window.workspace.engine as? any BrowserInspectionProviding else { return }

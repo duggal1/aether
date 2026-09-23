@@ -3,22 +3,24 @@ import UniformTypeIdentifiers
 
 public struct TabItemView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var hovering = false
     @BrowserState private var showPreview = false
     @BrowserState private var hoverToken = 0
+    @FocusState private var slotCloseFocused: Bool
+    @FocusState private var trailCloseFocused: Bool
     let tab: BrowserTab
     let selected: Bool
     let compact: Bool
     let topFused: Bool
     let isFirst: Bool
     let window: BrowserWindowModel
-    var namespace: Namespace.ID?
 
     public init(tab: BrowserTab, selected: Bool, compact: Bool, window: BrowserWindowModel,
-                topFused: Bool = false, isFirst: Bool = false, namespace: Namespace.ID? = nil) {
+                topFused: Bool = false, isFirst: Bool = false) {
         self.tab = tab; self.selected = selected; self.compact = compact
-        self.window = window; self.topFused = topFused; self.isFirst = isFirst; self.namespace = namespace
+        self.window = window; self.topFused = topFused; self.isFirst = isFirst
     }
 
     private var isNewTab: Bool {
@@ -26,8 +28,13 @@ public struct TabItemView: View {
         return url == "about:blank"
     }
 
-    private var activeSurface: Color {
-        isNewTab ? AetherPalette.activeNewTab(theme.dark) : (tab.siteSurface.map { AetherPalette.siteSurface($0) } ?? AetherPalette.activeSite(theme.dark))
+    private var closeTint: Color {
+        if selected {
+            if let chrome { return chrome.text.opacity(0.85) }
+            return theme.dark ? AetherPalette.text(theme.dark).opacity(0.78) : Color(.sRGB, red: 0x1A / 255, green: 0x1B / 255, blue: 0x1F / 255, opacity: 1)
+        }
+        if let chrome { return chrome.secondary }
+        return theme.dark ? AetherPalette.text(theme.dark).opacity(0.78) : theme.muted
     }
 
     private var truncationMask: some View {
@@ -37,9 +44,10 @@ public struct TabItemView: View {
 
     private var tabTitleText: some View {
         Text(tab.title)
-            .font(AetherType.emphasis(12))
+            .font(AetherType.body(12))
+            .fontWeight(.regular)
             .lineLimit(1)
-            .foregroundStyle(selected ? (tab.siteSurface.map { AetherPalette.siteInk($0) } ?? theme.ink) : AetherPalette.tabTitle(theme.dark))
+            .foregroundStyle(titleColor)
             .frame(maxWidth: .infinity, alignment: .leading)
             .mask {
                 HStack(spacing: 0) {
@@ -50,42 +58,85 @@ public struct TabItemView: View {
             .offset(y: topFused ? 0.35 : 0.3)
     }
 
-    public var body: some View {
-        HStack(spacing: topFused ? 10 : 10) {
-            DomainIcon(tab.url, size: 16)
-                .frame(width: 16, alignment: .center)
-            if !compact {
-                tabTitleText
+    private var titleColor: Color {
+        if selected {
+            if topFused {
+                return chrome?.text ?? theme.ink
             }
-            if tab.loadState == .loading {
-                TerminalLoader().frame(width: 16, height: 16)
-            } else if tab.isPinned {
-                BrowserIconView(icon: .pin, tint: theme.soft).iconSize(10)
-                    .frame(width: 16, alignment: .center)
-            }
-            if !compact {
-                Button { window.close(tab.id) } label: {
-                    BrowserIconView(icon: .close, tint: selected ? (tab.siteSurface.map { AetherPalette.siteInk($0) } ?? theme.muted) : theme.muted).iconSize(13)
-                        .frame(width: 19, height: 19)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .aetherPointingCursor()
-                .focusEffectDisabled()
-                .help("Close tab")
-                .opacity((hovering || (selected && topFused)) ? 1 : 0)
-                .disabled(!hovering && !(selected && topFused))
-                .transition(.opacity)
-            }
+            return chrome?.sidebarTitle ?? theme.ink
         }
-        .padding(.horizontal, compact ? 8 : (topFused ? 13 : 12))
-        .frame(height: topFused ? AetherMetrics.tabHeight : 34)
-        .frame(width: compact ? 38 : nil)
-        .background { selectionBackground }
-        .contentShape(Rectangle())
-        .onTapGesture { window.select(tab.id) }
+        return chrome?.secondary ?? AetherPalette.tabTitle(theme.dark)
+    }
+
+    public var body: some View {
+        Button { window.select(tab.id) } label: {
+            HStack(spacing: compact ? 0 : 10) {
+                ZStack {
+                    if tab.loadState == .loading && (!topFused || compact) {
+                        TerminalLoader().frame(width: 16, height: 16)
+                    } else {
+                        DomainIcon(tab.url, size: topFused ? 16 : 15)
+                            .frame(width: 16, alignment: .center)
+                            .opacity((replacesFavicon || (topFused && !compact)) && hovering ? 0 : 1)
+                    }
+                }
+                .frame(maxWidth: compact ? .infinity : nil)
+                .overlay {
+                    if replacesFavicon {
+                        Button { window.close(tab.id) } label: {
+                            BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
+                                .frame(width: 19, height: 19)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .aetherPointingCursor()
+                        .focusEffectDisabled()
+                        .focused($slotCloseFocused)
+                        .help("Close tab")
+                        .opacity(hovering || slotCloseFocused ? 1 : 0)
+                        .disabled(!hovering && !slotCloseFocused)
+                        .transition(.opacity)
+                    }
+                }
+                if !compact {
+                    tabTitleText
+                }
+                if tab.loadState == .loading && topFused && !compact {
+                    TerminalLoader().frame(width: 16, height: 16)
+                } else if tab.isPinned && !compact {
+                    BrowserIconView(icon: .pin, tint: theme.soft).iconSize(10)
+                        .frame(width: 16, alignment: .center)
+                }
+                if !compact && topFused {
+                    Button { window.close(tab.id) } label: {
+                        BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
+                            .frame(width: 19, height: 19)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .aetherPointingCursor()
+                    .focusEffectDisabled()
+                        .focused($trailCloseFocused)
+                        .help("Close tab")
+                        .opacity((hovering || trailCloseFocused) ? 1 : 0)
+                        .disabled(!hovering && !trailCloseFocused)
+                        .transition(.opacity)
+                }
+            }
+            .padding(.horizontal, compact ? 2 : (topFused ? 8 : 10))
+            .frame(height: topFused ? AetherMetrics.tabHeight : 32)
+            .background {
+                selectionBackground
+                    .animation(AetherMotion.tab(reduced), value: selected)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .aetherPointingCursor()
+        .focusEffectDisabled()
+        .animation(AetherMotion.hover(reduced), value: hovering)
         .onHover { value in
-            withAnimation(AetherMotion.hover(reduced)) { hovering = value }
+            hovering = value
             hoverToken += 1
             let token = hoverToken
             if value, !topFused, !compact {
@@ -103,6 +154,7 @@ public struct TabItemView: View {
                     .offset(x: sidebarWidth + 2, y: -8)
                     .zIndex(30)
                     .transition(.opacity)
+                    .allowsHitTesting(false)
             }
         }
         .aetherPointingCursor()
@@ -133,6 +185,10 @@ public struct TabItemView: View {
         window.workspace.preferences.transientSidebarWidth ?? window.workspace.preferences.sidebarWidth
     }
 
+    private var replacesFavicon: Bool {
+        !tab.isPinned && tab.loadState != .loading && (compact || !topFused)
+    }
+
     @ViewBuilder private var selectionBackground: some View {
         if topFused {
             if selected {
@@ -140,24 +196,33 @@ public struct TabItemView: View {
             } else if hovering {
                 UnevenRoundedRectangle(topLeadingRadius: AetherMetrics.fieldRadius + 2,
                                        topTrailingRadius: AetherMetrics.fieldRadius + 2)
-                    .fill(AetherPalette.tabHover(theme.dark))
+                    .fill(chrome?.hover ?? theme.hover)
+            } else {
+                UnevenRoundedRectangle(topLeadingRadius: AetherMetrics.fieldRadius + 2,
+                                       topTrailingRadius: AetherMetrics.fieldRadius + 2)
+                    .fill(chrome?.selected ?? theme.hover)
+                    .opacity(0.55)
             }
         } else if selected {
-            sidebarActive
+            let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            shape.fill(.clear)
+                .glassEffect(hovering
+                             ? .regular.interactive().tint(Color.black.opacity(0.30))
+                             : .regular.tint(Color.black.opacity(0.30)),
+                             in: shape)
+                .glassEffectTransition(.materialize)
         } else if hovering {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(AetherPalette.selection(theme.dark))
+            let hoverShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            hoverShape.fill(.clear)
+                .glassEffect(.regular.tint(Color.black.opacity(0.16)), in: hoverShape)
+                .glassEffectTransition(.materialize)
         }
     }
 
-    @ViewBuilder private var sidebarActive: some View {
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-        shape.fill(theme.tabActive)
-    }
-
     @ViewBuilder private var fusedActive: some View {
-        let shape = FusedTopTabShape(leftFoot: !(isFirst && topFused))
-        shape.fill(activeSurface)
+        FusedTopTabShape(leftFoot: !(isFirst && topFused))
+            .fill(chrome?.addressBG ?? theme.omnibox)
+            .padding(.bottom, -1)
     }
 }
 

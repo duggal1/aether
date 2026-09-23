@@ -1,0 +1,81 @@
+Building for production...
+[Computing dependencies]
+[Pre-planning 1 / 1023]
+[Planning deferred tasks]
+[17 / 96] HTML
+[34 / 108] EngineCore
+[35 / 109] JevSearch
+[36 / 110] EngineCore
+[42 / 108] AetherNetworkHardening
+[45 / 109] AetherNetworkHardening
+[46 / 110] AetherHumanUI
+[50 / 107] AetherHumanUI
+[51 / 108] AetherCapture
+[56 / 121] Text
+[57 / 122] WebSecurity
+[58 / 123] Text
+[62 / 123] Scheduler
+[64 / 125] Scheduler
+[68 / 125] Media
+[69 / 126] Persistence
+[70 / 127] Media
+[75 / 128] Graphics
+[76 / 129] Diagnostics
+[81 / 130] DOM
+[82 / 131] CSS
+[87 / 128] AetherNetworkHardening
+/Users/harshitduggal/workspace/Aether/Sources/AgentProtocol/UnixSocket.swift:107:10: warning: result of call to 'withLock' is unused [#NoUsage]
+105 | 
+106 |   func removeClient(_ fd: Int32) {
+107 |     lock.withLock { $0.clients.remove(fd) }
+    |          `- warning: result of call to 'withLock' is unused [#NoUsage]
+108 |   }
+109 | 
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[88 / 129] EngineCore
+[91 / 135] Storage
+[92 / 136] HTML
+[98 / 136] Storage
+[102 / 135] WebSecurity
+[103 / 138] JavaScript
+[105 / 138] Networking
+[106 / 139] Style
+[107 / 140] Networking
+[117 / 142] HTML
+[118 / 143] Images
+[124 / 148] Layout
+[125 / 149] WebAPI
+[125 / 150] WebAPI
+[126 / 150] Layout
+[134 / 153] Style
+[135 / 154] Style
+[148 / 162] Images
+[149 / 164] Navigation
+[161 / 173] Diagnostics
+/Users/harshitduggal/workspace/Aether/Sources/EngineRuntime/WebKit/WebKitPage.swift:276:7: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+274 |     deadlines[key] = Task { [weak self] in
+275 |       do { try await Task.sleep(for: .seconds(60)) } catch { return }
+276 |       await self?.expire(key)
+    |       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+277 |     }
+278 |   }
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[162 / 175] EngineRuntime
+[167 / 177] Navigation
+[168 / 178]
+[173 / 184] enginebench-product
+[174 / 185] AetherApp-product
+[175 / 186] enginebench-product
+[179 / 189] browserctl-product
+[180 / 190] browserd-product
+[181 / 191] browserctl-product
+[191 / 194] browserd-product
+[193 / 194] BrowserEngine-product
+[194 / 194] enginebench-product
+[196 / 197] AetherApp-product
+[198 / 198] browserctl-product
+[201 / 201] browserd-product
+[204 / 204] enginebench-product
+Build complete! (107.87 sec)

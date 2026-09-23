@@ -13,11 +13,6 @@ class AppClient:
             connection.settimeout(self.timeout)
             connection.connect(str(self.directory / 'browser.sock'))
             with connection.makefile('rwb', buffering=0) as stream:
-                token = (self.directory / 'access.token').read_text().strip()
-                stream.write((token + '\n').encode())
-                handshake = json.loads(stream.readline())
-                if handshake.get('error'):
-                    raise RuntimeError(f"Authentication: {handshake['error']}")
                 request = {'id': 'benchmark', 'method': method, 'params': params}
                 stream.write((json.dumps(request) + '\n').encode())
                 response = json.loads(stream.readline())

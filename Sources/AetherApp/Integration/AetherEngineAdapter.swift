@@ -19,6 +19,8 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   private var observation: Task<Void, Never>?
   private var pendingCheckpoints: [ContextID: Task<Void, Never>] = [:]
   var automation: AppAutomationHost?
+  var routeStatus: [UUID: NetworkRouteStatus] = [:]
+  var observedExitIPs: [UUID: String] = [:]
   var isConnected: Bool { true }
 
   init(engine: NativeBrowserEngine = NativeBrowserEngine(), profileDirectory: URL? = nil) {
@@ -84,7 +86,8 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     let url = state.target ?? state.page.url
     return EnginePageSnapshot(id: state.page.id.description, url: url?.absoluteString,
       title: state.page.title, canGoBack: state.page.canGoBack,
-      canGoForward: state.page.canGoForward, isLoading: state.loading, progress: state.progress,
+      canGoForward: state.page.canGoForward, isLoading: state.loading,
+      contentReady: state.contentReady, progress: state.progress,
       isSecure: url?.scheme == "https", error: state.error, closed: state.closed)
   }
 
@@ -93,13 +96,13 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     try await persist(pageID)
   }
   func goBack(pageID: String) async throws {
-    _ = try await engine.back(pageID: page(pageID)); try await persist(pageID)
+    _ = try await engine.back(pageID: page(pageID), settle: .commit); try await persist(pageID)
   }
   func goForward(pageID: String) async throws {
-    _ = try await engine.forward(pageID: page(pageID)); try await persist(pageID)
+    _ = try await engine.forward(pageID: page(pageID), settle: .commit); try await persist(pageID)
   }
   func reload(pageID: String) async throws {
-    _ = try await engine.reload(pageID: page(pageID)); try await persist(pageID)
+    _ = try await engine.reload(pageID: page(pageID), settle: .commit); try await persist(pageID)
   }
   func stop(pageID: String) async throws {
     await engine.runtime.stopNavigation(pageID: try page(pageID))
@@ -162,6 +165,7 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   }
 
   func shutdown() async {
+    automation?.shutdown()
     observation?.cancel()
     for task in pendingCheckpoints.values { task.cancel() }
     pendingCheckpoints.removeAll()

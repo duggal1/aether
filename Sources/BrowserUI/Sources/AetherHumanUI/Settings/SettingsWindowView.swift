@@ -10,42 +10,48 @@ public struct SettingsWindowView: View {
     public var body: some View {
         HStack(spacing: 0) {
             SettingsSidebarView(selection: $selection)
-                .frame(width: 208)
-            Rectangle().fill(theme.hairline).frame(width: 0.5)
+                .frame(width: AetherMetrics.settingsSidebar)
+            Rectangle().fill(theme.hairline.opacity(0.06)).frame(width: 0.5)
             VStack(alignment: .leading, spacing: 0) {
                 Text(selection.rawValue)
-                    .font(AetherType.panelTitle(23))
+                    .font(AetherType.panelTitle(23)).tracking(AetherTracking.heading)
                     .foregroundStyle(theme.textStrong)
                     .padding(.horizontal, 26)
                     .padding(.top, 26)
                     .padding(.bottom, 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 23) { sectionContent }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 26)
-                        .padding(.bottom, 30)
-                        .id(selection)
-                        .transition(AetherMotion.contentSwap(reduced))
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Color.clear.frame(height: 0).id("settingsTop")
+                            sectionContent
+                            Color.clear.frame(height: 12)
+                        }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 26)
+                            .padding(.top, 2)
+                            .padding(.bottom, 44)
+                            .id(selection)
+                            .transition(AetherMotion.contentSwap(reduced))
+                    }
+                    .frame(maxHeight: .infinity)
+                    .scrollClipDisabled(false)
+                    .onChange(of: selection) { _, _ in
+                        withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo("settingsTop", anchor: .top) }
+                    }
                 }
-                .scrollIndicators(.hidden)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(theme.background)
+            .background { AetherSheetBackground() }
         }
         .frame(width: 800, height: 550)
-        .background(theme.background)
-        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .strokeBorder(theme.hairline, lineWidth: 0.5)
-                .allowsHitTesting(false)
-        }
+        .background { AetherSheetBackground() }
         .toggleStyle(.switch)
         .controlSize(.regular)
         .aetherTypography()
         .preferredColorScheme(workspace.preferences.appearance.colorScheme)
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
     }
 
     @ViewBuilder private var sectionContent: some View {
@@ -54,12 +60,15 @@ public struct SettingsWindowView: View {
         case .tabs: TabsSettingsView(workspace: workspace)
         case .profiles: ProfilesSettingsView(workspace: workspace)
         case .search: SearchSettingsView(workspace: workspace)
+        case .searchIntelligence: SearchIntelligenceSettingsView(workspace: workspace)
         case .privacy: PrivacySettingsView(workspace: workspace)
         case .passwords: PasswordsSettingsView(workspace: workspace)
         case .downloads: DownloadsSettingsView(workspace: workspace)
         case .appearance: AppearanceSettingsView(workspace: workspace)
         case .shortcuts: ShortcutsSettingsView()
         case .advanced: AdvancedSettingsView(workspace: workspace)
+        case .networkPrivacy: NetworkSettingsView(workspace: workspace)
+        case .searchLocation: SearchLocationSettingsView(workspace: workspace)
         }
     }
 }

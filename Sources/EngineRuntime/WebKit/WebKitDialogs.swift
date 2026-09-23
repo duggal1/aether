@@ -96,9 +96,11 @@ final class WebKitDialogs: NSObject, WKUIDelegate, WKDownloadDelegate {
 extension WebKitPage {
   func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
     dialogs?.track(download)
+    resolveMainFrameDownload(action: navigationAction)
   }
 
   func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
     dialogs?.track(download)
+    resolveMainFrameDownload(response: navigationResponse)
   }
 }

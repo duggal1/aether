@@ -10,13 +10,14 @@ public struct SidebarResizeHandle: View {
 
     public var body: some View {
         Rectangle()
-            .fill(hovering || initialWidth != nil ? theme.hairline : .clear)
+            .fill(hovering || initialWidth != nil ? theme.muted.opacity(0.4) : .clear)
             .frame(width: 1)
             .frame(width: 7, alignment: .center)
             .offset(x: 3.5)
             .contentShape(Rectangle())
             .pointerStyle(.columnResize)
-            .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
+            .animation(AetherMotion.hover(reduced), value: hovering)
+            .onHover { hovering = $0 }
             .gesture(DragGesture(minimumDistance: 2)
                 .onChanged { value in
                     if initialWidth == nil { initialWidth = preferences.transientSidebarWidth ?? preferences.sidebarWidth }

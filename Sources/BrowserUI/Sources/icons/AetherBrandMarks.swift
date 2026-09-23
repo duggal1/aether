@@ -83,7 +83,7 @@ public struct AetherBrandMarkShape: Shape {
         let scale = min(rect.width / viewBox.width, rect.height / viewBox.height)
         let x = rect.midX - viewBox.width * scale / 2
         let y = rect.midY - viewBox.height * scale / 2
-        return SVGPathParser.parse(mark.svgPathData).applying(
+        return AetherSVGPathParser.parse(mark.svgPathData).applying(
             CGAffineTransform(a: scale, b: 0, c: 0, d: scale, tx: x, ty: y)
         )
     }
@@ -103,12 +103,12 @@ public struct AetherBrandMarkView: View {
     }
 }
 
-private enum SVGPathParser {
+public enum AetherSVGPathParser {
 private static let tokenPattern = try! NSRegularExpression(
     pattern: #"[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"#
 )
 
-static func parse(_ data: String) -> Path {
+    public static func parse(_ data: String) -> Path {
     let range = NSRange(data.startIndex..<data.endIndex, in: data)
     let tokens = tokenPattern.matches(in: data, range: range).compactMap {
         Range($0.range, in: data).map { String(data[$0]) }

@@ -26,6 +26,47 @@ import Testing
   #expect(parts.queryItems?.first(where: { $0.name == "q" })?.value == "Swift actors and DOM")
 }
 
+@Test func navigationInputRoutesBareAddressesDirectly() throws {
+  let apple = try NavigationInputResolver.resolve("apple.com")
+  #expect(apple.kind == .url)
+  #expect(apple.url.absoluteString == "https://apple.com")
+
+  let secure = try NavigationInputResolver.resolve("https://apple.com")
+  #expect(secure.kind == .url)
+
+  let watch = try NavigationInputResolver.resolve("youtube.com/watch?v=dQw4w9WgXcQ")
+  #expect(watch.kind == .url)
+  #expect(watch.url.absoluteString == "https://youtube.com/watch?v=dQw4w9WgXcQ")
+
+  let port = try NavigationInputResolver.resolve("example.com:8080/a?x=1")
+  #expect(port.kind == .url)
+  #expect(port.url.absoluteString == "https://example.com:8080/a?x=1")
+
+  let upper = try NavigationInputResolver.resolve("LOCALHOST:3000/api")
+  #expect(upper.kind == .url)
+  #expect(upper.url.scheme == "http")
+
+  let ipv4 = try NavigationInputResolver.resolve("192.168.1.1/status")
+  #expect(ipv4.kind == .url)
+  #expect(ipv4.url.scheme == "http")
+
+  let ipv6 = try NavigationInputResolver.resolve("[::1]:3000/")
+  #expect(ipv6.kind == .url)
+  #expect(ipv6.url.scheme == "http")
+
+  let dotted = try NavigationInputResolver.resolve("apple.com.")
+  #expect(dotted.kind == .url)
+}
+
+@Test func navigationInputKeepsOrdinaryTextAsSearch() throws {
+  for query in ["hi", "how fast is webkit", "v1.2", "3.14", "notaurl"] {
+    let resolution = try NavigationInputResolver.resolve(query)
+    #expect(resolution.kind == .search, "expected search for \(query)")
+  }
+  let words = try NavigationInputResolver.resolve("example.com:abc")
+  #expect(words.kind == .search)
+}
+
 @Test func navigationInputProviderEncodesTermsWithoutInjectingParameters() throws {
   let provider = SearchProvider(
     endpoint: URL(string: "https://search.example.test/find?lang=en&q=old")!,

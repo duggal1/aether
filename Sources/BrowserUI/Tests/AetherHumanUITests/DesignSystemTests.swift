@@ -32,7 +32,7 @@ struct SymbolContractTests {
 
 struct TypographyContractTests {
     @Test func chromeWeightsAreOnly400450And500() {
-        #expect(AetherTextWeight.regular.usWeightClass == 400)
+        #expect(AetherTextWeight.body.usWeightClass == 400)
         #expect(AetherTextWeight.emphasis.usWeightClass == 450)
         #expect(AetherTextWeight.medium.usWeightClass == 500)
         #expect(AetherTextWeight.allCases.count == 3)
@@ -61,7 +61,7 @@ struct TypographyContractTests {
         for weight in AetherTextWeight.allCases {
             _ = AetherFontRegistry.font(13, weight)
         }
-        #expect(AetherType.body(13) != AetherType.mono(13))
+        #expect(AetherType.body(13) != AetherType.data(13))
     }
 }
 
@@ -133,7 +133,9 @@ struct PaletteContractTests {
     @Test func elevationStepsStayDistinct() {
         #expect(AetherPalette.canvas(true) != AetherPalette.raised(true))
         #expect(AetherPalette.hover(true) != AetherPalette.raised(true))
-        #expect(AetherPalette.inset(true) != AetherPalette.raised(true))
+        #expect(AetherPalette.inset(true) == AetherPalette.input(true))
+        #expect(AetherPalette.raised(true) == AetherPalette.selected(true))
+        #expect(AetherPalette.dropdownNested(true) != AetherPalette.card(true))
         #expect(AetherPalette.canvas(false) != AetherPalette.raised(false))
     }
 
@@ -147,7 +149,8 @@ struct PaletteContractTests {
         #expect(AetherMetrics.chromeHeight == 42)
         #expect(AetherMetrics.tabHeight == 40)
         #expect(AetherMetrics.tapTarget == 44)
-        #expect(AetherMetrics.panelRadius == 8)
+        #expect(AetherMetrics.menuRadius == 12)
+        #expect(AetherMetrics.panelRadius == 12)
     }
 }
 
@@ -168,8 +171,15 @@ struct IconSystemTests {
         #expect(BrowserIcon.sidebar.symbol == .sidebarLeft)
     }
 
-    @Test func progressPaletteOffersFourHues() {
-        #expect(AetherProgressColor.allCases.count == 4)
+    @Test func progressPaletteOffersMultipleBrightHues() {
+        #expect(AetherProgressColor.allCases.count >= 8)
+        for option in AetherProgressColor.allCases {
+            let rgb = NSColor(option.color).usingColorSpace(.sRGB) ?? .black
+            let luminance = 0.2126 * Double(rgb.redComponent)
+                + 0.7152 * Double(rgb.greenComponent)
+                + 0.0722 * Double(rgb.blueComponent)
+            #expect(luminance > 0.35, "\(option.rawValue) is too dark")
+        }
     }
 
     @MainActor @Test func sidebarResizeDefersPersistence() {

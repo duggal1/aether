@@ -17,6 +17,10 @@ extension NativeBrowserEngine {
     await runtime.jevAvailability()
   }
 
+  public func updateJevSearchKeys(typeSafeKey: String, search1APIKey: String) async {
+    await runtime.updateJevSearchKeys(typeSafeKey: typeSafeKey, search1APIKey: search1APIKey)
+  }
+
   public func invalidateJevSearchCaches() async {
     await runtime.invalidateJevSearchCaches()
   }

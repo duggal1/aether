@@ -11,7 +11,12 @@ struct BrowserControl {
   static func main() async {
     var args = Array(CommandLine.arguments.dropFirst())
     do {
-      if args.first == "--socket" {
+      if args.first == "--app" {
+        args.removeFirst()
+        let path = FileManager.default.homeDirectoryForCurrentUser
+          .appendingPathComponent("Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock").path
+        try runRemote(args, socket: path, token: nil)
+      } else if args.first == "--socket" {
         guard args.count >= 3 else { throw CLIError.usage }
         let path = args[1]
         args.removeFirst(2)
@@ -84,6 +89,17 @@ struct BrowserControl {
     }
     let request: AgentRequest
     switch command {
+    case "app-status", "app-tabs":
+      request = AgentRequest(method: command.replacingOccurrences(of: "-", with: "."))
+    case "app-open":
+      guard args.count == 2 else { throw CLIError.usage }
+      request = AgentRequest(method: "app.open", params: ["url": .string(args[1])])
+    case "app-navigate":
+      guard args.count == 3 else { throw CLIError.usage }
+      request = AgentRequest(method: "app.navigate", params: ["tab": .string(args[1]), "url": .string(args[2])])
+    case "app-select", "app-close", "app-back", "app-forward", "app-reload":
+      guard args.count == 2 else { throw CLIError.usage }
+      request = AgentRequest(method: command.replacingOccurrences(of: "-", with: "."), params: ["tab": .string(args[1])])
     case "ping": request = AgentRequest(method: .ping)
     case "context-create":
       request = AgentRequest(
@@ -98,14 +114,23 @@ struct BrowserControl {
       var navigateParams: [String: JSONValue] = ["page": .number(page), "url": .string(args[2])]
       if args.count > 3 { navigateParams["settle"] = .string(args[3]) }
       request = AgentRequest(method: .pageNavigate, params: navigateParams)
+    case "page-navigate":
+      guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
+      var navigateOnlyParams: [String: JSONValue] = [
+        "page": .number(page), "url": .string(args[2]),
+      ]
+      if args.count > 3 { navigateOnlyParams["settle"] = .string(args[3]) }
+      request = AgentRequest(method: .pageNavigate, params: navigateOnlyParams)
     case "page-navigate-input":
       guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
-      request = AgentRequest(
-        method: .pageNavigateInput,
-        params: [
-          "page": .number(page),
-          "input": .string(args.dropFirst(2).joined(separator: " ")),
-        ])
+      let inputWords = args.dropFirst(2).filter { $0 != "--commit" && $0 != "--complete" }
+      var navigateInputParams: [String: JSONValue] = [
+        "page": .number(page),
+        "input": .string(inputWords.joined(separator: " ")),
+      ]
+      if args.contains("--commit") { navigateInputParams["settle"] = .string("commit") }
+      else if args.contains("--complete") { navigateInputParams["settle"] = .string("complete") }
+      request = AgentRequest(method: .pageNavigateInput, params: navigateInputParams)
     case "page-inspect":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(method: .pageInspect, params: ["page": .number(page)])
@@ -129,16 +154,19 @@ struct BrowserControl {
         method: .pageQueryAll, params: ["page": .number(page), "selector": .string(args[2])])
     case "page-back":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
-      request = AgentRequest(method: .pageBack, params: ["page": .number(page)])
+      request = AgentRequest(
+        method: .pageBack, params: ["page": .number(page), "settle": .string(settleArg(args))])
     case "page-forward":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
-      request = AgentRequest(method: .pageForward, params: ["page": .number(page)])
+      request = AgentRequest(
+        method: .pageForward, params: ["page": .number(page), "settle": .string(settleArg(args))])
     case "page-reload":
       guard args.count >= 2, let page = Double(args[1]) else { throw CLIError.usage }
       request = AgentRequest(
         method: .pageReload,
         params: [
           "page": .number(page), "bypassCache": .bool(args.dropFirst(2).contains("--bypass-cache")),
+          "settle": .string(settleArg(args)),
         ])
     case "page-resize":
       guard args.count >= 4, let page = Double(args[1]), let width = Double(args[2]),
@@ -624,6 +652,11 @@ struct BrowserControl {
     print(String(decoding: data, as: UTF8.self))
   }
 
+  private static func settleArg(_ args: [String]) -> String {
+    if args.contains("--commit") { return "commit" }
+    return "complete"
+  }
+
   private static func captureOptions(from flags: [String]) throws -> CaptureOptions {
     var options = CaptureOptions()
     var index = flags.startIndex
@@ -694,7 +727,13 @@ struct BrowserControl {
   }
 
   private static let usage = """
-    Authenticated connections: browserctl --socket <path> --token-file <path> <command> [arguments]
+    browserctl --app app-status
+    browserctl --app app-tabs
+    browserctl --app app-open <url>
+    browserctl --app app-navigate <tab-uuid> <url>
+    browserctl --app app-select|app-close|app-back|app-forward|app-reload <tab-uuid>
+    Use --app in place of --socket <path> for any command against the running app. No token required.
+    Optional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]
     browserctl inspect <url>
     browserctl render <url> <output.ppm|output.png> [width] [height]
     browserctl eval <url> <javascript>
@@ -704,16 +743,17 @@ struct BrowserControl {
     browserctl --socket <path> context-create <name>
     browserctl --socket <path> context-list
     browserctl --socket <path> page-open <context> <url> [commit|complete]
-    browserctl --socket <path> page-navigate-input <page> <url-or-search-terms>
+    browserctl --socket <path> page-navigate <page> <url> [commit|complete]
+    browserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]
     browserctl --socket <path> page-inspect <page>
     browserctl --socket <path> page-snapshot <page> [limit]
     browserctl --socket <path> page-query <page> <selector>
     browserctl --socket <path> page-query-all <page> <selector>
     browserctl --socket <path> page-find <page> <text>
     browserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]
-    browserctl --socket <path> page-back <page>
-    browserctl --socket <path> page-forward <page>
-    browserctl --socket <path> page-reload <page> [--bypass-cache]
+    browserctl --socket <path> page-back <page> [--commit|--complete]
+    browserctl --socket <path> page-forward <page> [--commit|--complete]
+    browserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]
     browserctl --socket <path> page-resize <page> <width> <height>
     browserctl --socket <path> page-mutations <page> [since-version]
     browserctl --socket <path> page-click <page> <node-index> <generation>

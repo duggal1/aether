@@ -12,17 +12,17 @@ public struct DownloadsView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
-                Text("Downloads").font(AetherType.panelTitle(20)).foregroundStyle(theme.heading)
+                Text("Downloads").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
                 Spacer(minLength: 8)
-                Button("Refresh") { Task { await reload() } }.aetherGlassButton()
-                ChromeButton(.close, help: "Close") { dismiss() }
+                Button("Refresh") { Task { await reload() } }.aetherButton()
+                ChromeButton(.close, help: "Close", size: 24) { dismiss() }
             }
             if entries.isEmpty {
                 AetherEmptyState(icon: .download, heading: "No downloads",
                                  description: failure ?? "Downloads will appear here.")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
+                    LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(entries) { item in
                             HoverSurface(radius: 8) {
                                 HStack(spacing: 12) {
@@ -39,7 +39,7 @@ public struct DownloadsView: View {
                                     }
                                     Spacer(minLength: 8)
                                     if item.isComplete, let url = item.localFileURL {
-                                        ChromeButton(.folder, help: "Reveal in Finder", size: 24) {
+                                        ChromeButton(.downloadFolder, help: "Reveal in Finder", size: 24) {
                                             NSWorkspace.shared.activateFileViewerSelecting([url])
                                         }
                                     } else if !item.isComplete, let provider = window.workspace.engine as? any BrowserDownloadsProviding {
@@ -57,8 +57,9 @@ public struct DownloadsView: View {
             }
         }
         .padding(22)
-        .frame(width: 620, height: 500)
+        .frame(width: 720, height: 555)
         .background { AetherSheetBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
         .task { await reload() }
     }
 

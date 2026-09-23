@@ -39,12 +39,18 @@ public final class AgentCommandDispatcher: Sendable {
           try await engine.runtime.createPage(
             contextID: context, viewport: Size(width: width, height: height)))
       case .pageNavigate:
-        let page = PageID(rawValue: try uint64(request, "page"))
-        guard let raw = request.params["url"]?.string, let url = URL(string: raw) else {
-          throw DispatchError.badParameter("url")
-        }
-        let settle = request.params["settle"]?.string.flatMap(PageReadiness.init(rawValue:)) ?? .complete
-        result = pageJSON(try await engine.runtime.navigate(pageID: page, to: url, settle: settle))
+        let input = try typedInput(PageNavigate.self, request: request)
+        try input.validate()
+        let settle = input.settle.flatMap(PageReadiness.init(rawValue:)) ?? .complete
+        let info = try await engine.runtime.navigate(
+          pageID: PageID(rawValue: input.page), to: URL(string: input.url)!, settle: settle)
+        result = try AgentProcedureCodec.encodeResult(
+          PageNavigate.Output(
+            id: info.id.rawValue, context: info.contextID.rawValue, title: info.title,
+            loaded: info.loaded, width: info.viewport.width, height: info.viewport.height,
+            historyIndex: info.historyIndex, historyCount: info.historyCount,
+            canGoBack: info.canGoBack, canGoForward: info.canGoForward,
+            url: info.url?.absoluteString))
       case .pageNavigateInput:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let input = request.params["input"]?.string else {
@@ -62,7 +68,8 @@ public final class AgentCommandDispatcher: Sendable {
           provider = try await engine.runtime.searchProvider(contextID: owner.contextID)
         }
         let resolution = try NavigationInputResolver.resolve(input, provider: provider)
-        let navigated = try await engine.runtime.navigate(pageID: page, to: resolution.url)
+        let navigated = try await engine.runtime.navigate(
+          pageID: page, to: resolution.url, settle: settleParam(request))
         result = .object([
           "kind": .string(resolution.kind.rawValue),
           "url": .string(resolution.url.absoluteString),
@@ -70,15 +77,18 @@ public final class AgentCommandDispatcher: Sendable {
         ])
       case .pageBack:
         result = pageJSON(
-          try await engine.runtime.goBack(pageID: PageID(rawValue: try uint64(request, "page"))))
+          try await engine.runtime.goBack(
+            pageID: PageID(rawValue: try uint64(request, "page")), settle: settleParam(request)))
       case .pageForward:
         result = pageJSON(
-          try await engine.runtime.goForward(pageID: PageID(rawValue: try uint64(request, "page"))))
+          try await engine.runtime.goForward(
+            pageID: PageID(rawValue: try uint64(request, "page")), settle: settleParam(request)))
       case .pageReload:
         let page = PageID(rawValue: try uint64(request, "page"))
         result = pageJSON(
           try await engine.runtime.reload(
-            pageID: page, bypassCache: request.params["bypassCache"]?.bool ?? false))
+            pageID: page, bypassCache: request.params["bypassCache"]?.bool ?? false,
+            settle: settleParam(request)))
       case .pageResize:
         let page = PageID(rawValue: try uint64(request, "page"))
         let width = request.params["width"]?.number ?? 1280
@@ -351,25 +361,28 @@ public final class AgentCommandDispatcher: Sendable {
               promptText: request.params["promptText"]?.string))
         ])
       case .contextCookies:
-        result = .array(
-          try await engine.runtime.listCookies(
-            contextID: ContextID(rawValue: try uint64(request, "context"))
-          ).map(cookieJSON))
+        let input = try typedInput(ContextListCookies.self, request: request)
+        try input.validate()
+        let cookies = try await engine.runtime.listCookies(
+          contextID: ContextID(rawValue: input.context)
+        )
+        result = try AgentProcedureCodec.encodeResult(
+          ContextListCookies.Output(
+            cookies: cookies.map {
+              ContextListCookies.Output.Cookie(
+                name: $0.name, value: $0.value, domain: $0.domain, path: $0.path,
+                secure: $0.secure, httpOnly: $0.httpOnly, sameSite: $0.sameSite)
+            }))
       case .contextSetCookie:
-        let context = ContextID(rawValue: try uint64(request, "context"))
-        guard let name = request.params["name"]?.string,
-          let value = request.params["value"]?.string,
-          let domain = request.params["domain"]?.string
-        else { throw DispatchError.badParameter("name/value/domain") }
+        let input = try typedInput(ContextSetCookie.self, request: request)
+        try input.validate()
         try await engine.runtime.setCookie(
-          contextID: context,
+          contextID: ContextID(rawValue: input.context),
           cookie: CookieInfo(
-            name: name, value: value, domain: domain,
-            path: request.params["path"]?.string ?? "/",
-            secure: request.params["secure"]?.bool ?? false,
-            httpOnly: request.params["httpOnly"]?.bool ?? false,
-            sameSite: request.params["sameSite"]?.string))
-        result = .object(["ok": .bool(true)])
+            name: input.name, value: input.value, domain: input.domain,
+            path: input.path ?? "/", secure: input.secure ?? false,
+            httpOnly: input.httpOnly ?? false, sameSite: input.sameSite))
+        result = try AgentProcedureCodec.encodeResult(ContextSetCookie.Output(ok: true))
       case .contextRemoveCookie:
         guard let name = request.params["name"]?.string,
           let domain = request.params["domain"]?.string
@@ -597,8 +610,20 @@ public final class AgentCommandDispatcher: Sendable {
         result = .object(manifest)
       }
       return AgentResponse(id: request.id, result: result)
+    } catch let error as AgentProcedureError {
+      return failure(request, code: "engine_error", message: "Invalid or missing parameter: \(error.message)")
     } catch {
       return failure(request, code: "engine_error", message: String(describing: error))
+    }
+  }
+
+  private func typedInput<P: AgentProcedure>(_ type: P.Type, request: AgentRequest) throws -> P.Input {
+    do {
+      return try AgentProcedureCodec.decodeInput(P.Input.self, from: request.params)
+    } catch let error as AgentProcedureError {
+      throw DispatchError.badParameter(error.message)
+    } catch {
+      throw DispatchError.badParameter("typed input")
     }
   }
 
@@ -606,8 +631,13 @@ public final class AgentCommandDispatcher: Sendable {
     try unsigned(request.params, key)
   }
 
+  private func settleParam(_ request: AgentRequest) -> PageReadiness {
+    request.params["settle"]?.string.flatMap(PageReadiness.init(rawValue:)) ?? .complete
+  }
+
   private func unsigned(_ params: [String: JSONValue], _ key: String, default fallback: UInt64? = nil) throws -> UInt64 {
     if params[key] == nil, let fallback { return fallback }
+    if let exact = params[key]?.exactUInt64 { return exact }
     guard let number = params[key]?.number, let value = UInt64(exactly: number) else {
       throw DispatchError.badParameter(key)
     }
@@ -615,6 +645,9 @@ public final class AgentCommandDispatcher: Sendable {
   }
 
   private func integer(_ params: [String: JSONValue], _ key: String) throws -> Int {
+    if let exact = params[key]?.exactInt64, let value = Int(exactly: exact), value >= 0 {
+      return value
+    }
     guard let number = params[key]?.number, let value = Int(exactly: number), value >= 0 else {
       throw DispatchError.badParameter(key)
     }
@@ -622,9 +655,10 @@ public final class AgentCommandDispatcher: Sendable {
   }
 
   private func nodeID(_ request: AgentRequest) throws -> NodeID {
-    guard let index = request.params["nodeIndex"]?.number,
-      let generation = request.params["nodeGeneration"]?.number,
-      let exactIndex = UInt32(exactly: index), let exactGeneration = UInt32(exactly: generation)
+    guard let rawIndex = request.params["nodeIndex"]?.exactUInt64,
+      let rawGeneration = request.params["nodeGeneration"]?.exactUInt64,
+      let exactIndex = UInt32(exactly: rawIndex),
+      let exactGeneration = UInt32(exactly: rawGeneration)
     else { throw DispatchError.badParameter("nodeIndex/nodeGeneration") }
     return NodeID(index: exactIndex, generation: exactGeneration)
   }

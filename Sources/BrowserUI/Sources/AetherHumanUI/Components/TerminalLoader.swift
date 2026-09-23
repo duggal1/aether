@@ -12,7 +12,7 @@ public struct TerminalLoader: View {
         TimelineView(.animation(minimumInterval: 0.08, paused: reduced)) { context in
             let index = reduced ? 0 : Int(context.date.timeIntervalSinceReferenceDate / 0.08) % Self.frames.count
             Text(Self.frames[index])
-                .font(AetherType.mono(14))
+                .font(.system(size: 14))
                 .foregroundStyle(theme.muted)
                 .frame(width: 15, height: 17, alignment: .center)
                 .accessibilityHidden(true)

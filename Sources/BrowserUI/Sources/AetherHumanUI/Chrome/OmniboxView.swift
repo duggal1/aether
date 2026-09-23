@@ -3,12 +3,14 @@ import SwiftUI
 
 public struct OmniboxView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var focused = false
     @BrowserState private var draft = ""
+    @BrowserState private var resignNonce = 0
     @BrowserState private var progressP = 0.0
     @BrowserState private var progressOpacity = 0.0
-    @BrowserState private var loadCycle = 0
+    @BrowserState private var progressNonce = 0
     @Namespace private var glassNS
     let window: BrowserWindowModel
 
@@ -18,21 +20,28 @@ public struct OmniboxView: View {
         focused && !draft.isEmpty && window.suggestions.showsRows
     }
 
+    private var appearance: AetherChromeAppearance {
+        chrome ?? (theme.dark ? .dark : .light)
+    }
+
     public var body: some View {
         HStack(alignment: .center, spacing: 8) {
             BrowserIconView(icon: focused ? .search : (window.selected?.isSecure == false ? .warning : .lock),
-                            tint: focused ? theme.ink : theme.muted)
+                            tint: focused ? appearance.text : appearance.icon)
                 .iconSize(12)
                 .frame(width: 16, height: 20, alignment: .center)
+                .offset(y: -0.3)
             NativeAddressField(text: $draft, focused: $focused,
+                textColor: appearance.text, placeholderColor: appearance.icon,
                 fullAddress: window.selected?.url ?? "",
                 placeholder: "Search \(window.workspace.preferences.provider.rawValue) or enter URL",
                 focusRequest: window.addressFocusNonce,
-                onSubmit: { commit() },
+                resignRequest: resignNonce,
+                onSubmit: { commit($0) },
                 onEscape: {
                     window.suggestions.dismiss()
                     draft = displayAddress(window.selected?.url)
-                    focused = false
+                    endEditing()
                 },
                 onMove: { delta in
                     guard focused, window.suggestions.showsRows else { return }
@@ -55,9 +64,11 @@ public struct OmniboxView: View {
                 .onChange(of: window.selectedID) { _, _ in
                     window.suggestions.dismiss()
                     draft = displayAddress(window.selected?.url)
+                    endEditing()
                 }
                 .onChange(of: window.selected?.url) { _, url in
-                    if !focused { draft = displayAddress(url) }
+                    if focused { endEditing() }
+                    draft = displayAddress(url)
                 }
                 .onChange(of: window.workspace.preferences.provider) { _, _ in
                     guard focused else { return }
@@ -72,7 +83,7 @@ public struct OmniboxView: View {
                 .onChange(of: window.selected?.loadProgress) { _, _ in trackRealProgress() }
             if !focused {
                 Button { window.navigateSelected(SearchProvider.googleAI.homepage.absoluteString) } label: {
-                    Text("AI Mode").font(AetherType.body(11)).foregroundStyle(theme.muted)
+                    Text("AI Mode").font(AetherType.body(11)).foregroundStyle(appearance.icon)
                 }
                 .buttonStyle(.plain)
                 .aetherPointingCursor()
@@ -81,23 +92,16 @@ public struct OmniboxView: View {
                 .help("Open Google AI Mode")
                 .accessibilityIdentifier("aether.google-ai")
             }
-            if focused && !draft.isEmpty {
-                Button { draft = "" } label: {
-                    BrowserIconView(icon: .close, tint: theme.muted).iconSize(11)
-                }
-                .buttonStyle(.plain)
-                .aetherPointingCursor()
-                .aetherFocusTreatment(radius: 6)
-                .focusEffectDisabled()
-                .help("Clear address")
-            }
             Button {
                 if let url = window.selected?.url {
-                    window.workspace.toggleBookmark(profileID: window.activeProfileID, title: window.selected?.title ?? url, url: url)
+                    let rawTitle = window.selected?.title ?? url
+                    let title = (rawTitle.isEmpty || rawTitle == "New Tab")
+                        ? (URL(string: url)?.host ?? url) : rawTitle
+                    window.workspace.toggleBookmark(profileID: window.activeProfileID, title: title, url: url)
                 }
             } label: {
                 BrowserIconView(icon: window.workspace.isBookmarked(window.selected?.url, profileID: window.activeProfileID) ? .doubleBookmark : .bookmark,
-                                tint: theme.muted)
+                                tint: appearance.icon)
                     .iconSize(13)
             }
             .buttonStyle(.plain)
@@ -110,11 +114,7 @@ public struct OmniboxView: View {
         .frame(height: 30)
         .background {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(theme.omnibox)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(focused ? theme.hairline : Color.clear, lineWidth: 1)
+                .fill(appearance.addressBG)
         }
         .modifier(DiaProgressEffect(p: progressP, opacity: progressOpacity, focused: focused,
                                     trio: window.workspace.preferences.progressColor.gradientTrio))
@@ -134,7 +134,13 @@ public struct OmniboxView: View {
     private func displayAddress(_ url: String?) -> String {
         guard let url else { return "" }
         if window.workspace.preferences.showFullAddress { return url }
-        return URL(string: url)?.host ?? url
+        guard let host = URL(string: url)?.host, !host.isEmpty else { return url }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+
+    private func endEditing() {
+        if focused { focused = false }
+        resignNonce += 1
     }
 
     private func completeInline() {
@@ -143,32 +149,70 @@ public struct OmniboxView: View {
         window.suggestions.update(prefix: completion, window: window)
     }
 
-    private func commit() {
-        if let row = window.suggestions.selectedRow { choose(row); return }
-        let text = draft
-        focused = false
+    private func commit(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let remembered = window.workspace.rememberedSite(for: trimmed, profileID: window.activeProfileID)
+        let selected = window.suggestions.selectedRow
+        if let target = OmniboxSuggestionBuilder.commitTarget(draft: trimmed, selected: selected, rememberedSite: remembered) {
+            if let selected, selected.kind == .tab, selected.url == target, selected.tabID != nil {
+                choose(selected)
+                return
+            }
+            if let selected, selected.url == target {
+                choose(selected)
+                return
+            }
+            if selected?.kind == .open, selected?.url == nil, AddressResolver.directURL(trimmed) == nil, remembered == nil {
+                if let row = selected {
+                    choose(row)
+                    return
+                }
+            }
+            endEditing()
+            window.suggestions.dismiss()
+            draft = displayAddress(AddressResolver.directURL(target)?.absoluteString ?? target)
+            window.navigateSelected(target)
+            return
+        }
+        if text == draft, let row = selected {
+            choose(row)
+            return
+        }
+        endEditing()
         window.suggestions.dismiss()
-        window.navigateSelected(text)
+        window.navigateSelected(trimmed)
     }
 
     private func choose(_ row: OmniboxSuggestion) {
         window.suggestions.record(row, profileID: window.activeProfileID)
-        focused = false
-        window.suggestions.dismiss()
+        let destination: String?
         switch row.kind {
         case .tab:
             if let id = row.tabID { window.select(id) }
-        default:
-            let destination = row.url ?? row.completionText ?? draft
-            if let url = row.url { draft = displayAddress(url) }
-            window.navigateSelected(destination)
+            endEditing()
+            window.suggestions.dismiss()
+            return
+        case .open, .completion:
+            destination = row.url ?? row.completionText
+        case .bookmark, .history:
+            destination = row.url ?? row.completionText ?? draft
         }
+        guard let target = destination, !target.isEmpty else {
+            endEditing()
+            window.suggestions.dismiss()
+            return
+        }
+        if let url = row.url { draft = displayAddress(url) }
+        endEditing()
+        window.suggestions.dismiss()
+        window.navigateSelected(target)
     }
 
     private func isLoadingNow() -> Bool { window.selected?.loadState == .loading }
 
     private func startProgress() {
-        loadCycle += 1
+        progressNonce += 1
         if reduced {
             progressOpacity = 1
             progressP = 0.06
@@ -182,7 +226,6 @@ public struct OmniboxView: View {
         guard isLoadingNow(), !reduced else { return }
         let real = min(1, max(0, window.selected?.loadProgress ?? 0))
         guard real > 0 else { return }
-        loadCycle += 1
         let target = max(0.08, real)
         guard target > progressP - 0.001 else { return }
         withAnimation(.linear(duration: 0.18)) { progressP = target }
@@ -190,21 +233,13 @@ public struct OmniboxView: View {
 
     private func finishProgress() {
         guard progressOpacity > 0 || progressP > 0 else { return }
-        loadCycle += 1
-        let cycle = loadCycle
-        let tabID = window.selectedID
-        if reduced {
-            progressP = 0
-            progressOpacity = 0
-            return
-        }
-        withAnimation(.easeOut(duration: 0.22)) { progressP = 1 }
+        progressNonce += 1
+        let nonce = progressNonce
+        withAnimation(.linear(duration: 0.12)) { progressP = 1 }
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.24))
-            guard loadCycle == cycle, window.selectedID == tabID, !isLoadingNow() else { return }
-            withAnimation(.easeIn(duration: 0.3)) { progressOpacity = 0 }
-            try? await Task.sleep(for: .seconds(0.32))
-            guard loadCycle == cycle, window.selectedID == tabID, !isLoadingNow() else { return }
+            try? await Task.sleep(for: .seconds(0.13))
+            guard !Task.isCancelled, nonce == progressNonce else { return }
+            progressOpacity = 0
             progressP = 0
         }
     }

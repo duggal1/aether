@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 public struct DomainIcon: View {
+    @Environment(\.colorScheme) private var scheme
     @State private var image: NSImage?
     let url: String?
     let size: CGFloat
@@ -25,9 +26,13 @@ public struct DomainIcon: View {
                     .scaledToFit()
                     .frame(width: size * 0.9, height: size * 0.9)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            } else if host == nil {
+                AetherLogo()
+                    .opacity(scheme == .dark ? 0.8 : 0.72)
+                    .frame(width: size * 0.9, height: size * 0.9)
             } else {
-                Image(systemName: host == nil ? "square.dashed" : "globe")
-                    .font(.system(size: size * 0.77, weight: .regular))
+                Image(systemName: "globe")
+                    .font(AetherType.symbol(size * 0.77))
                     .foregroundStyle(.secondary)
             }
         }

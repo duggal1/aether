@@ -4,18 +4,62 @@ struct RequestState: Encodable, Sendable {
   let request: String
 }
 
-enum SearchInput {
-  static func directURL(_ text: String) -> URL? {
+public enum SearchInput {
+  public static func directURL(_ raw: String) -> URL? {
+    let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !text.isEmpty else { return nil }
     if let url = URL(string: text), let scheme = url.scheme?.lowercased(),
-      ["http", "https"].contains(scheme), url.host != nil {
+      ["http", "https"].contains(scheme), url.host != nil, url.user == nil
+    {
       return url
     }
-    guard !text.contains(where: \.isWhitespace) else { return nil }
-    if text == "localhost" || text.hasPrefix("localhost:") || text.hasPrefix("127.0.0.1") {
-      return URL(string: "http://" + text)
+    guard !text.contains("://"), !text.contains(where: \.isWhitespace), !text.contains("@")
+    else { return nil }
+    if isLocalhost(text) { return URL(string: "http://" + text) }
+    guard let candidate = URL(string: "https://" + text),
+      let host = candidate.host, !host.isEmpty, candidate.user == nil
+    else { return nil }
+    if host.contains(":") || isIPv4(host) { return URL(string: "http://" + text) }
+    guard isDomain(host) else { return nil }
+    return candidate
+  }
+
+  public static func isLocalhost(_ text: String) -> Bool {
+    let lower = text.lowercased()
+    return lower == "localhost"
+      || lower.hasPrefix("localhost:")
+      || lower.hasPrefix("localhost/")
+      || lower.hasPrefix("localhost?")
+      || lower.hasPrefix("localhost#")
+  }
+
+  static func isIPv4(_ host: String) -> Bool {
+    let parts = host.split(separator: ".", omittingEmptySubsequences: false)
+    guard parts.count == 4 else { return false }
+    for part in parts {
+      guard !part.isEmpty, part.count <= 3, part.allSatisfy({ $0.isNumber }),
+        let value = Int(part), value <= 255
+      else { return false }
+      if part.count > 1 && part.hasPrefix("0") { return false }
     }
-    if text.contains("."), let url = URL(string: "https://" + text), url.host != nil { return url }
-    return nil
+    return true
+  }
+
+  static func isDomain(_ host: String) -> Bool {
+    let clean = host.hasSuffix(".") ? String(host.dropLast()) : host
+    guard clean.count <= 253 else { return false }
+    let labels = clean.split(separator: ".", omittingEmptySubsequences: false)
+    guard labels.count >= 2 else { return false }
+    for label in labels {
+      guard !label.isEmpty, label.count <= 63,
+        let first = label.first, let last = label.last,
+        first.isLetter || first.isNumber, last.isLetter || last.isNumber,
+        label.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" })
+      else { return false }
+    }
+    guard let tld = labels.last else { return false }
+    if tld.lowercased().hasPrefix("xn--") { return tld.count > 4 }
+    return tld.count >= 2 && tld.allSatisfy({ $0.isLetter })
   }
 
   static func domainGuesses(_ text: String, limit: Int) -> [String] {
@@ -30,9 +74,10 @@ enum SearchInput {
 }
 
 public actor SearchIntelligence {
-  private nonisolated let configuration: JevConfiguration
-  private let intelligence: JevClient
-  private let retrieval: Search1APIClient
+  private var configuration: JevConfiguration
+  private var intelligence: JevClient
+  private var retrieval: Search1APIClient
+  private let transport: any HTTPPostTransport
   private var cachedResults: [String: (results: [WebSearchResult], storedAt: Double)] = [:]
   private var resultOrder: [String] = []
   private var cachedGuesses: [String: SearchCandidate] = [:]
@@ -43,13 +88,22 @@ public actor SearchIntelligence {
     transport: any HTTPPostTransport = URLSessionTransport()
   ) {
     self.configuration = configuration
+    self.transport = transport
     self.intelligence = JevClient(configuration: configuration, transport: transport)
     self.retrieval = Search1APIClient(configuration: configuration, transport: transport)
   }
 
-  public nonisolated var intelligenceAvailable: Bool { configuration.hasIntelligence }
-  public nonisolated var retrievalAvailable: Bool { configuration.hasRetrieval }
-  public nonisolated var modelName: String { configuration.model }
+  public func updateKeys(typeSafeKey: String, search1APIKey: String) {
+    configuration.typeSafeKey = typeSafeKey
+    configuration.search1APIKey = search1APIKey
+    intelligence = JevClient(configuration: configuration, transport: transport)
+    retrieval = Search1APIClient(configuration: configuration, transport: transport)
+    invalidateCaches()
+  }
+
+  public var intelligenceAvailable: Bool { configuration.hasIntelligence }
+  public var retrievalAvailable: Bool { configuration.hasRetrieval }
+  public var modelName: String { configuration.model }
 
   public func search(
     query raw: String, local: [LocalSignal] = [],

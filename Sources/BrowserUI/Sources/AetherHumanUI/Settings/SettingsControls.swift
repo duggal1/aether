@@ -21,7 +21,7 @@ public struct SettingsDivider: View {
     public init() {}
     public var body: some View {
         Rectangle()
-            .fill(theme.faintLine)
+            .fill(theme.dark ? Color.white.opacity(0.06) : Color.black.opacity(0.08))
             .frame(height: 0.5)
             .padding(.leading, 12)
     }

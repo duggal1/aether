@@ -19,3 +19,22 @@ public final class DisconnectedEnginePort: BrowserEnginePort, BrowserSearchSugge
     public func updatePrivacy(profileID: UUID, policy: BrowserPrivacyPolicy) async throws { throw BrowserPortError.notConnected }
     public func setProfileEphemeral(profileID: UUID, enabled: Bool) async throws { throw BrowserPortError.notConnected }
 }
+
+extension DisconnectedEnginePort: BrowserNetworkRouting {
+    public func applyNetworkRoute(profileID: UUID, route: BrowserNetworkRoute, endpoint: RouteEndpoint?) async throws -> NetworkRouteStatus {
+        throw BrowserPortError.notConnected
+    }
+    public func currentRouteStatus(profileID: UUID) -> NetworkRouteStatus { .unknown }
+    public func observedExitIP(profileID: UUID) -> String? { nil }
+}
+
+extension DisconnectedEnginePort: BrowserPasskeyCapability {
+    public var passkeyDeviceConfigured: Bool { false }
+    public var passkeyLocalAuthAvailable: Bool { false }
+    public func passkeyAuthorizationState() -> PasskeyAuthorizationState { .unavailable }
+    public func requestPasskeyAuthorization() async -> PasskeyAuthorizationState { .unavailable }
+}
+
+extension DisconnectedEnginePort: BrowserSessionStateProviding {
+    public func sessionState(pageID: String) async -> EngineSessionState { .notLoaded }
+}

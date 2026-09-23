@@ -22,9 +22,10 @@ public enum AggressiveBlockFilter {
     return lines.joined(separator: "\n")
   }
 
-  static func domainTrigger(_ domain: String) -> [String: String] {
+  static func domainTriggers(_ domain: String) -> [[String: String]] {
     let escaped = NSRegularExpression.escapedPattern(for: domain)
-    return ["url-filter": "^https?://([^/]+\\.)?" + escaped + "([/:?#]|$)"]
+    let prefix = "^https?://([^/]+\\.)?" + escaped
+    return [["url-filter": prefix + "[/:?#]"], ["url-filter": prefix + "$"]]
   }
 
   public static func compile(source: String) throws -> String {
@@ -36,15 +37,21 @@ public enum AggressiveBlockFilter {
       if line.hasPrefix("@@||"), line.hasSuffix("^") {
         let domain = String(line.dropFirst(4).dropLast())
         guard !domain.isEmpty else { continue }
-        exceptions.append(["trigger": domainTrigger(domain), "action": ["type": "ignore-previous-rules"]])
+        for trigger in domainTriggers(domain) {
+          exceptions.append(["trigger": trigger, "action": ["type": "ignore-previous-rules"]])
+        }
       } else if line.hasPrefix("||"), line.hasSuffix("^") {
         let domain = String(line.dropFirst(2).dropLast())
         guard !domain.isEmpty else { continue }
-        blocks.append(["trigger": domainTrigger(domain), "action": ["type": "block"]])
+        for trigger in domainTriggers(domain) {
+          blocks.append(["trigger": trigger, "action": ["type": "block"]])
+        }
       } else if line.hasPrefix("COOKIE:") {
         let domain = String(line.dropFirst(7))
         guard !domain.isEmpty else { continue }
-        blocks.append(["trigger": domainTrigger(domain), "action": ["type": "block-cookies"]])
+        for trigger in domainTriggers(domain) {
+          blocks.append(["trigger": trigger, "action": ["type": "block-cookies"]])
+        }
       } else if line.hasPrefix("REGEX:") {
         let pattern = String(line.dropFirst(6))
         guard !pattern.isEmpty else { continue }
@@ -122,7 +129,10 @@ public enum AggressiveBlockFilter {
   ]
 
   static let videoAdPatterns: [String] = [
-    "youtube\\.com/(api/stats/ads|ptracking|pagead|get_midroll_info)",
+    "youtube\\.com/api/stats/ads",
+    "youtube\\.com/ptracking",
+    "youtube\\.com/pagead",
+    "youtube\\.com/get_midroll_info",
     "twitter\\.com/i/adsct",
     "facebook\\.com/tr[/?]",
     ".*[?&]adformat=",

@@ -22,7 +22,7 @@ public struct ProfilesSettingsView: View {
                         Button("Delete Profile", role: .destructive) { deleting = profile.id }
                             .disabled(workspace.profiles.count == 1)
                     } label: {
-                        Image(systemName: "ellipsis").font(.system(size: 15)).frame(width: 24)
+                        Image(systemName: "ellipsis").font(AetherType.symbol(15)).frame(width: 24)
                     }.menuStyle(.borderlessButton).frame(width: 35)
                         .pointerStyle(.link)
                 }
@@ -51,22 +51,22 @@ public struct ProfilesSettingsView: View {
                 deleting = nil
             }
             Button("Cancel", role: .cancel) { deleting = nil }
-        } message: { Text("Engine-side profile data deletion requires the Aether engine adapter. Do not treat this shell action as secure data erasure.") }
+        } message: { Text("Engine-side data deletion needs the engine adapter.") }
     }
     private func editor(title: String, value: Binding<String>, save: @escaping () -> Void, cancel: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text(title).font(AetherType.title(20))
+            Text(title).font(AetherType.title(20)).tracking(AetherTracking.heading)
             AetherField("Profile name", text: value)
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 Spacer()
                 Button("Cancel", action: cancel)
-                    .aetherGlassButton()
+                    .aetherButton()
                     .focusEffectDisabled()
                 Button("Save", action: save).disabled(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .aetherGlassProminentButton()
+                    .aetherProminentButton()
                     .keyboardShortcut(.defaultAction)
                     .focusEffectDisabled()
             }
-        }.padding(24).frame(width: 350).background(theme.background)
+        }.padding(24).frame(width: 350).background(theme.dialogCard)
     }
 }

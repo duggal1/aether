@@ -1,79 +1,61 @@
 import SwiftUI
 
-// Browser-owned content is opaque. Native material belongs only to the sidebar.
-public enum AetherGlassVariant: Sendable { case regular, clear }
-
-public struct AetherGlassSurface: View {
+struct AetherInteractionSurface: View {
+    @Environment(\.accessibilityReduceMotion) private var reduced
     @Environment(\.aetherTheme) private var theme
-    public let radius: CGFloat
-    public let variant: AetherGlassVariant
-    public let interactive: Bool
-    public let minimal: Bool
+    @Environment(\.aetherChromeAppearance) private var chrome
+    var active: Bool
+    var radius: CGFloat = 8
+    var selected = false
+    var hovering = false
 
-    public init(radius: CGFloat = AetherMetrics.menuRadius, variant: AetherGlassVariant = .regular,
-                interactive: Bool = false, minimal: Bool = true) {
-        self.radius = radius
-        self.variant = variant
-        self.interactive = interactive
-        self.minimal = minimal
+    private var fill: Color {
+        if let chrome {
+            if selected { return hovering ? chrome.selectedActive : chrome.selected }
+            return chrome.hover
+        }
+        return selected ? theme.selection : theme.hover
     }
 
-    public var body: some View {
+    var body: some View {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(theme.card)
-            .overlay {
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(theme.hairline, lineWidth: 0.5)
-            }
-            .accessibilityHidden(true)
+            .fill(fill)
+            .opacity(active ? 1 : 0)
+            .allowsHitTesting(false)
+            .animation(AetherMotion.hover(reduced), value: active)
     }
 }
 
-private struct AetherOpaqueButtonStyle: ButtonStyle {
+public struct AetherNeutralButtonStyle: ButtonStyle {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduced
     let prominent: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
+    public init(prominent: Bool = false) { self.prominent = prominent }
+    public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(prominent ? theme.background : theme.textStrong)
-            .padding(.horizontal, 13)
-            .frame(minHeight: 29)
-            .background(
-                prominent ? theme.textStrong.opacity(configuration.isPressed ? 0.78 : 1) : (configuration.isPressed ? theme.hover : theme.selected),
-                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-            )
-            .overlay {
+            .font(AetherType.body(13))
+            .foregroundStyle(prominent ? theme.background : theme.ink)
+            .opacity(enabled ? 1 : 0.45)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 28)
+            .background {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(theme.hairline, lineWidth: 0.5)
+                    .fill(prominent ? theme.ink : (configuration.isPressed ? theme.selection : theme.card))
             }
-            .scaleEffect(configuration.isPressed && !reduced ? 0.985 : 1)
+            .focusEffectDisabled()
+            .modifier(AetherPointingCursor())
+            .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
             .animation(AetherMotion.press(reduced), value: configuration.isPressed)
     }
 }
 
 public extension View {
-    // Retained for source compatibility. Do not reintroduce transparent glass in browser content.
-    func aetherGlass(_ variant: AetherGlassVariant = .regular,
-                     in shape: some Shape, interactive: Bool = false) -> some View {
-        self.background(AetherGlassSurface(radius: AetherMetrics.menuRadius, variant: variant,
-                                          interactive: interactive))
+    func aetherButton() -> some View {
+        buttonStyle(AetherNeutralButtonStyle(prominent: false)).focusEffectDisabled().pointerStyle(.link)
     }
 
-    func aetherGlassButton() -> some View {
-        buttonStyle(AetherOpaqueButtonStyle(prominent: false)).focusEffectDisabled().pointerStyle(.link)
+    func aetherProminentButton() -> some View {
+        buttonStyle(AetherNeutralButtonStyle(prominent: true)).focusEffectDisabled().pointerStyle(.link)
     }
-
-    func aetherGlassProminentButton() -> some View {
-        buttonStyle(AetherOpaqueButtonStyle(prominent: true)).focusEffectDisabled().pointerStyle(.link)
-    }
-}
-
-// A layout container, NOT a glass compositor. Animations are handled by AetherMotion.
-public struct AetherGlassCluster<Content: View>: View {
-    private let content: Content
-    public init(spacing: CGFloat = 8, @ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-    public var body: some View { content }
 }

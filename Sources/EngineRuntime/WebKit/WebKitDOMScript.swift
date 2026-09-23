@@ -60,7 +60,7 @@ enum WebKitDOMScript {
         return {index:id(n),generation:\(generation),parent:id(n.parentNode),children:Array.from(n.childNodes).map(id),
           kind:n.nodeType === 1 ? 'element' : n.nodeType === 3 ? 'text' : 'document',tag,
           text:n.nodeType === 3 ? n.textContent?.slice(0,4000) : null,attributes:attrs,role,name,
-          value:secret ? '[redacted]' : (typeof n.value === 'string' ? n.value : null),href:n.href ?? null,
+          value:secret ? '[redacted]' : (typeof n.value === 'string' ? n.value : null),href:typeof n.href === 'string' ? n.href : null,
           visible:!!rect && rect.width > 0 && rect.height > 0 && style?.display !== 'none' && style?.visibility !== 'hidden',
           enabled:!el?.matches(':disabled'),editable:!!el?.matches('input,textarea,select,[contenteditable=true]'),
           bounds:rect ? {origin:{x:rect.x+scrollX,y:rect.y+scrollY},size:{width:rect.width,height:rect.height}} : null};

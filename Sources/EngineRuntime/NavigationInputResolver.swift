@@ -1,4 +1,5 @@
 import Foundation
+import JevSearch
 
 public enum NavigationInputError: Error, Sendable {
   case emptyInput
@@ -50,6 +51,12 @@ public struct NavigationResolution: Sendable {
 }
 
 public enum NavigationInputResolver {
+  // One deterministic order, shared by every navigation entry point:
+  //   1. explicit scheme            -> URL
+  //   2. bare host / localhost / IP -> URL
+  //   3. scheme-shaped but unsupported -> error
+  //   4. anything else (words, questions, phrases) -> search
+  // An address never becomes a search merely because it has no scheme.
   public static func resolve(
     _ input: String, provider: SearchProvider = .defaultProvider
   ) throws -> NavigationResolution {
@@ -59,22 +66,20 @@ public enum NavigationInputResolver {
       guard let url = URL(string: raw) else { throw NavigationInputError.invalidURL }
       return try webURL(url)
     }
-    if raw.contains(":") && !raw.contains(".") && !raw.hasPrefix("localhost:") {
+    if let direct = SearchInput.directURL(raw) {
+      return try webURL(direct)
+    }
+    if isUnsupportedSchemeShape(raw) {
       throw NavigationInputError.unsupportedScheme
     }
-    if !raw.contains(where: { $0.isWhitespace }),
-      let url = URL(string: "https://" + raw),
-      let host = url.host,
-      (host.contains(".") || host.lowercased() == "localhost")
-    {
-      let scheme = host.lowercased() == "localhost" || host.hasPrefix("127.")
-        ? "http" : "https"
-      guard let resolved = URL(string: scheme + "://" + raw) else {
-        throw NavigationInputError.invalidURL
-      }
-      return try webURL(resolved)
-    }
     return NavigationResolution(kind: .search, url: try provider.searchURL(for: raw))
+  }
+
+  static func isUnsupportedSchemeShape(_ raw: String) -> Bool {
+    guard raw.contains(":") else { return false }
+    guard !raw.contains("."), !raw.contains("/"), !raw.contains("?"), !raw.contains("#")
+    else { return false }
+    return !SearchInput.isLocalhost(raw)
   }
 
   private static func webURL(_ url: URL) throws -> NavigationResolution {

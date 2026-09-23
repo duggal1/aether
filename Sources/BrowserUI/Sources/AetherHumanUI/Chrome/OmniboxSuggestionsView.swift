@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct OmniboxSuggestionsView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
     let model: OmniboxSuggestionModel
     let prefix: String
@@ -22,7 +23,7 @@ public struct OmniboxSuggestionsView: View {
                 if index == separatorIndex { gap }
                 OmniboxSuggestionRow(row: row, prefix: prefix, provider: provider,
                                      selected: model.selected == index,
-                                     onHover: { model.select(index) }) {
+                                     onHoverSelect: { model.select(index) }) {
                     onChoose(row)
                 }
                 .id(row.id)
@@ -31,17 +32,11 @@ public struct OmniboxSuggestionsView: View {
         .padding(9)
         .frame(maxWidth: 656)
         .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(theme.card)
+            AetherSuggestionBackground()
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(theme.hairline, lineWidth: 0.5)
-        }
-            
         .offset(y: 37)
         .zIndex(2)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        .transition(.opacity)
         .animation(AetherMotion.dropdown(reduced), value: model.rows.count)
     }
 
@@ -59,14 +54,17 @@ public struct OmniboxSuggestionsView: View {
 
 private struct OmniboxSuggestionRow: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
     @State private var hovering = false
     let row: OmniboxSuggestion
     let prefix: String
     let provider: SearchProvider
     let selected: Bool
-    let onHover: () -> Void
+    let onHoverSelect: () -> Void
     let action: () -> Void
+
+    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
 
     var body: some View {
         Button(action: action) {
@@ -77,27 +75,27 @@ private struct OmniboxSuggestionRow: View {
                 trailing
             }
             .font(AetherType.body(13))
-            .foregroundStyle(theme.ink)
+            .foregroundStyle(appearance.text)
             .padding(.horizontal, 12)
             .frame(height: 40)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(fill, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .background { AetherInteractionSurface(active: selected || hovering, radius: 6, selected: selected, hovering: hovering) }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .aetherFocusTreatment(radius: 7)
         .focusEffectDisabled()
         .aetherPointingCursor()
+        .animation(AetherMotion.textResolve(reduced), value: row.title)
+        .animation(AetherMotion.dropdown(reduced), value: selected)
+        // Hover only highlights. It must never move the keyboard selection, or
+        // Enter would commit whatever the pointer happens to rest on instead of
+        // the address the user typed.
         .onHover { inside in
-            guard inside else { return }
-            onHover()
+            hovering = inside
+            if inside { onHoverSelect() }
         }
         .accessibilityIdentifier("aether.suggestion.\(row.kind.rawValue)")
-    }
-
-    private var fill: Color {
-        if selected { return theme.suggestionSelected }
-        return hovering ? theme.hover : .clear
     }
 
     @ViewBuilder private var leading: some View {
@@ -106,7 +104,7 @@ private struct OmniboxSuggestionRow: View {
             DomainIcon(row.url ?? provider.homepage.absoluteString, size: 18)
                 .frame(width: 18, alignment: .center)
         case .completion:
-            BrowserIconView(icon: .search, tint: theme.muted)
+            BrowserIconView(icon: .search, tint: appearance.secondary)
                 .iconSize(12)
                 .frame(width: 16, alignment: .center)
         case .tab, .bookmark, .history:
@@ -126,6 +124,8 @@ private struct OmniboxSuggestionRow: View {
                 .font(AetherType.rowTitle(12))
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .id("title-\(row.title)")
+                .transition(.opacity)
         }
     }
 
@@ -134,32 +134,39 @@ private struct OmniboxSuggestionRow: View {
         let head = String(row.title.prefix(match))
         let tail = String(row.title.dropFirst(match))
         return HStack(spacing: 0) {
-            Text(head).foregroundColor(theme.ink)
-            Text(tail).foregroundColor(theme.muted)
+            Text(head).foregroundColor(appearance.text)
+            Text(tail).foregroundColor(appearance.secondary)
         }
             .lineLimit(1)
             .truncationMode(.tail)
+            .id("completion-\(row.title)")
+            .transition(.opacity)
     }
 
     @ViewBuilder private var trailing: some View {
         switch row.kind {
         case .completion:
-            if selected { Image(systemName: "arrow.right").font(AetherType.symbol(13)).foregroundStyle(theme.muted) }
+            if selected { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(appearance.secondary) }
         case .tab, .bookmark, .history:
             HStack(spacing: 7) {
                 if let host = row.host, !row.title.localizedCaseInsensitiveContains(host) {
                     Text(host)
                         .font(AetherType.caption(11))
-                        .foregroundStyle(theme.soft)
+                        .foregroundStyle(appearance.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .id("host-\(host)")
+                        .transition(.opacity)
                 }
-                BrowserIconView(icon: kindIcon, tint: theme.soft).iconSize(13)
+                if selected {
+                    Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(appearance.secondary)
+                } else {
+                    BrowserIconView(icon: kindIcon, tint: appearance.secondary).iconSize(13)
+                }
             }
         case .open:
-            EmptyView()
+            if selected { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(appearance.secondary) }
         }
-        if selected, row.kind == .open { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(theme.muted) }
     }
 
     private var kindIcon: BrowserIcon {
@@ -172,7 +179,7 @@ private struct OmniboxSuggestionRow: View {
 
     private func hint(_ glyph: String) -> some View {
         Text(glyph)
-            .font(AetherType.mono(10))
+            .font(AetherType.data(10))
             .foregroundStyle(theme.soft)
     }
 }

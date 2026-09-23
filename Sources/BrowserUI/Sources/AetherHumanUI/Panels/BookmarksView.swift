@@ -2,9 +2,10 @@ import SwiftUI
 
 public struct BookmarksView: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.aetherChromeAppearance) private var chrome
     @BrowserState private var query = ""
     @BrowserState private var transferError: String?
+    @State private var closeHovering = false
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
@@ -29,33 +30,40 @@ public struct BookmarksView: View {
         VStack(alignment: .leading, spacing: 19) {
             HStack(spacing: 9) {
                 Text("Bookmarks")
-                    .font(AetherType.panelTitle(22))
+                    .font(AetherType.panelTitle(22)).tracking(AetherTracking.heading)
                     .foregroundStyle(theme.textStrong)
                 Spacer(minLength: 8)
-                Button("Import") {
-                    do {
-                        if let items = try BookmarkTransfer.importBookmarks() {
-                            window.workspace.importBookmarks(items, into: window.activeProfileID)
-                        }
-                    } catch { transferError = error.localizedDescription }
+                HStack(spacing: 8) {
+                    Button("Import") {
+                        do {
+                            if let items = try BookmarkTransfer.importBookmarks() {
+                                window.workspace.importBookmarks(items, into: window.activeProfileID)
+                            }
+                        } catch { transferError = error.localizedDescription }
+                    }
+                    .aetherProminentButton()
+                    .frame(minWidth: 88, minHeight: 30)
+                    Button("Export") {
+                        do {
+                            _ = try BookmarkTransfer.export(window.workspace.bookmarks(for: window.activeProfileID),
+                                profileName: window.workspace.name(for: window.activeProfileID))
+                        } catch { transferError = error.localizedDescription }
+                    }
+                    .aetherButton()
+                    .frame(minWidth: 88, minHeight: 30)
                 }
-                .aetherGlassProminentButton()
-                Button("Export") {
-                    do {
-                        _ = try BookmarkTransfer.export(window.workspace.bookmarks(for: window.activeProfileID),
-                            profileName: window.workspace.name(for: window.activeProfileID))
-                    } catch { transferError = error.localizedDescription }
-                }
-                .aetherGlassButton()
-                Button { dismiss() } label: {
+                Button { window.showsBookmarks = false } label: {
                     Image(systemName: "xmark")
-                        .font(AetherType.symbol(13))
+                        .font(AetherType.symbol(11))
                         .foregroundStyle(theme.muted)
-                        .frame(width: 27, height: 27)
+                        .frame(width: 28, height: 28)
+                        .background { AetherInteractionSurface(active: closeHovering, radius: 6) }
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .focusEffectDisabled()
                 .aetherPointingCursor()
+                .onHover { closeHovering = $0 }
                 .help("Close bookmarks")
             }
 
@@ -69,25 +77,26 @@ public struct BookmarksView: View {
                                  description: "Save pages from the address bar to see them here.")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
+                    LazyVStack(alignment: .leading, spacing: 18) {
                         ForEach(folders, id: \.name) { folder in
                             BookmarkFolderSection(
                                 folder: folder.name, marks: folder.marks,
                                 open: { mark in
                                     window.navigateSelected(mark.url)
-                                    dismiss()
+                                    window.showsBookmarks = false
                                 },
                                 delete: { id in window.workspace.deleteBookmark(id) })
                         }
                     }
                     .padding(.bottom, 22)
                 }
-                .scrollIndicators(.hidden)
+                .background { AetherOverlayScrollerTuning() }
                 .mask {
                     if results.count > 7 {
                         LinearGradient(
                             stops: [.init(color: .black, location: 0),
-                                    .init(color: .black, location: 0.88),
+                                    .init(color: .black, location: 0.82),
+                                    .init(color: .black.opacity(0.6), location: 0.92),
                                     .init(color: .clear, location: 1)],
                             startPoint: .top, endPoint: .bottom)
                     } else {
@@ -98,8 +107,8 @@ public struct BookmarksView: View {
         }
         .padding(26)
         .frame(width: 720, height: 555)
-        .background(theme.background)
-        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background { AetherOverlayPanelBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
     }
 }
 
@@ -120,11 +129,11 @@ private struct BookmarkFolderSection: View {
                 HStack(spacing: 9) {
                     Image(systemName: "folder")
                         .font(AetherType.symbol(16))
-                        .foregroundStyle(theme.textStrong)
+                        .foregroundStyle(AetherPalette.folderColor)
                         .frame(width: 19)
                     Text(folder)
                         .font(AetherType.emphasis(13))
-                        .foregroundStyle(Color(red: 0.32, green: 0.60, blue: 0.98))
+                        .foregroundStyle(theme.textStrong)
                     Text("\(marks.count)")
                         .font(AetherType.caption(12))
                         .foregroundStyle(theme.muted)
@@ -141,8 +150,10 @@ private struct BookmarkFolderSection: View {
             .aetherPointingCursor()
             .focusEffectDisabled()
             if expanded {
-                ForEach(marks) { mark in
-                    BookmarkEntry(mark: mark, open: { open(mark) }, delete: { delete(mark.id) })
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(marks) { mark in
+                        BookmarkEntry(mark: mark, open: { open(mark) }, delete: { delete(mark.id) })
+                    }
                 }
                 .transition(AetherMotion.disclosure(reduced, expanded: expanded))
             }
@@ -154,6 +165,7 @@ private struct BookmarkEntry: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduced
     @State private var hovering = false
+    @FocusState private var deleteFocused: Bool
     let mark: BrowserBookmark
     let open: () -> Void
     let delete: () -> Void
@@ -190,17 +202,16 @@ private struct BookmarkEntry: View {
             }
             .buttonStyle(.plain)
             .aetherPointingCursor()
-            .focusEffectDisabled()
+            .focused($deleteFocused)
             .help("Remove bookmark")
-            .opacity(hovering ? 1 : 0)
-            .allowsHitTesting(hovering)
+            .opacity(hovering || deleteFocused ? 1 : 0)
+            .allowsHitTesting(hovering || deleteFocused)
         }
         .padding(.horizontal, 12)
         .frame(height: 52)
         .background(hovering ? theme.hover : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .onHover { value in
-            withAnimation(AetherMotion.hover(reduced)) { hovering = value }
-        }
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .animation(AetherMotion.hover(reduced), value: hovering)
+        .onHover { hovering = $0 }
     }
 }

@@ -14,9 +14,40 @@ public struct SearchSettingsView: View {
             }
         }
         AetherSection("Address bar") {
-            SettingsToggle("Show full website address", subtitle: "Keep the complete URL visible outside editing.", value: Binding(get: { workspace.preferences.showFullAddress }, set: { workspace.preferences.showFullAddress = $0 }))
-            SettingsToggle("Show suggestions while typing", subtitle: "Open tabs, bookmarks, and history appear under the address field.", value: Binding(get: { workspace.preferences.showSearchSuggestions }, set: { workspace.preferences.showSearchSuggestions = $0 }))
-            SettingsToggle("Suggestions from \(workspace.preferences.provider.searchName)", subtitle: "Completions are fetched over a private connection; nothing typed is stored.", value: Binding(get: { workspace.preferences.providerSuggestions }, set: { workspace.preferences.providerSuggestions = $0 }))
+            SettingsToggle("Show full website address", value: Binding(get: { workspace.preferences.showFullAddress }, set: { workspace.preferences.showFullAddress = $0 }))
+            SettingsToggle("Show suggestions while typing", value: Binding(get: { workspace.preferences.showSearchSuggestions }, set: { workspace.preferences.showSearchSuggestions = $0 }))
+            SettingsToggle("Suggestions from \(workspace.preferences.provider.searchName)", value: Binding(get: { workspace.preferences.providerSuggestions }, set: { workspace.preferences.providerSuggestions = $0 }))
+        }
+    }
+}
+
+public struct SearchIntelligenceSettingsView: View {
+    let workspace: BrowserWorkspace
+    public init(workspace: BrowserWorkspace) { self.workspace = workspace }
+
+    public var body: some View {
+        AetherSection("Search Intelligence") {
+            AetherRow("TypeSafe API Key", symbol: "key.horizontal") {
+                AetherField("TypeSafe API Key",
+                            text: Binding(get: { workspace.preferences.typeSafeAPIKey },
+                                          set: {
+                                              workspace.preferences.typeSafeAPIKey = $0
+                                              Task { await workspace.syncSearchKeysToEngine() }
+                                          }),
+                            secure: true)
+                    .frame(width: 210)
+            }
+            SettingsDivider()
+            AetherRow("Search1API Key", symbol: "key.horizontal") {
+                AetherField("Search1API Key",
+                            text: Binding(get: { workspace.preferences.search1APIKey },
+                                          set: {
+                                              workspace.preferences.search1APIKey = $0
+                                              Task { await workspace.syncSearchKeysToEngine() }
+                                          }),
+                            secure: true)
+                    .frame(width: 210)
+            }
         }
     }
 }

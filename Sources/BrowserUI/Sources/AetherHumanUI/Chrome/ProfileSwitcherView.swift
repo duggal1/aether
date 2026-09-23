@@ -2,155 +2,244 @@ import SwiftUI
 
 public struct ProfileSwitcherView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var showing = false
     @BrowserState private var hovering = false
     @BrowserState private var creating = false
+    @BrowserState private var renaming = false
     @BrowserState private var profileName = ""
+    @BrowserState private var renameText = ""
     @BrowserState private var newProfileColor = 0
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
+    private var labelColor: Color { chrome?.text ?? theme.ink }
+    private var iconColor: Color { chrome?.icon ?? theme.muted }
+
     public var body: some View {
         Button { showing.toggle() } label: {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(window.workspace.name(for: window.activeProfileID))
-                        .font(AetherType.emphasis(12)).lineLimit(1)
-                    BrowserIconView(icon: .arrowDown, tint: theme.muted).iconSize(9)
-                }
-                HStack(spacing: 3) {
-                    ForEach(0..<5, id: \.self) { _ in
-                        Circle().fill(theme.soft).frame(width: 3, height: 3)
-                    }
-                }
+            HStack(spacing: 5) {
+                Text(window.workspace.name(for: window.activeProfileID))
+                    .font(AetherType.body(11)).lineLimit(1)
+                    .fontWeight(.regular)
+                BrowserIconView(icon: .arrowDown, tint: iconColor).iconSize(9)
             }
-            .foregroundStyle(theme.ink)
-            .padding(.horizontal, 12)
-            .frame(height: 27)
-            .background(hovering ? theme.hover : Color.clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .foregroundStyle(labelColor)
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background { pickerGlass }
             .contentShape(Rectangle())
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
         .focusEffectDisabled()
-        .onHover { value in withAnimation(AetherMotion.hover(reduced)) { hovering = value } }
+        .animation(AetherMotion.hover(reduced), value: hovering)
+        .onHover { hovering = $0 }
         .help("Switch profile")
         .accessibilityLabel("Profile: \(window.workspace.name(for: window.activeProfileID))")
         .popover(isPresented: $showing, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 1) {
-                ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
-                    Button {
-                        window.switchProfile(profile.id)
-                        showing = false
-                    } label: {
-                        AetherMenuRow(radius: 8) {
-                            HStack(spacing: 8) {
-                                if profile.id == window.activeProfileID {
-                                    BrowserIconView(icon: .checkmark, tint: theme.muted).iconSize(10)
-                                } else {
-                                    Color.clear.frame(width: 20, height: 20)
-                                }
-                                Image(systemName: "circle.fill")
-                                    .font(AetherType.symbol(9))
-                                    .foregroundStyle(Self.swatch(for: profile))
-                                Text(profile.name).font(AetherType.body(12)).lineLimit(1)
-                                Spacer(minLength: 6)
-                                if index < 5 {
-                                    Text("\u{2303}\(index + 1)")
-                                        .font(AetherType.caption(11)).foregroundStyle(theme.soft)
-                                }
-                            }
-                            .foregroundStyle(theme.ink)
-                            .padding(.horizontal, 8).frame(height: 32)
-                            .contentShape(Rectangle())
-                        }
-                    }
-                    .buttonStyle(AetherPressStyle(reduced: reduced))
-                    .focusEffectDisabled()
-                }
-                Rectangle().fill(theme.faintLine).frame(height: 1).padding(.vertical, 5)
-                Button { creating = true } label: { menuLine(.plus, "New Profile…") }
-                    .buttonStyle(AetherPressStyle(reduced: reduced))
-                    .focusEffectDisabled()
-                Button { showing = false; window.showsSettings = true } label: { menuLine(.gear, "Profile Settings") }
-                    .buttonStyle(AetherPressStyle(reduced: reduced))
-                    .focusEffectDisabled()
-            }
-            .padding(6)
-            .frame(width: 218)
-            .background { AetherPopoverBackground() }
+            dropdown
+                .presentationBackground(.clear)
+                .preferredColorScheme(appearance.isDark ? .dark : .light)
+                .environment(\.aetherChromeAppearance, appearance)
         }
-        .sheet(isPresented: $creating) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("New Profile").font(AetherType.panelTitle(20)).foregroundStyle(theme.heading)
-                AetherField("Profile name", text: $profileName)
-                HStack(spacing: 14) {
-                    ForEach(0..<Self.swatches.count, id: \.self) { index in
-                        Button { newProfileColor = index } label: {
-                            Circle()
-                                .fill(Self.swatches[index])
-                                .frame(width: 29, height: 29)
-                                .overlay {
-                                    if newProfileColor == index {
-                                        Circle()
-                                            .strokeBorder(Self.swatches[index], lineWidth: 2)
-                                            .padding(-5)
-                                    }
-                                }
-                        }
-                        .buttonStyle(.plain)
-                        .aetherPointingCursor()
-                        .aetherFocusTreatment(radius: 17)
-                        .focusEffectDisabled()
-                        .help("Profile color \(index + 1)")
-                        .accessibilityLabel("Profile color \(index + 1)")
-                    }
-                }
-                HStack(spacing: 8) {
-                    Spacer()
-                    Button("Cancel") { creating = false }
-                        .buttonStyle(.plain)
-                        .aetherPointingCursor()
-                        .aetherFocusTreatment(radius: 6)
-                        .focusEffectDisabled()
-                    Button("Create Profile") {
-                        let profile = window.workspace.createProfile(profileName, colorIndex: newProfileColor)
-                        window.switchProfile(profile.id)
-                        profileName = ""; newProfileColor = 0; creating = false; showing = false
-                    }
-                    .keyboardShortcut(.defaultAction)
-                    .aetherGlassProminentButton()
-                    .disabled(profileName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-            .padding(24)
-            .frame(width: 388)
-            .background(theme.raised)
-        }
+        .sheet(isPresented: $creating) { newProfileSheet }
+        .sheet(isPresented: $renaming) { renameSheet }
     }
 
-    private func menuLine(_ icon: BrowserIcon, _ title: String) -> some View {
-        AetherMenuRow(radius: 10) {
-            HStack(spacing: 10) {
-                BrowserIconView(icon: icon, tint: theme.muted).iconSize(12)
-                Text(title).font(AetherType.body(12))
-                Spacer(minLength: 0)
+    @ViewBuilder private var pickerGlass: some View {
+        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let dark = appearance.isDark
+        shape.fill(.clear)
+            .glassEffect(hovering || showing
+                         ? .regular.interactive().tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.32))
+                         : .regular.tint(dark ? Color.black.opacity(0.24) : Color.white.opacity(0.26)),
+                         in: shape)
+            .glassEffectTransition(.materialize)
+            .environment(\.colorScheme, dark ? .dark : .light)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
+    // Custom liquid-glass dropdown: restrained dark tint, compact rows, subtle hover.
+    private var dropdown: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
+                Button {
+                    window.switchProfile(profile.id)
+                    showing = false
+                } label: {
+                    profileRow(profile, index: index)
+                }
+                .buttonStyle(AetherMenuPressStyle())
+                .focusEffectDisabled()
             }
-            .foregroundStyle(theme.ink)
-            .padding(.horizontal, 9).frame(height: 34)
+            Divider().padding(.vertical, 5)
+            Button {
+                renameText = window.workspace.name(for: window.activeProfileID)
+                renaming = true
+                showing = false
+            } label: {
+                AetherMenuRow(radius: 6) {
+                    Text("Rename Profile")
+                        .font(AetherType.body(12))
+                        .foregroundStyle(labelColor)
+                        .padding(.horizontal, 9).frame(height: 32, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+            }
+            .buttonStyle(AetherMenuPressStyle())
+            .focusEffectDisabled()
+            Divider().padding(.vertical, 5)
+            actionRow(.plus, "New Profile") { creating = true; showing = false }
+            actionRow(.gear, "Profile Settings") { showing = false; window.showsSettings = true }
+        }
+        .padding(6)
+        .frame(width: 218)
+        .background { AetherPopoverBackground() }
+    }
+
+    private func profileRow(_ profile: BrowserProfile, index: Int) -> some View {
+        AetherMenuRow(radius: 6) {
+            HStack(spacing: 8) {
+                if profile.id == window.activeProfileID {
+                    BrowserIconView(icon: .checkmark, tint: iconColor).iconSize(10)
+                } else {
+                    Color.clear.frame(width: 20, height: 20)
+                }
+                Image(systemName: "circle.fill")
+                    .font(AetherType.symbol(9))
+                    .foregroundStyle(Self.swatch(for: profile))
+                Text(profile.name)
+                    .font(AetherType.body(12))
+                    .fontWeight(.regular)
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                if index < 9 {
+                    HStack(spacing: 3) {
+                        AetherCustomIconView(.kbdCommand, tint: appearanceSecondary, size: 10)
+                        Text("\(index + 1)")
+                            .font(AetherType.caption(11))
+                            .foregroundStyle(appearanceSecondary)
+                    }
+                }
+            }
+            .foregroundStyle(labelColor)
+            .padding(.horizontal, 8).frame(height: 32)
             .contentShape(Rectangle())
         }
     }
 
+    private var appearanceSecondary: Color { chrome?.secondary ?? theme.soft }
+
+    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
+
+    private func actionRow(_ icon: BrowserIcon, _ title: String, enabled: Bool = true,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            AetherMenuRow(radius: 6) {
+                HStack(spacing: 10) {
+                    BrowserIconView(icon: icon, tint: iconColor).iconSize(12)
+                    Text(title).font(AetherType.body(12))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(enabled ? labelColor : appearanceSecondary)
+                .padding(.horizontal, 9).frame(height: 32)
+                .contentShape(Rectangle())
+            }
+        }
+        .buttonStyle(AetherMenuPressStyle())
+        .focusEffectDisabled()
+        .disabled(!enabled)
+    }
+
+    private var newProfileSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("New Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
+            AetherField("Profile name", text: $profileName, horizontalPadding: 12)
+            HStack(spacing: 12) {
+                ForEach(0..<Self.swatches.count, id: \.self) { index in
+                    Button { newProfileColor = index } label: {
+                        Circle()
+                            .fill(Self.swatches[index])
+                            .brightness(0.035)
+                            .frame(width: 28, height: 28)
+                            .overlay {
+                                if newProfileColor == index {
+                                    Circle()
+                                        .strokeBorder(theme.ink, lineWidth: 2)
+                                        .padding(-4)
+                                }
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .aetherPointingCursor()
+                    .aetherFocusTreatment(radius: 16)
+                    .focusEffectDisabled()
+                    .help("Profile color \(index + 1)")
+                    .accessibilityLabel("Profile color \(index + 1)")
+                }
+            }
+            .padding(.top, 2)
+            HStack(spacing: 8) {
+                Spacer()
+                Button("Cancel") { creating = false }
+                    .aetherButton()
+                    .frame(minWidth: 88, minHeight: 30)
+                Button("Save") {
+                    let profile = window.workspace.createProfile(profileName, colorIndex: newProfileColor)
+                    window.switchProfile(profile.id)
+                    profileName = ""; newProfileColor = 0; creating = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .aetherProminentButton()
+                .frame(minWidth: 88, minHeight: 30)
+                .disabled(profileName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.top, 4)
+        }
+        .padding(20)
+        .frame(width: 388)
+        .background { AetherSheetBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+    }
+
+    private var renameSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Rename Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
+            AetherField("Profile name", text: $renameText, horizontalPadding: 12)
+            HStack(spacing: 8) {
+                Spacer()
+                Button("Cancel") { renaming = false }
+                    .aetherButton()
+                    .frame(minWidth: 88, minHeight: 30)
+                Button("Save") {
+                    window.workspace.renameProfile(window.activeProfileID, to: renameText)
+                    renaming = false
+                }
+                .keyboardShortcut(.defaultAction)
+                .aetherProminentButton()
+                .frame(minWidth: 88, minHeight: 30)
+                .disabled(renameText.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.top, 4)
+        }
+        .padding(20)
+        .frame(width: 388)
+        .background { AetherSheetBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+    }
+
     static let swatches: [Color] = [
-        Color(red: 0xFB / 255, green: 0xFB / 255, blue: 0xFB / 255),
-        Color(red: 0x00 / 255, green: 0x8B / 255, blue: 0x5C / 255),
-        Color(red: 0x00 / 255, green: 0x7F / 255, blue: 0xBC / 255),
-        Color(red: 0x63 / 255, green: 0x5D / 255, blue: 0xA5 / 255),
-        Color(red: 0xC9 / 255, green: 0x85 / 255, blue: 0x00 / 255),
-        Color(red: 0xBD / 255, green: 0x56 / 255, blue: 0x6B / 255),
-        Color(red: 0xCC / 255, green: 0x4A / 255, blue: 0x56 / 255),
-        Color(red: 0xCA / 255, green: 0x51 / 255, blue: 0x26 / 255),
+        Color(red: 0xFF / 255, green: 0xFF / 255, blue: 0xFF / 255),
+        Color(red: 0x00 / 255, green: 0xA5 / 255, blue: 0x6E / 255),
+        Color(red: 0x00 / 255, green: 0x96 / 255, blue: 0xDE / 255),
+        Color(red: 0x74 / 255, green: 0x6C / 255, blue: 0xC4 / 255),
+        Color(red: 0xE8 / 255, green: 0x9B / 255, blue: 0x00 / 255),
+        Color(red: 0xDC / 255, green: 0x64 / 255, blue: 0x7D / 255),
+        Color(red: 0xF0 / 255, green: 0x55 / 255, blue: 0x63 / 255),
+        Color(red: 0xEE / 255, green: 0x5F / 255, blue: 0x2C / 255),
     ]
 
     static func swatchIndex(for profile: BrowserProfile) -> Int {

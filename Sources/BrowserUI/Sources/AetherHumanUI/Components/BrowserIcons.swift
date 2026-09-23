@@ -26,6 +26,11 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
     case terminalArrowRight
     case terminalArrowLeft
     case download
+    case downloads
+    case downloadFolder
+    case inspect
+    case cookie
+    case lockPrivacy
     case cursor
     case cursorClick
     case cursorPointer
@@ -72,6 +77,11 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
         case .music: .music
         case .terminalArrowRight: .console
         case .download: .download
+        case .downloads: .downloads
+        case .downloadFolder: .downloads
+        case .inspect: .inspect
+        case .cookie: .privacy
+        case .lockPrivacy: .lock
         case .cursor: .cursor
         case .cursorClick: .cursorClick
         case .cursorPointer: .cursorPointer
@@ -92,7 +102,30 @@ public enum BrowserIcon: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public var label: String { symbol.label }
+    public var label: String {
+        switch self {
+        case .cookie: "Cookies"
+        default: symbol.label
+        }
+    }
+
+    public var custom: AetherCustomIcon? {
+        switch self {
+        case .bookmark: .bookmark
+        case .doubleBookmark: .bookmarkSelected
+        case .history: .history
+        case .gear: .gear
+        case .download: .download
+        case .downloadFolder: .downloadFolder
+        case .reader: .reader
+        case .inspect: .inspect
+        case .lock: .lock
+        case .lockPrivacy: .lockPrivacy
+        case .cookie: .cookie
+        case .incognito: .incognito
+        default: nil
+        }
+    }
 }
 
 public struct BrowserIconView: View {
@@ -106,14 +139,18 @@ public struct BrowserIconView: View {
     }
 
     public var body: some View {
-        Image(systemName: icon == .doubleBookmark ? "bookmark.fill" : icon.symbol.rawValue)
-            .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
-            .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(tint ?? Color.primary)
-        .frame(width: AetherIconStyle.canvas,
-               height: AetherIconStyle.canvas,
-               alignment: .center)
-        .accessibilityHidden(true)
+        if let custom = icon.custom {
+            AetherCustomIconView(custom, tint: tint, size: size)
+        } else {
+            Image(systemName: icon == .doubleBookmark ? "bookmark.fill" : icon.symbol.rawValue)
+                .font(AetherType.symbol(size, weight: AetherIconStyle.weight))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint ?? Color.primary)
+                .frame(width: AetherIconStyle.canvas,
+                       height: AetherIconStyle.canvas,
+                       alignment: .center)
+                .accessibilityHidden(true)
+        }
     }
 }
 

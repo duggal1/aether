@@ -81,4 +81,5 @@ public protocol BrowserSearchIntelligence: AnyObject {
     func jevCompletions(prefix: String, local: [BrowserSearchSignal], limit: Int) async throws
         -> [BrowserSearchCandidate]
     func jevIsConfigured() async -> Bool
+    func jevUpdateKeys(typeSafeKey: String, search1APIKey: String) async
 }

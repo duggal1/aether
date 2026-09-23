@@ -1,0 +1,13 @@
+{
+  "pid": 79958,
+  "concurrent_pings": 1000,
+  "pipeline_pings": 1000,
+  "held_idle_clients": 24,
+  "abrupt_disconnects": 50,
+  "malformed_then_valid_connections": 10,
+  "failures": 0,
+  "elapsed_s": 1.0467455000034533,
+  "ping_median_ms": 14.424083492485806,
+  "ping_p95_ms": 23.48800000618212,
+  "ping_max_ms": 135.0349999847822
+}

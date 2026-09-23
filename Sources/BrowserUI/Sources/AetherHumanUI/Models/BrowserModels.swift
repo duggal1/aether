@@ -1,6 +1,6 @@
 import Foundation
 
-public enum TabArrangement: String, Codable, CaseIterable, Identifiable {
+public enum TabArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
     case top = "Top tabs"
     case sidebar = "Sidebar"
     public var id: String { rawValue }

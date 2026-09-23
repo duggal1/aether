@@ -1,0 +1,70 @@
+{
+  "binary": "/Users/harshitduggal/workspace/Aether/.build/out/Products/Release/browserd",
+  "browserd_rss_kb": 68336,
+  "context_cookies": {
+    "max_ms": 0.4676,
+    "min_ms": 0.1439,
+    "n": 200,
+    "p50_ms": 0.1721,
+    "p95_ms": 0.2319,
+    "p99_ms": 0.3831
+  },
+  "context_create_list": {
+    "max_ms": 0.1388,
+    "min_ms": 0.0737,
+    "n": 20,
+    "p50_ms": 0.1125,
+    "p95_ms": 0.134,
+    "p99_ms": 0.1388
+  },
+  "context_setCookie": {
+    "max_ms": 1.2433,
+    "min_ms": 0.1824,
+    "n": 20,
+    "p50_ms": 0.2358,
+    "p95_ms": 0.9646,
+    "p99_ms": 1.2433
+  },
+  "encode_decode_microbench": {
+    "decode_ms_total": 3.424,
+    "decode_us_each": 1.71,
+    "encode_ms_total": 3.382,
+    "encode_us_each": 1.69,
+    "iterations": 2000
+  },
+  "iterations": 200,
+  "notes": "one connection per call (browserctl model); wall time includes connect+write+read",
+  "ok": true,
+  "page_loadHTML": {
+    "max_ms": 103.2303,
+    "min_ms": 2.4377,
+    "n": 20,
+    "p50_ms": 2.9181,
+    "p95_ms": 6.3676,
+    "p99_ms": 103.2303
+  },
+  "page_query": {
+    "max_ms": 4.7365,
+    "min_ms": 0.1685,
+    "n": 200,
+    "p50_ms": 0.218,
+    "p95_ms": 0.584,
+    "p99_ms": 1.3582
+  },
+  "page_snapshot": {
+    "max_ms": 20.5698,
+    "min_ms": 14.0708,
+    "n": 40,
+    "p50_ms": 15.246,
+    "p95_ms": 18.1207,
+    "p99_ms": 20.5698
+  },
+  "ping": {
+    "max_ms": 0.0592,
+    "min_ms": 0.0399,
+    "n": 200,
+    "p50_ms": 0.047,
+    "p95_ms": 0.0527,
+    "p99_ms": 0.055
+  }
+}

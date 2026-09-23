@@ -38,8 +38,18 @@ public struct BrowserCommands: Commands {
             Button("Toggle Tab Layout") { window?.toggleArrangement() }
                 .keyboardShortcut("s", modifiers: [.command, .option])
         }
+        CommandMenu("Profiles") {
+            ForEach(0..<min(9, window?.workspace.profiles.count ?? 0), id: \.self) { index in
+                if let window, index < window.workspace.profiles.count {
+                    let profile = window.workspace.profiles[index]
+                    Button("Switch to \(profile.name)") { window.switchProfile(profile.id) }
+                        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                        .disabled(window.activeProfileID == profile.id)
+                }
+            }
+        }
         CommandMenu("Automation") {
-            Button("Allow Local Agents in This Profile…") {
+            Button("Local Agent Connection…") {
                 guard let window,
                     let provider = window.workspace.engine as? any BrowserAutomationProviding else { return }
                 Task {

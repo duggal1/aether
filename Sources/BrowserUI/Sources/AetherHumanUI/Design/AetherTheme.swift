@@ -25,6 +25,9 @@ public struct AetherTheme {
     public var text: Color { AetherPalette.text(dark) }
     public var textStrong: Color { AetherPalette.textStrong(dark) }
     public var muted: Color { AetherPalette.muted(dark) }
+    public var tertiary: Color { AetherPalette.tertiary(dark) }
+    public var input: Color { AetherPalette.input(dark) }
+    public var dropdownNested: Color { AetherPalette.dropdownNested(dark) }
     public var hairline: Color { AetherPalette.hairline(dark) }
     public var panel: Color { AetherPalette.panel(dark) }
     public var control: Color { AetherPalette.control(dark) }
@@ -42,6 +45,9 @@ public struct AetherTheme {
     public var tabActive: Color { AetherPalette.tabActive(dark) }
     public var tabHover: Color { AetherPalette.tabHover(dark) }
     public var modal: Color { AetherPalette.modal(dark) }
+    public var dialogCard: Color { AetherPalette.dialogCard(dark) }
+    public var dialogField: Color { AetherPalette.dialogField(dark) }
+    public var focusRing: Color { AetherPalette.focusRing(dark) }
     public var error: Color { AetherPalette.error(dark) }
     public var errorBackground: Color { AetherPalette.errorBackground(dark) }
     public var active: Color { AetherPalette.active(dark) }

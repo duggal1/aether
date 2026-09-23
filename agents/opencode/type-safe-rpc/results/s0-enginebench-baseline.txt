@@ -1,0 +1,5 @@
+nodes=50006
+parse_ms=475.410125
+style_ms=182.583916
+layout_ms=865.673792
+boxes=50003

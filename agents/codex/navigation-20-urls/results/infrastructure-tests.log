@@ -1,0 +1,246 @@
+Building for debugging...
+[Computing dependencies]
+[Provisioning 48 / 55]
+[Pre-planning 1 / 1574]
+[Planning deferred tasks]
+[Starting]
+[1 / 201] EngineCore
+[3 / 149] WebAPITests-product
+[4 / 149] SecurityTests-product
+[6 / 149] PerformanceTests-product
+[7 / 149] NetworkTests-product
+[8 / 149] NetworkHardeningIntegrationTests-product
+[9 / 149] LayoutTests-product
+[10 / 149] JevSearchTests-product
+[11 / 149] JavaScriptTests-product
+[12 / 152] JevSearchTests-product
+[13 / 152] HTMLTests-product
+[15 / 152] DOMTests-product
+[17 / 153] CSSTests-product
+[20 / 153] AetherCaptureTests-product
+[46 / 148] LayoutTests-product
+[48 / 155] AetherHumanUITests-product
+[49 / 155] JevSearchTests-product
+[54 / 156] JavaScriptTests-product
+[71 / 140] AetherHumanUITests-product
+[76 / 140] AgentTests-product
+[76 / 140] NetworkHardeningIntegrationTests-product
+[79 / 151] AgentTests-product
+[82 / 149] AgentTests-product
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:17:13: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+15 |         let profile = UUID()
+16 |         try await WebKitCookieBridge.set(
+17 |             await WebKitContext(identifier: profile), input: marker())
+   |             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+18 |         let reopened = await WebKitContext(identifier: profile)
+19 |         let cookies = try await WebKitCookieBridge.list(reopened)
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:18:24: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+16 |         try await WebKitCookieBridge.set(
+17 |             await WebKitContext(identifier: profile), input: marker())
+18 |         let reopened = await WebKitContext(identifier: profile)
+   |                        `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+19 |         let cookies = try await WebKitCookieBridge.list(reopened)
+20 |         #expect(cookies.contains { $0.name == "aether_session_marker" && $0.value == "session-alive" })
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:27:13: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+25 |         let work = UUID()
+26 |         try await WebKitCookieBridge.set(
+27 |             await WebKitContext(identifier: personal), input: marker())
+   |             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+28 |         let workCookies = try await WebKitCookieBridge.list(await WebKitContext(identifier: work))
+29 |         #expect(!workCookies.contains { $0.name == "aether_session_marker" })
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:28:61: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+26 |         try await WebKitCookieBridge.set(
+27 |             await WebKitContext(identifier: personal), input: marker())
+28 |         let workCookies = try await WebKitCookieBridge.list(await WebKitContext(identifier: work))
+   |                                                             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+29 |         #expect(!workCookies.contains { $0.name == "aether_session_marker" })
+30 |     }
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:35:13: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+33 |         let profile = UUID()
+34 |         try await WebKitCookieBridge.set(
+35 |             await WebKitContext(identifier: profile), input: marker("permanent"))
+   |             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+36 |         let ephemeralCookies = try await WebKitCookieBridge.list(await WebKitContext.ephemeral())
+37 |         #expect(!ephemeralCookies.contains { $0.name == "aether_session_marker" })
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:36:66: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+34 |         try await WebKitCookieBridge.set(
+35 |             await WebKitContext(identifier: profile), input: marker("permanent"))
+36 |         let ephemeralCookies = try await WebKitCookieBridge.list(await WebKitContext.ephemeral())
+   |                                                                  `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+37 |         #expect(!ephemeralCookies.contains { $0.name == "aether_session_marker" })
+38 |         try await WebKitCookieBridge.set(await WebKitContext.ephemeral(), input: marker("transient"))
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:38:42: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+36 |         let ephemeralCookies = try await WebKitCookieBridge.list(await WebKitContext.ephemeral())
+37 |         #expect(!ephemeralCookies.contains { $0.name == "aether_session_marker" })
+38 |         try await WebKitCookieBridge.set(await WebKitContext.ephemeral(), input: marker("transient"))
+   |                                          `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+39 |         let permanentCookies = try await WebKitCookieBridge.list(
+40 |             await WebKitContext(identifier: profile))
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:40:13: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+38 |         try await WebKitCookieBridge.set(await WebKitContext.ephemeral(), input: marker("transient"))
+39 |         let permanentCookies = try await WebKitCookieBridge.list(
+40 |             await WebKitContext(identifier: profile))
+   |             `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+41 |         #expect(!permanentCookies.contains { $0.value == "transient" })
+42 |     }
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:46:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+44 |     @Test func runtimeCookieAPIsAreProfileScoped() async throws {
+45 |         let runtime = BrowserRuntime()
+46 |         let personal = try await runtime.createContext(name: "personal")
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |         let work = try await runtime.createContext(name: "work")
+48 |         try await runtime.setCookie(
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitSessionPersistenceTests.swift:47:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+45 |         let runtime = BrowserRuntime()
+46 |         let personal = try await runtime.createContext(name: "personal")
+47 |         let work = try await runtime.createContext(name: "work")
+   |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |         try await runtime.setCookie(
+49 |             contextID: personal.id,
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[87 / 149] AgentTests-product
+[89 / 149] AgentTests-product
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitProxyIsolationTests.swift:23:20: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+21 | 
+22 |     @Test @MainActor func ephemeralContextsGetIndependentStores() async {
+23 |         let left = await WebKitContext.ephemeral()
+   |                    `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+24 |         let right = await WebKitContext.ephemeral()
+25 |         #expect(left.isEphemeral)
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitProxyIsolationTests.swift:24:21: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+22 |     @Test @MainActor func ephemeralContextsGetIndependentStores() async {
+23 |         let left = await WebKitContext.ephemeral()
+24 |         let right = await WebKitContext.ephemeral()
+   |                     `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+25 |         #expect(left.isEphemeral)
+26 |         #expect(right.isEphemeral)
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitProxyIsolationTests.swift:31:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+29 | 
+30 |     @Test @MainActor func proxyAppliesWithoutFailoverWhenFailClosed() async {
+31 |         let context = await WebKitContext.ephemeral()
+   |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+32 |         context.apply(proxy: WebProxyEndpoint(host: "127.0.0.1", port: 1080, failClosed: true))
+33 |         #expect(context.store.proxyConfigurations.count == 1)
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitProxyIsolationTests.swift:40:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+38 | 
+39 |     @Test @MainActor func failOpenEndpointAllowsFailover() async {
+40 |         let context = await WebKitContext.ephemeral()
+   |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+41 |         context.apply(proxy: WebProxyEndpoint(host: "127.0.0.1", port: 1080, failClosed: false))
+42 |         #expect(context.store.proxyConfigurations.first?.allowFailover == true)
+
+/Users/harshitduggal/workspace/Aether/Tests/AgentTests/WebKitProxyIsolationTests.swift:47:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+45 |     @Test func runtimeStoresPendingProxyPerContext() async throws {
+46 |         let runtime = BrowserRuntime()
+47 |         let context = try await runtime.createContext(name: "proxy-test")
+   |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |         let endpoint = WebProxyEndpoint(host: "exit.example.com", port: 1081, failClosed: true)
+49 |         try await runtime.configureWebProxy(contextID: context.id, endpoint: endpoint)
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[90 / 149] AgentTests-product
+[92 / 149] AgentTests-product
+[93 / 149] AetherHumanUITests-product
+[95 / 149] AetherHumanUITests-product
+[97 / 149] AetherHumanUITests-product
+[97 / 149] AgentTests-product
+[98 / 149] AetherHumanUITests-product
+[104 / 149] AetherApp
+[110 / 154] WebAPITests-product
+[112 / 162] StorageTests-product
+[119 / 157] PersistenceTests-product
+[120 / 157] AetherApp
+[121 / 157] AetherApp
+[122 / 157] HumanIntegrationTests-product
+[123 / 155] HumanIntegrationTests-product
+[125 / 155] AetherApp
+[126 / 155] AetherApp
+[126 / 155]
+[135 / 160] LayoutTests-product
+[141 / 156] DOMTests-product
+[144 / 154] HumanIntegrationTests-product
+[147 / 159] HumanIntegrationTests-product
+[149 / 158] HumanIntegrationTests-product
+[153 / 158] HumanIntegrationTests-product
+[154 / 158] AgentTests-product
+[156 / 160] HumanIntegrationTests-product
+Build complete! (31.97 sec)
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test appAutomationUsesVisibleTabsAndReportsReadiness() started.
+✔ Test appAutomationUsesVisibleTabsAndReportsReadiness() passed after 0.026 seconds.
+✔ Test run with 1 test in 0 suites passed after 0.026 seconds.
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Test socketAuthHandshakeRoundTrip() started.
+✔ Test socketAuthHandshakeRoundTrip() passed after 0.026 seconds.
+◇ Test socketAuthRejectsWrongAndMissingTokens() started.
+✔ Test socketAuthRejectsWrongAndMissingTokens() passed after 0.025 seconds.
+◇ Test socketAuthLocksOutAfterRepeatedFailures() started.
+✔ Test socketAuthLocksOutAfterRepeatedFailures() passed after 0.025 seconds.
+◇ Test socketKeepsEveryPipelinedMessageAndAcceptsAnotherBatch() started.
+✔ Test socketKeepsEveryPipelinedMessageAndAcceptsAnotherBatch() passed after 0.036 seconds.
+◇ Test socketCoalescedAuthenticationAndCommandPreserveBothFrames() started.
+✔ Test socketCoalescedAuthenticationAndCommandPreserveBothFrames() passed after 0.024 seconds.
+◇ Test socketIdleClientsDoNotStarveCommandExecution() started.
+✔ Test socketIdleClientsDoNotStarveCommandExecution() passed after 0.128 seconds.
+◇ Test socketIdleClientIsReleasedByReadTimeout() started.
+✔ Test socketIdleClientIsReleasedByReadTimeout() passed after 0.172 seconds.
+◇ Test socketPartialMessageStallsThenTimesOut() started.
+✔ Test socketPartialMessageStallsThenTimesOut() passed after 0.176 seconds.
+◇ Test socketAbruptClientDisconnectDoesNotKillServer() started.
+✔ Test socketAbruptClientDisconnectDoesNotKillServer() passed after 0.132 seconds.
+◇ Test socketNormalShutdownUnlinksAndStopsAccepting() started.
+✔ Test socketNormalShutdownUnlinksAndStopsAccepting() passed after 0.068 seconds.
+◇ Test socketCancellationReleasesBlockedIdleClientPromptly() started.
+✔ Test socketCancellationReleasesBlockedIdleClientPromptly() passed after 0.025 seconds.
+◇ Test socketEnforcesConnectionLimit() started.
+✔ Test socketEnforcesConnectionLimit() passed after 0.062 seconds.
+◇ Test authorizedConnectionSurvivesSlowHandler() started.
+✔ Test authorizedConnectionSurvivesSlowHandler() passed after 0.435 seconds.
+◇ Suite WebKitNavigationReliabilityTests started.
+◇ Test navigationErrorClassificationIsStable() started.
+✔ Test navigationErrorClassificationIsStable() passed after 0.003 seconds.
+◇ Test genuineFailureSurfacesThenClearsOnSuccess() started.
+✔ Test genuineFailureSurfacesThenClearsOnSuccess() passed after 2.281 seconds.
+◇ Test redirectDoesNotProduceFailure() started.
+✔ Test redirectDoesNotProduceFailure() passed after 0.420 seconds.
+◇ Test supersededNavigationCannotCorruptSuccessor() started.
+✔ Test supersededNavigationCannotCorruptSuccessor() passed after 1.884 seconds.
+◇ Test subframeFailureDoesNotReplaceRenderedPage() started.
+✔ Test subframeFailureDoesNotReplaceRenderedPage() passed after 1.990 seconds.
+◇ Test firstContentIsReadyAtCommit() started.
+✔ Test firstContentIsReadyAtCommit() passed after 3.449 seconds.
+◇ Test contentIsUsableBeforeResourcesFinish() started.
+✔ Test contentIsUsableBeforeResourcesFinish() passed after 3.552 seconds.
+◇ Test retryAfterGenuineFailureLeavesNoResidue() started.
+✔ Test retryAfterGenuineFailureLeavesNoResidue() passed after 0.420 seconds.
+◇ Test stoppedNavigationReportsNoError() started.
+✔ Test stoppedNavigationReportsNoError() passed after 0.865 seconds.
+◇ Test interruptedDownloadWithoutReplacementDoesNotWaitForDeadline() started.
+✔ Test interruptedDownloadWithoutReplacementDoesNotWaitForDeadline() passed after 3.390 seconds.
+◇ Test rapidReplacementsKeepTheLastDocument() started.
+✔ Test rapidReplacementsKeepTheLastDocument() passed after 0.773 seconds.
+◇ Test backForwardAndReloadKeepNavigationState() started.
+✔ Test backForwardAndReloadKeepNavigationState() passed after 0.428 seconds.
+◇ Test svgNamespacedHrefNeverBreaksInspection() started.
+✔ Test svgNamespacedHrefNeverBreaksInspection() passed after 0.141 seconds.
+◇ Test processTerminationCallbackReportsGenuineFailure() started.
+✔ Test processTerminationCallbackReportsGenuineFailure() passed after 0.411 seconds.
+✔ Suite WebKitNavigationReliabilityTests passed after 20.015 seconds.
+✔ Test run with 27 tests in 1 suite passed after 21.357 seconds.

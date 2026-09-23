@@ -45,6 +45,7 @@ public final class OmniboxSuggestionModel {
             fetchTask?.cancel()
             fetchTask = nil
             isFetching = false
+            selected = 0
             if trimmed.isEmpty || !trimmed.hasPrefix(previousPrefix) { completions = [] }
         }
         loadAccepted(profileID: window.activeProfileID)
@@ -135,7 +136,9 @@ public final class OmniboxSuggestionModel {
             prefix: prefix, provider: provider, tabs: tabs,
             bookmarks: window.workspace.bookmarks(for: window.activeProfileID),
             visits: window.workspace.visits.filter { $0.profileID == window.activeProfileID },
-            completions: completions, accepted: accepted)
+            completions: completions, accepted: accepted,
+            rememberedSite: window.workspace.rememberedSite(for: prefix,
+                                                             profileID: window.activeProfileID))
         selected = min(selected, max(0, rows.count - 1))
     }
 

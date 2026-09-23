@@ -10,6 +10,7 @@ public struct RuntimePageState: Equatable, Sendable {
   public let revision: UInt64
   public let scroll: Point
   public let loading: Bool
+  public let contentReady: Bool
   public let progress: Double
   public let target: URL?
   public let error: String?
@@ -54,12 +55,13 @@ extension BrowserRuntime {
   func state(for page: PageRecord, closed: Bool = false) -> RuntimePageState {
     if let state = webStates[page.id] {
       return RuntimePageState(page: info(for: page), navigation: nil, revision: state.sequence,
-        scroll: page.scroll, loading: state.loading, progress: state.progress,
+        scroll: page.scroll, loading: state.loading, contentReady: state.contentReady,
+        progress: state.progress,
         target: state.url, error: state.error, closed: closed)
     }
     return RuntimePageState(page: info(for: page), navigation: page.loaded?.navigationID,
       revision: page.loaded?.document.mutationVersion ?? 0, scroll: page.scroll,
-      loading: navigationLoads[page.id] != nil, progress: 0,
+      loading: navigationLoads[page.id] != nil, contentReady: page.loaded != nil, progress: 0,
       target: navigationTargets[page.id],
       error: navigationErrors[page.id], closed: closed)
   }
@@ -78,7 +80,8 @@ extension BrowserRuntime {
     }
     for (id, previous) in observedStates where current[id] == nil {
       let closed = RuntimePageState(page: previous.page, navigation: previous.navigation,
-        revision: previous.revision, scroll: previous.scroll, loading: false, progress: 0,
+        revision: previous.revision, scroll: previous.scroll, loading: false, contentReady: false,
+        progress: 0,
         target: nil, error: nil, closed: true)
       for observer in pageObservers.values { observer.yield(closed) }
     }

@@ -2,7 +2,6 @@ import SwiftUI
 
 public struct HoverSurface<Content: View>: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var hover = false
     let selected: Bool
     let radius: CGFloat
@@ -13,7 +12,7 @@ public struct HoverSurface<Content: View>: View {
     public var body: some View {
         content
             .background { surface }
-            .onHover { on in withAnimation(AetherMotion.hover(reduced)) { hover = on } }
+            .onHover { hover = $0 }
     }
 
     @ViewBuilder private var surface: some View {

@@ -11,7 +11,7 @@ public struct PrivacySettingsView: View {
             SettingsDivider()
             SettingsToggle("Block trackers", symbol: "shield", value: toggle(\.blockTrackers))
             SettingsDivider()
-            SettingsToggle("Handle cookie banners", symbol: "checkmark.shield", value: toggle(\.handleCookieBanners))
+            SettingsToggle("Handle cookie banners", customIcon: .cookie, value: toggle(\.handleCookieBanners))
         }
         AetherSection("Browsing data") {
             AetherRow("History", symbol: "clock") {

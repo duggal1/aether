@@ -10,10 +10,7 @@ extension AgentCommandDispatcher {
       AgentResponse(id: request.id, error: AgentError(code: "unauthorized", message: "Operation requires ownership of this context"))
     }
     func identifier(_ key: String) -> UInt64? {
-      guard let number = request.params[key]?.number,
-        number.isFinite, number >= 0, number < Double(UInt64.max), number.rounded() == number
-      else { return nil }
-      return UInt64(number)
+      request.params[key]?.exactUInt64
     }
     let method = request.method
     if method == "ping" { return await handle(request) }
@@ -25,8 +22,8 @@ extension AgentCommandDispatcher {
     }
     if method == "context.create" {
       let response = await handle(request)
-      if let number = response.result?["id"]?.number, number >= 0, number < Double(UInt64.max) {
-        ownership.bindContext(UInt64(number), to: principal.id)
+      if let id = response.result?["id"]?.exactUInt64 {
+        ownership.bindContext(id, to: principal.id)
       }
       return response
     }

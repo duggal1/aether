@@ -6,19 +6,23 @@ public struct AdvancedSettingsView: View {
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
     public var body: some View {
         AetherSection("Runtime") {
-            AetherRow("Engine connection", subtitle: "Same runtime for humans and external agents.", symbol: "cpu") {
-                Text(workspace.engine.isConnected ? "Connected" : "Not connected")
-                    .font(AetherType.medium(11))
-                    .foregroundStyle(workspace.engine.isConnected ? theme.active : theme.muted)
+            AetherRow("Engine connection", symbol: "cpu") {
+                if workspace.engine.isConnected {
+                    AetherBadge("Connected", variant: .green)
+                } else {
+                    Text("Not connected")
+                        .font(AetherType.body(12))
+                        .foregroundStyle(theme.muted)
+                }
             }
             SettingsDivider()
-            AetherRow("Browser engine", subtitle: "Custom Swift engine. No WebKit or Chromium wrapper.", symbol: "square.stack.3d.up") {
-                Text("Aether").font(AetherType.mono(11)).foregroundStyle(theme.muted)
+            AetherRow("Browser engine", customIcon: .engine) {
+                Text("Aether").font(AetherType.data(11)).foregroundStyle(theme.muted)
             }
         }
         AetherSection("Developer tools") {
-            AetherRow("Page inspection", subtitle: "Connect DOM and network diagnostics to Aether's engine APIs.", symbol: "chevron.left.forwardslash.chevron.right") {
-                Text("Adapter required").font(AetherType.body(11)).foregroundStyle(theme.muted)
+            AetherRow("Page inspection", customIcon: .inspect) {
+                EmptyView()
             }
         }
     }

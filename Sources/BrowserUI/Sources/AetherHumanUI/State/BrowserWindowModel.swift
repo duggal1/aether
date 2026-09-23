@@ -25,6 +25,7 @@ public final class BrowserWindowModel: Identifiable {
     public private(set) var glow = AetherNavigationGlowState()
     @ObservationIgnored private var glowSettleTask: Task<Void, Never>?
     @ObservationIgnored private var navigationTasks: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var navigationEpochs: [UUID: UInt64] = [:]
     @ObservationIgnored private var observation: Task<Void, Never>?
     @ObservationIgnored private var restorationStarted = false
     @ObservationIgnored private var lastNavigationURLs: [String: String] = [:]
@@ -49,7 +50,8 @@ public final class BrowserWindowModel: Identifiable {
             observation = Task { [weak self] in
                 for await state in updates {
                     guard let self, !Task.isCancelled else { return }
-                    for tab in self.tabsByProfile.values.flatMap({ $0 }) where tab.enginePageID == state.id {
+                    if let tab = self.tabsByProfile.values.lazy.flatMap({ $0 })
+                        .first(where: { $0.enginePageID == state.id }) {
                         self.apply(state, to: tab)
                     }
                 }
@@ -57,9 +59,10 @@ public final class BrowserWindowModel: Identifiable {
         }
     }
     public func restoreProfile() async {
-        guard !restorationStarted, workspace.preferences.restoreWindows,
-              let provider = workspace.engine as? any BrowserProfileManaging else { return }
+        guard !restorationStarted, workspace.preferences.restoreWindows else { return }
         restorationStarted = true
+        if restoreSavedSessionTabs() { return }
+        guard let provider = workspace.engine as? any BrowserProfileManaging else { return }
         let profile = activeProfileID
         do {
             let restored = try await provider.restoredPages(profileID: profile)
@@ -76,15 +79,60 @@ public final class BrowserWindowModel: Identifiable {
             selectionByProfile[profile] = tabs.first?.id
         } catch { alert = error.localizedDescription }
     }
+
+    @discardableResult private func restoreSavedSessionTabs() -> Bool {
+        let session = workspace.savedSession()
+        guard let record = session.windows.first(where: { $0.id == id }) ?? session.windows.first,
+              workspace.profiles.contains(where: { $0.id == record.activeProfileID }),
+              !(tabsByProfile[record.activeProfileID] ?? []).isEmpty == false
+                || (tabsByProfile[activeProfileID]?.count == 1
+                    && tabsByProfile[activeProfileID]?.first?.loadState == .newTab),
+              !(record.tabs.filter { $0.profileID == record.activeProfileID }).isEmpty
+        else { return false }
+        let known = Set(workspace.profiles.map(\.id))
+        var grouped: [UUID: [BrowserTab]] = [:]
+        for saved in record.tabs where known.contains(saved.profileID) {
+            let tab = BrowserTab(id: saved.id, profileID: saved.profileID, title: saved.title, url: saved.url)
+            tab.isPinned = saved.isPinned
+            if saved.url != nil {
+                tab.loadState = .ready
+                tab.needsRestoreLoad = true
+            }
+            grouped[saved.profileID, default: []].append(tab)
+        }
+        guard !grouped[record.activeProfileID, default: []].isEmpty else { return false }
+        activeProfileID = record.activeProfileID
+        isIncognito = workspace.isIncognito(activeProfileID)
+        sidebarCollapsed = record.sidebarCollapsed
+        tabsByProfile = grouped
+        selectionByProfile = [:]
+        for (profileID, items) in grouped {
+            let wanted = record.selectedByProfile[profileID] ?? items.first?.id
+            selectionByProfile[profileID] = items.first(where: { $0.id == wanted })?.id ?? items.first?.id
+        }
+        if let tab = selected, tab.needsRestoreLoad, let url = tab.url {
+            tab.needsRestoreLoad = false
+            navigate(tab, text: url)
+        }
+        workspace.flushSession()
+        return true
+    }
+
     public func select(_ id: UUID) {
         guard tabs.contains(where: { $0.id == id }) else { return }
         selectionByProfile[activeProfileID] = id
+        if let tab = tabs.first(where: { $0.id == id }), tab.needsRestoreLoad, let url = tab.url {
+            tab.needsRestoreLoad = false
+            navigate(tab, text: url)
+        }
+        workspace.scheduleSessionSave()
     }
     @discardableResult public func newTab(url: String? = nil) -> BrowserTab {
         let tab = BrowserTab(profileID: activeProfileID)
         tabsByProfile[activeProfileID, default: []].append(tab)
         selectionByProfile[activeProfileID] = tab.id
         if let url { navigate(tab, text: url) }
+        workspace.scheduleSessionSave()
         return tab
     }
     public func switchProfile(_ id: UUID) {
@@ -93,6 +141,7 @@ public final class BrowserWindowModel: Identifiable {
         activeProfileID = id
         if tabsByProfile[id, default: []].isEmpty { _ = newTab() }
         isIncognito = workspace.isIncognito(id)
+        workspace.scheduleSessionSave()
         if isIncognito {
             Task { try? await workspace.engine.setProfileEphemeral(profileID: id, enabled: true) }
         } else if leavingIncognito, let incognitoID = workspace.profiles.first(where: \.isIncognito)?.id {
@@ -131,8 +180,12 @@ public final class BrowserWindowModel: Identifiable {
         guard let current = tabs.firstIndex(where: { $0.id == id }) else { return }
         let tab = tabs[current]
         navigationTasks.removeValue(forKey: id)?.cancel()
-        closedTabs.insert(ClosedTab(title: tab.title, url: tab.url, profileID: tab.profileID), at: 0)
-        if closedTabs.count > 30 { closedTabs.removeLast() }
+        if case .newTab = tab.loadState {
+        } else if case .search = tab.loadState {
+        } else if let url = tab.url, !url.isEmpty, url != "about:blank" {
+            closedTabs.insert(ClosedTab(title: tab.title.isEmpty ? url : tab.title, url: tab.url, profileID: tab.profileID), at: 0)
+            if closedTabs.count > 30 { closedTabs.removeLast() }
+        }
         if let page = tab.enginePageID { surfaces.release(page); Task { await workspace.engine.close(pageID: page) } }
         tabsByProfile[activeProfileID]?.remove(at: current)
         if selectedID == id {
@@ -140,17 +193,22 @@ public final class BrowserWindowModel: Identifiable {
             selectionByProfile[activeProfileID] = remaining.isEmpty ? nil : remaining[min(current, remaining.count - 1)].id
         }
         if tabs.isEmpty { _ = newTab() }
+        workspace.scheduleSessionSave()
     }
     public func closeOthers(_ id: UUID) {
         for tab in tabs where tab.id != id && !tab.isPinned { close(tab.id) }
     }
-    public func togglePin(_ id: UUID) { tabs.first(where: { $0.id == id })?.isPinned.toggle() }
+    public func togglePin(_ id: UUID) {
+        tabs.first(where: { $0.id == id })?.isPinned.toggle()
+        workspace.scheduleSessionSave()
+    }
     public func moveTab(_ source: UUID, before target: UUID) {
         guard var items = tabsByProfile[activeProfileID], let from = items.firstIndex(where: { $0.id == source }),
               let to = items.firstIndex(where: { $0.id == target }), from != to else { return }
         let moved = items.remove(at: from)
         items.insert(moved, at: min(to, items.count))
         tabsByProfile[activeProfileID] = items
+        workspace.scheduleSessionSave()
     }
     public func duplicate(_ id: UUID) {
         guard let source = tabs.first(where: { $0.id == id }) else { return }
@@ -173,16 +231,29 @@ public final class BrowserWindowModel: Identifiable {
     public func navigate(_ tab: BrowserTab, text: String, intelligence: Bool = false) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        if AddressResolver.directURL(trimmed) == nil,
+        let direct = AddressResolver.directURL(trimmed)
+        let remembered = direct == nil
+            ? workspace.rememberedSite(for: trimmed, profileID: tab.profileID) : nil
+        if direct == nil,
+           remembered == nil,
            intelligence || workspace.preferences.provider.usesIntelligence {
             startJevSearch(tab, query: trimmed)
             return
         }
-        guard let destination = AddressResolver.resolve(text, provider: workspace.preferences.provider) else { return }
+        guard let destination = direct ?? remembered ?? AddressResolver.resolve(
+            text, provider: workspace.preferences.provider,
+            locality: workspace.preferences.searchLocality,
+            localityTerms: workspace.preferences.localityQueryTerms) else { return }
+        if tab.loadState == .loading, tab.pendingURL == destination.absoluteString { return }
         tab.url = destination.absoluteString
+        tab.pendingURL = destination.absoluteString
+        tab.contentReady = false
         tab.siteSurface = nil
+        tab.sitePrefersDark = nil
         tab.loadState = .loading
+        workspace.scheduleSessionSave()
         if tab.id == selectedID { beginNavigationGlow() }
+        let epoch = beginNavigationEpoch(for: tab)
         navigationTasks[tab.id]?.cancel()
         navigationTasks[tab.id] = Task {
             do {
@@ -196,21 +267,59 @@ public final class BrowserWindowModel: Identifiable {
                     }
                     tab.enginePageID = page
                 }
+                guard self.isCurrent(epoch, tab: tab) else { return }
                 try await workspace.engine.navigate(pageID: page, url: destination)
+                guard self.isCurrent(epoch, tab: tab) else { return }
                 try await refresh(tab)
 
             } catch {
-                guard !Task.isCancelled else { return }
-                tab.loadState = .failed(error.localizedDescription)
+                self.fail(tab, error: error, epoch: epoch)
             }
         }
+    }
+
+    @discardableResult private func beginNavigationEpoch(for tab: BrowserTab) -> UInt64 {
+        let epoch = (navigationEpochs[tab.id] ?? 0) + 1
+        navigationEpochs[tab.id] = epoch
+        return epoch
+    }
+
+    private func isCurrent(_ epoch: UInt64, tab: BrowserTab) -> Bool {
+        navigationEpochs[tab.id] == epoch
+    }
+
+    private func fail(_ tab: BrowserTab, error: Error, epoch: UInt64) {
+        guard isCurrent(epoch, tab: tab), !Self.isCancellation(error), !tab.contentReady else { return }
+        tab.loadState = .failed(error.localizedDescription)
+        if tab.id == selectedID { finishGlow(true) }
+    }
+
+    public static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
+    }
+
+    static func sameNavigationURL(_ pending: String, _ current: String?) -> Bool {
+        guard let current, let a = URL(string: pending), let b = URL(string: current) else {
+            return pending == current
+        }
+        guard (a.scheme?.lowercased() ?? "") == (b.scheme?.lowercased() ?? ""),
+              (a.host?.lowercased() ?? "") == (b.host?.lowercased() ?? "") else { return false }
+        let empty: Set<String> = ["", "/"]
+        let pathMatch = a.path == b.path || (empty.contains(a.path) && empty.contains(b.path))
+        return pathMatch && (a.query ?? "") == (b.query ?? "")
     }
     public func startJevSearch(_ tab: BrowserTab, query: String) {
         navigationTasks[tab.id]?.cancel()
         navigationTasks[tab.id] = nil
+        _ = beginNavigationEpoch(for: tab)
         tab.title = query
         tab.siteSurface = nil
+        tab.sitePrefersDark = nil
         tab.url = nil
+        tab.pendingURL = nil
+        tab.contentReady = false
         tab.canGoBack = false
         tab.canGoForward = false
         tab.loadProgress = 0
@@ -272,29 +381,63 @@ public final class BrowserWindowModel: Identifiable {
         if case .search = tab.loadState { return }
         if state.closed {
             tab.enginePageID = nil
+            tab.pendingURL = nil
             tab.loadState = .failed("The engine page was closed.")
             if tab.id == selectedID { finishGlow(true) }
             return
         }
         tab.title = state.title.isEmpty ? (state.url ?? "New Tab") : state.title
-        if tab.url != state.url { tab.siteSurface = nil }
-        tab.url = state.url
         tab.canGoBack = state.canGoBack
         tab.canGoForward = state.canGoForward
         tab.isSecure = state.isSecure
         tab.loadProgress = state.progress
-        if let error = state.error {
+        tab.isLoading = state.isLoading
+        tab.contentReady = state.contentReady
+        // An error only replaces the page when there is no usable document yet.
+        // A rendered page must never be swapped for a stale or unrelated error
+        // overlay.
+        if let error = state.error, !state.contentReady {
             tab.loadState = .failed(error)
             if tab.id == selectedID { finishGlow(true) }
-        } else if state.isLoading {
-            tab.loadState = .loading
-            if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
-        } else {
-            tab.loadState = .ready
-            if tab.id == selectedID { finishGlow(false) }
+            return
         }
-        if !state.isLoading, state.error == nil, let url = state.url,
-           lastNavigationURLs[state.id] != url {
+        if !state.contentReady {
+            if !state.isLoading {
+                tab.pendingURL = nil
+                tab.url = nil
+                tab.title = "New Tab"
+                tab.loadProgress = 0
+                tab.loadState = .newTab
+                if tab.id == selectedID {
+                    glowSettleTask?.cancel()
+                    glow.settle()
+                }
+                return
+            }
+            tab.loadState = .loading
+            if tab.pendingURL == nil {
+                if tab.url != state.url { tab.siteSurface = nil; tab.sitePrefersDark = nil }
+                tab.url = state.url
+            }
+            if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
+            return
+        }
+        // The commit is the visual-readiness signal: the document is on screen
+        // and further loading is subresources (ads, analytics) that must never
+        // hold the progress indicator hostage.
+        if let pending = tab.pendingURL, !Self.sameNavigationURL(pending, state.url) {
+            if state.isLoading {
+                tab.loadState = .loading
+                if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
+                return
+            }
+        }
+        tab.pendingURL = nil
+        if tab.url != state.url { tab.siteSurface = nil; tab.sitePrefersDark = nil }
+        tab.url = state.url
+        tab.loadState = .ready
+        if tab.id == selectedID { finishGlow(false) }
+        if let url = state.url, lastNavigationURLs[state.id] != url {
             lastNavigationURLs[state.id] = url
             workspace.recordVisit(profileID: tab.profileID, title: tab.title, url: url)
         }
@@ -309,17 +452,19 @@ public final class BrowserWindowModel: Identifiable {
             }
         }
         workspace.removeWindow(id)
+        workspace.flushSession()
     }
     public func perform(_ action: EngineNavigationAction) {
         guard let tab = selected, let page = tab.enginePageID else { return }
+        let epoch = beginNavigationEpoch(for: tab)
         if case .stop = action {
             navigationTasks[tab.id]?.cancel()
             if glow.phase.isActive { glow.fail(); scheduleGlowSettle(after: 0.24) }
         } else {
             beginNavigationGlow()
+            tab.loadState = .loading
         }
-        tab.loadState = .loading
-        Task {
+        navigationTasks[tab.id] = Task {
             do {
                 switch action {
                 case .back: try await workspace.engine.goBack(pageID: page)
@@ -327,8 +472,11 @@ public final class BrowserWindowModel: Identifiable {
                 case .reload: try await workspace.engine.reload(pageID: page)
                 case .stop: try await workspace.engine.stop(pageID: page)
                 }
+                guard self.isCurrent(epoch, tab: tab) else { return }
                 try await refresh(tab)
-            } catch { tab.loadState = .failed(error.localizedDescription) }
+            } catch {
+                self.fail(tab, error: error, epoch: epoch)
+            }
         }
     }
     public func setArrangement(_ mode: TabArrangement) { workspace.preferences.arrangement = mode }

@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ChromeButton: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var appearance
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @BrowserState private var hovering = false
     public let icon: BrowserIcon
@@ -24,24 +25,27 @@ public struct ChromeButton: View {
                 .iconSize(iconSize)
                 .frame(width: size, height: size)
                 .background { surface }
+                .contentShape(Rectangle())
         }
         .buttonStyle(AetherPressStyle(reduced: reduceMotion))
         .focusEffectDisabled()
+        .contentShape(Rectangle())
         .disabled(!enabled)
         .help(help)
         .accessibilityLabel(help)
-        .onHover { value in withAnimation(AetherMotion.hover(reduceMotion)) { hovering = value } }
+        .animation(AetherMotion.hover(reduceMotion), value: hovering)
+        .onHover { hovering = $0 }
     }
 
     @ViewBuilder private var surface: some View {
-        if enabled && (hovering || selected) {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(theme.hover)
-        }
+        AetherInteractionSurface(active: enabled && (hovering || selected), radius: 6, selected: selected)
     }
 
     private var tint: Color {
-        guard enabled else { return theme.soft }
+        guard enabled else { return appearance?.secondary ?? theme.soft }
+        if let appearance {
+            return hovering || selected ? appearance.text : appearance.icon
+        }
         return hovering || selected ? theme.ink : theme.muted
     }
 }

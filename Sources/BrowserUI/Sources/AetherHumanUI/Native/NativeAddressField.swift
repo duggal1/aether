@@ -4,10 +4,13 @@ import SwiftUI
 struct NativeAddressField: NSViewRepresentable {
     @Binding var text: String
     @Binding var focused: Bool
+    let textColor: Color
+    let placeholderColor: Color
     let fullAddress: String
     let placeholder: String
     let focusRequest: Int
-    let onSubmit: () -> Void
+    let resignRequest: Int
+    let onSubmit: (String) -> Void
     let onEscape: () -> Void
     let onMove: (Int) -> Void
     let onComplete: () -> Void
@@ -15,7 +18,7 @@ struct NativeAddressField: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     private func addressFont() -> NSFont {
-        if let name = AetherFontRegistry.faceName(for: .regular), let font = NSFont(name: name, size: 13) {
+        if let name = AetherFontRegistry.faceName(for: .body), let font = NSFont(name: name, size: 13) {
             return font
         }
         return .systemFont(ofSize: 13)
@@ -37,7 +40,11 @@ struct NativeAddressField: NSViewRepresentable {
 
     func updateNSView(_ field: NSTextField, context: Context) {
         context.coordinator.parent = self
-        field.placeholderString = placeholder
+        field.textColor = NSColor(textColor)
+        field.placeholderAttributedString = NSAttributedString(
+            string: placeholder,
+            attributes: [.foregroundColor: NSColor(placeholderColor),
+                         .font: addressFont()])
         if field.currentEditor() == nil, field.stringValue != text { field.stringValue = text }
         if context.coordinator.lastFocusRequest != focusRequest {
             context.coordinator.lastFocusRequest = focusRequest
@@ -47,14 +54,23 @@ struct NativeAddressField: NSViewRepresentable {
                 field.selectText(nil)
             }
         }
+        if context.coordinator.lastResignRequest != resignRequest {
+            context.coordinator.lastResignRequest = resignRequest
+            DispatchQueue.main.async { [weak field] in
+                guard let field, field.currentEditor() != nil else { return }
+                field.window?.makeFirstResponder(nil)
+            }
+        }
     }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: NativeAddressField
         var lastFocusRequest: Int
+        var lastResignRequest: Int
         init(_ parent: NativeAddressField) {
             self.parent = parent
             lastFocusRequest = parent.focusRequest
+            lastResignRequest = parent.resignRequest
         }
         func controlTextDidBeginEditing(_ notification: Notification) {
             guard let field = notification.object as? NSTextField else { return }
@@ -69,15 +85,14 @@ struct NativeAddressField: NSViewRepresentable {
         }
         func controlTextDidChange(_ notification: Notification) {
             guard let field = notification.object as? NSTextField else { return }
-            let value = field.stringValue
-            DispatchQueue.main.async { self.parent.text = value }
+            parent.text = field.stringValue
         }
         func controlTextDidEndEditing(_ notification: Notification) {
             DispatchQueue.main.async { self.parent.focused = false }
         }
         func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             if selector == #selector(NSResponder.insertNewline(_:)) {
-                parent.onSubmit()
+                parent.onSubmit(textView.string)
                 control.window?.makeFirstResponder(nil)
                 return true
             }

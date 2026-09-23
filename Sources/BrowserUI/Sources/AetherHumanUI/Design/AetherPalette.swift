@@ -7,10 +7,17 @@ public enum AetherNeutral {
     public static let card: UInt = 0x202020
     public static let hover: UInt = 0x292929
     public static let selected: UInt = 0x2D2D2D
+    public static let input: UInt = 0x2D2D2D
+    public static let focus: UInt = 0x323232
+    public static let dropdownNested: UInt = 0x252525
     public static let text: UInt = 0xF5F5F5
     public static let textStrong: UInt = 0xFAFAFA
     public static let muted: UInt = 0xA3A3A3
+    public static let tertiary: UInt = 0x737373
     public static let hairline: UInt = 0xFFFFFF
+    public static let focusRing: UInt = 0x323232
+    public static let folderBlue: UInt = 0x2563EB
+    public static let closeOnLight: UInt = 0x1A1B1F
 
     public static let lightBackground: UInt = 0xFFFFFF
     public static let lightChrome: UInt = 0xF7F7F7
@@ -59,7 +66,16 @@ public enum AetherPalette {
         neutral(dark, darkHex: AetherNeutral.muted, lightHex: AetherNeutral.lightMuted)
     }
     public static func hairline(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.hairline, lightHex: AetherNeutral.lightHairline, alpha: 0.07)
+        neutral(dark, darkHex: AetherNeutral.hairline, lightHex: AetherNeutral.lightHairline, alpha: 0)
+    }
+    public static func input(_ dark: Bool) -> Color {
+        neutral(dark, darkHex: AetherNeutral.input, lightHex: AetherNeutral.lightHover)
+    }
+    public static func tertiary(_ dark: Bool) -> Color {
+        neutral(dark, darkHex: AetherNeutral.tertiary, lightHex: AetherNeutral.lightMuted)
+    }
+    public static func dropdownNested(_ dark: Bool) -> Color {
+        neutral(dark, darkHex: AetherNeutral.dropdownNested, lightHex: AetherNeutral.lightHover)
     }
     public static func panel(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
@@ -115,6 +131,15 @@ public enum AetherPalette {
     public static func modal(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
     }
+    public static func dialogCard(_ dark: Bool) -> Color {
+        card(dark)
+    }
+    public static func dialogField(_ dark: Bool) -> Color {
+        input(dark)
+    }
+    public static func focusRing(_ dark: Bool) -> Color {
+        neutral(dark, darkHex: AetherNeutral.focusRing, lightHex: 0x4A4E57)
+    }
     public static func error(_ dark: Bool) -> Color {
         color(dark ? 0xE5A0A0 : 0x8A1F1F)
     }
@@ -125,7 +150,7 @@ public enum AetherPalette {
         color(dark ? 0x7FB98C : 0x2F6B3C)
     }
     public static func focus(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
+        neutral(dark, darkHex: AetherNeutral.focus, lightHex: AetherNeutral.lightSelected)
     }
     public static func glowCore(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.textStrong, lightHex: AetherNeutral.lightTextStrong)
@@ -146,7 +171,7 @@ public enum AetherPalette {
         neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
     }
     public static func inset(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
+        input(dark)
     }
     public static func navigation(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.muted, lightHex: AetherNeutral.lightMuted)
@@ -166,6 +191,7 @@ public enum AetherPalette {
     public static func profileBottom(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
     }
+    public static let folderColor = color(AetherNeutral.folderBlue)
     public static func siteSurface(_ hex: UInt) -> Color { color(hex) }
     public static func siteInk(_ hex: UInt) -> Color {
         let r = Double((hex >> 16) & 255) / 255
@@ -191,8 +217,8 @@ public enum AetherMetrics {
     public static let cardRadius: CGFloat = 8
     public static let fieldRadius: CGFloat = 6
     public static let utilityRadius: CGFloat = 5
-    public static let menuRadius: CGFloat = 10
-    public static let panelRadius: CGFloat = 8
+    public static let menuRadius: CGFloat = 12
+    public static let panelRadius: CGFloat = 12
     public static let tabHeight: CGFloat = 40
     public static let rowHeight: CGFloat = 33
     public static let chromeHeight: CGFloat = 42
@@ -207,33 +233,48 @@ public enum AetherMetrics {
     public static let tabMinWidth: CGFloat = 108
     public static let tabMaxWidth: CGFloat = 207
     public static let tabShoulder: CGFloat = 12
-    public static let profileClusterWidth: CGFloat = 322
+    public static let profileClusterWidth: CGFloat = 200
     public static let profileClusterHeight: CGFloat = 32
 }
 
 // Accent applies only to explicit theme affordances, not neutral browser-owned surfaces.
 public enum AetherProgressColor: String, CaseIterable, Codable, Identifiable, Sendable {
     case violet = "Violet"
-    case orange = "Orange"
+    case indigo = "Indigo"
+    case blue = "Blue"
+    case teal = "Teal"
     case green = "Green"
+    case yellow = "Yellow"
+    case orange = "Orange"
+    case rose = "Rose"
     case neutral = "Neutral"
     public var id: String { rawValue }
 
     public var color: Color {
         switch self {
-        case .violet: Color(red: 0.58, green: 0.43, blue: 0.98)
-        case .orange: Color(red: 0.98, green: 0.55, blue: 0.26)
-        case .green: Color(red: 0.34, green: 0.80, blue: 0.53)
-        case .neutral: Color(red: 0.85, green: 0.85, blue: 0.85)
+        case .violet: Color(red: 0.55, green: 0.36, blue: 0.96)
+        case .indigo: Color(red: 0.39, green: 0.40, blue: 0.95)
+        case .blue: Color(red: 0.23, green: 0.51, blue: 0.96)
+        case .teal: Color(red: 0.08, green: 0.72, blue: 0.65)
+        case .green: Color(red: 0.13, green: 0.77, blue: 0.37)
+        case .yellow: Color(red: 0.92, green: 0.70, blue: 0.03)
+        case .orange: Color(red: 0.98, green: 0.45, blue: 0.09)
+        case .rose: Color(red: 0.96, green: 0.25, blue: 0.37)
+        case .neutral: Color(red: 0.83, green: 0.83, blue: 0.83)
         }
     }
 
     public var gradientTrio: (UInt, UInt, UInt) {
         switch self {
-        case .violet: (0x5842BC, 0x9B7CFF, 0xEEE7FF)
-        case .orange: (0xB94E1D, 0xFF9F56, 0xFFF0D9)
-        case .green: (0x207D50, 0x66D99A, 0xE3FFE8)
-        case .neutral: (0xB9B9C0, 0xDEDEE3, 0xFFFFFF)
+        case .violet: (0x6D28D9, 0xA78BFA, 0xEDE9FE)
+        case .indigo: (0x4338CA, 0x818CF8, 0xE0E7FF)
+        case .blue: (0x1D4ED8, 0x60A5FA, 0xDBEAFE)
+        case .teal: (0x0F766E, 0x2DD4BF, 0xCCFBF1)
+        case .green: (0x15803D, 0x4ADE80, 0xDCFCE7)
+        case .yellow: (0xA16207, 0xFDE047, 0xFEF9C3)
+        case .orange: (0xC2410C, 0xFB923C, 0xFFEDD5)
+        case .rose: (0xBE123C, 0xFB7185, 0xFFE4E6)
+        case .neutral: (0xA3A3A3, 0xE5E5E5, 0xFFFFFF)
         }
     }
 }

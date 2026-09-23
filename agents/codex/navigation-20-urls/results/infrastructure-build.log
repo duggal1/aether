@@ -1,0 +1,72 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1023]
+[Planning deferred tasks]
+[1 / 223]
+[32 / 134] EngineCore
+[33 / 135] JevSearch
+[37 / 127] JevSearch
+[41 / 127] AetherCapture
+[42 / 130] AetherHumanUI
+[54 / 137] AetherNetworkHardening
+[55 / 137] ContentBlocker
+[60 / 156] Text
+[61 / 156] WebSecurity
+[65 / 146] Persistence
+[67 / 146] Graphics
+[70 / 141] DOM
+[71 / 141] CSS
+[73 / 136] AgentProtocol
+[75 / 138] WebSecurity
+[91 / 173] AgentProtocol
+/Users/harshitduggal/workspace/Aether/Sources/AgentProtocol/UnixSocket.swift:107:10: warning: result of call to 'withLock' is unused [#NoUsage]
+105 | 
+106 |   func removeClient(_ fd: Int32) {
+107 |     lock.withLock { $0.clients.remove(fd) }
+    |          `- warning: result of call to 'withLock' is unused [#NoUsage]
+108 |   }
+109 | 
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[95 / 170] JavaScript
+[96 / 170] Images
+[99 / 160] HTML
+[108 / 162] Style
+[112 / 156] Media
+[116 / 158] DOM
+[119 / 152] Layout
+[120 / 158] ContentBlocker
+[125 / 158] Text
+[127 / 158] Scheduler
+[131 / 160] Images
+[133 / 161]
+[137 / 164] Diagnostics
+[138 / 168] WebAPI
+[139 / 168] BrowserEngine
+[141 / 165] BrowserEngine
+[144 / 165] BrowserEngine
+[147 / 160] browserd-product
+[150 / 162] browserd-product
+[151 / 164] browserctl-product
+[153 / 165] browserd-product
+[156 / 166] browserctl-product
+[159 / 167] browserctl-product
+[160 / 177] Media
+[161 / 177] AetherApp-product
+[163 / 177] AetherApp-product
+[165 / 177] AetherApp-product
+[166 / 179] AetherApp-product
+[167 / 179] AetherApp-product
+[168 / 179] AetherApp-product
+[169 / 179] AetherApp-product
+[170 / 179] AetherApp-product
+[171 / 179] AetherApp-product
+[171 / 179]
+[173 / 179] EngineRuntime
+[175 / 180] enginebench-product
+[176 / 180] browserd-product
+[177 / 180] browserctl-product
+[180 / 180] browserd-product
+[182 / 182] enginebench-product
+[186 / 187] AetherApp-product
+Build complete! (26.17 sec)

@@ -45,15 +45,41 @@ public struct PersistentPageSurface: NSViewRepresentable {
 }
 
 enum AetherWebScrollTuning {
+    private static var tuned: Set<ObjectIdentifier> = []
+
     static func tune(_ root: NSView) {
-        tuneRecursively(root)
+        let id = ObjectIdentifier(root)
+        guard !tuned.contains(id) else { return }
+        tuned.insert(id)
+        if tuned.count > 256 { tuned.removeFirst() }
+        tuneRecursively(root, depth: 0)
     }
 
-    private static func tuneRecursively(_ view: NSView) {
+    private static func tuneRecursively(_ view: NSView, depth: Int) {
         if let scrollView = view as? NSScrollView {
             scrollView.scrollerStyle = .overlay
             scrollView.scrollerKnobStyle = .dark
         }
-        for subview in view.subviews { tuneRecursively(subview) }
+        guard depth < 6 else { return }
+        for subview in view.subviews { tuneRecursively(subview, depth: depth + 1) }
+    }
+}
+
+struct AetherOverlayScrollerTuning: NSViewRepresentable {
+    func makeNSView(context: Context) -> OverlayScrollerProbe { OverlayScrollerProbe() }
+    func updateNSView(_ view: OverlayScrollerProbe, context: Context) {}
+}
+
+final class OverlayScrollerProbe: NSView {
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        var current = superview
+        while let view = current {
+            if let scrollView = view as? NSScrollView {
+                scrollView.scrollerStyle = .overlay
+                break
+            }
+            current = view.superview
+        }
     }
 }

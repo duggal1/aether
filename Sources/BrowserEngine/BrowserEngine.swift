@@ -29,16 +29,18 @@ public final class NativeBrowserEngine: Sendable {
     try await runtime.navigate(pageID: pageID, to: url, settle: settle)
   }
 
-  public func back(pageID: PageID) async throws -> BrowserPageInfo {
-    try await runtime.goBack(pageID: pageID)
+  public func back(pageID: PageID, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    try await runtime.goBack(pageID: pageID, settle: settle)
   }
 
-  public func forward(pageID: PageID) async throws -> BrowserPageInfo {
-    try await runtime.goForward(pageID: pageID)
+  public func forward(pageID: PageID, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    try await runtime.goForward(pageID: pageID, settle: settle)
   }
 
-  public func reload(pageID: PageID, bypassCache: Bool = false) async throws -> BrowserPageInfo {
-    try await runtime.reload(pageID: pageID, bypassCache: bypassCache)
+  public func reload(pageID: PageID, bypassCache: Bool = false, settle: PageReadiness = .complete)
+    async throws -> BrowserPageInfo
+  {
+    try await runtime.reload(pageID: pageID, bypassCache: bypassCache, settle: settle)
   }
 
   public func inspect(pageID: PageID) async throws -> PageInspection {

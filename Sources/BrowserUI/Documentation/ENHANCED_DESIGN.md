@@ -21,7 +21,9 @@ There is no separate "Liquid Motion engine" in Apple's public API. Motion is Swi
 
 ## 1. The glass system
 
-One owner: `Design/AetherGlass.swift`. Counts below come from `grep` over `Sources/`.
+One owner: `Design/AetherGlass.swift`. Glass policy: native `glassEffect` renders on dropdown/popover surfaces (`AetherPopoverBackground`), the search-suggestion panel (`AetherSuggestionBackground`, darker veil), settings cards (`AetherSettingsCardBackground`), the selected sidebar tab, and the profile picker (rest + interactive hover). The sidebar's background blur is a real `NSVisualEffectView` (`.sidebar`, `.behindWindow`, active) under a thin contrast veil — not a foundation color pretending to be blur. Veils are kept thin (0.20–0.28) so the native blur stays visible; text always renders above the glass and stays sharp. Everything else — toolbar, omnibox field, inactive tabs, icon hovers, menu rows, suggestion rows, overlay panels — uses flat appearance-aware fills, never glass. `GlassEffectContainer` is not used. Panel/dialog buttons use the flat neutral `AetherNeutralButtonStyle` (`.aetherButton()` / `.aetherProminentButton()`), not `.buttonStyle(.glass)`.
+
+Top tabs compress responsively: per-tab width is allocated from measured strip width (174 pt full → 46 pt favicon-only minimum, compact below 108 pt with the X fully replacing the centered favicon in place, no layout shift). The active fused tab fills with the toolbar surface so it connects seamlessly beneath it. Tab rows are real `Button`s with explicit hit shapes; the overlay tap-catcher covers only the content column so the sidebar stays live with panels open. The profile picker clears the traffic lights (72 pt windowed, 12 pt fullscreen) at 28 pt height. History/Bookmarks panels are forced dark with neutral light/dark action buttons; suggestion rows use rest/hover/selected/selected-hover fills with a `return` indicator on the selected row.
 
 | Piece | Wraps | Real call sites |
 |---|---|---|
@@ -33,26 +35,25 @@ One owner: `Design/AetherGlass.swift`. Counts below come from `grep` over `Sourc
 | `.aetherGlassButton()` | `.buttonStyle(.glass)` | 12 |
 | `.aetherGlassProminentButton()` | `.buttonStyle(.glassProminent)` | 3 |
 
-Deleted in this pass: `AetherGlassBackdrop` (zero users), the hand-rolled `AetherDialogButtonStyle` with hardcoded hex fills, `AetherLeadingGlassPanel` (zero users), and every `NSVisualEffectView` bridge (`AetherChromeBlur`, `AetherStrongInAppBlur`). `#available(macOS 26…`, `NSVisualEffectView`, `.ultraThinMaterial`, `.regularMaterial` and `matchedGeometryEffect` now appear **0 times** in the UI.
+Deleted in this pass: `AetherGlassBackdrop` (zero users), the hand-rolled `AetherDialogButtonStyle` with hardcoded hex fills, `AetherLeadingGlassPanel` (zero users), every `NSVisualEffectView` bridge (`AetherChromeBlur`, `AetherStrongInAppBlur`, and the sidebar `NSVisualEffectView` / `SidebarMaterialView`). `#available(macOS 26…`, `NSVisualEffectView`, `.ultraThinMaterial`, `.regularMaterial` and `matchedGeometryEffect` now appear **0 times** in the UI.
 
-`Glass.interactive(true)` is applied to every control-backed surface. Reduce Transparency, Increase Contrast and Reduce Motion are **not** re-implemented: the material handles the first two and `AetherMotion.*(reduced:)` returns `nil` for the third. Hand-rolled opaque "accessibility" fallbacks were removed because they duplicated and fought the system behavior.
+`Glass.interactive(true)` is applied to structural control surfaces only (profile picker, omnibox, fused tabs). Dense list hovers (menu rows, suggestion rows, toolbar icon hover) use an appearance-aware translucent fill instead of materializing glass per row, so rapid hover does not thrash glass regions. Reduce Transparency, Increase Contrast and Reduce Motion are **not** re-implemented: the material handles the first two and `AetherMotion.*(reduced:)` returns `nil` for the third.
 
 ## 2. Where the glass is
 
 | Surface | Treatment |
 |---|---|
-| Sidebar (browser + settings) | `AetherChromeBackground(.sidebar)` → `glassEffect(.regular)`; the stone veil went from 0.88 to 0.38 opacity so the material actually reads |
-| Toolbar / top tab strip | `AetherChromeBackground(.toolbar)` → `glassEffect(.regular)`, veil 0.92 → 0.40 |
-| Profile cluster | `AetherGlassCluster(spacing: 7)` + 4 `.aetherGlassUnion` shapes merging into **one** capsule |
-| Top tab strip | `AetherGlassCluster(spacing: 0)`; active fused tab is glass with `.aetherGlassID(.tab)` so selection **morphs** instead of cross-fading |
-| Sidebar tab rows | active row glass with `.aetherGlassID(.tabActive)` inside `AetherGlassCluster(spacing: 4)` |
-| Omnibox + suggestions | glass field, glass suggestion panel |
-| Navigation bar controls | glass pills on hover/selected, grouped in two `AetherGlassCluster`s |
-| Menus (kebab, profile, context rows) | glass popover surface; menu rows get a transient glass pill on hover |
-| Command palette, find bar | glass |
-| Sheets (History, Bookmarks, Downloads, Inspector, Reader, Settings) | `AetherSheetBackground` → glass |
-| Settings sidebar + tab-layout cards | glass selection morph (`.aetherGlassID(.settingsSection)`), glass cards |
-| Form fields, empty-state chips, new-tab cards, shortcut tiles | glass |
+| Sidebar (browser) | `AetherChromeBackground(.sidebar)` → neutral dark foundation + `glassEffect(.regular)` with dark tint; forced dark `colorScheme`; **no** `NSVisualEffectView` |
+| Toolbar / top tab strip | `AetherChromeBackground(.toolbar)` → appearance-resolved foundation (0.88) + `glassEffect(.regular)` tinted for light/dark |
+| Profile cluster | Resting + hover `glassEffect` on the Personal picker; compact padding; dropdown is a custom glass popover |
+| Top tab strip | Active fused tab is glass with `.materialize`; sidebar tabs use appearance fills |
+| Omnibox + suggestions | glass field; suggestion panel is glass popover; selected row uses appearance `selected` fill |
+| Navigation bar controls | appearance-aware hover fills grouped in `GlassEffectContainer`s |
+| Menus (kebab, profile, context rows) | glass popover surface; row hovers are lightweight appearance fills (no per-row glass) |
+| History / Bookmarks | in-window overlays (not sheets) with `AetherOverlayPanelBackground` glass — ~150–250 ms transitions |
+| Command palette, find bar | glass; presented as an overlay over the live browser (page stays mounted) |
+| Sheets (Downloads, Inspector, Reader, Settings) | `AetherSheetBackground` → dialog card |
+| Form fields, empty-state chips, new-tab cards, shortcut tiles | flat fields; focus uses appearance fill |
 | Buttons in panels/dialogs | native `.glass` / `.glassProminent` |
 | Inspector mode selector | `.pickerStyle(.tabs)` (macOS 27 tab semantics) |
 

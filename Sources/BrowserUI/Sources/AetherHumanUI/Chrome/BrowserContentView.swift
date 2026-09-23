@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct BrowserContentView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
     let window: BrowserWindowModel
     let surfaces: PageSurfaceRegistry
@@ -26,7 +27,9 @@ public struct BrowserContentView: View {
                                     try await activating.activate(pageID: pageID)
                                     try await window.refresh(tab)
                                 } catch {
-                                    if !Task.isCancelled { tab.loadState = .failed(error.localizedDescription) }
+                                    guard !Task.isCancelled, !BrowserWindowModel.isCancellation(error),
+                                          !tab.contentReady else { return }
+                                    tab.loadState = .failed(error.localizedDescription)
                                 }
                             }
                     } else {
@@ -43,9 +46,13 @@ public struct BrowserContentView: View {
         .clipped()
         .overlay(alignment: .topTrailing) {
             if window.showsFind {
-                FindBarView(window: window)
-                    .padding(13)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                AetherThemeScope {
+                    FindBarView(window: window)
+                }
+                .environment(\.colorScheme, (chrome?.isDark ?? theme.dark) ? .dark : .light)
+                .environment(\.aetherChromeAppearance, chrome ?? (theme.dark ? .dark : .light))
+                .padding(13)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .animation(AetherMotion.popover(reduced), value: window.showsFind)
@@ -55,14 +62,14 @@ public struct BrowserContentView: View {
         VStack(spacing: 16) {
             BrowserIconView(icon: .warning, tint: theme.error).iconSize(26)
             Text("This page could not be opened")
-                .font(AetherType.panelTitle(17)).foregroundStyle(theme.heading)
+                .font(AetherType.panelTitle(17)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
             Text(message).font(AetherType.body(12)).foregroundStyle(theme.muted)
                 .multilineTextAlignment(.center).frame(maxWidth: 420)
             HStack(spacing: 8) {
-                if let url = tab.url { Button("Try again") { window.navigate(tab, text: url) } }
+                if let url = tab.pendingURL ?? tab.url { Button("Try again") { window.navigate(tab, text: url) } }
                 Button("New Tab") { _ = window.newTab() }
             }
-            .aetherGlassButton()
+            .aetherButton()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.background)

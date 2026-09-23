@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aether — Session persistence fixture</title>
+<style>
+:root {font-family:system-ui,sans-serif;color:#292524;background:#fafaf9}
+body {max-width:720px;margin:80px auto;padding:0 40px}
+pre {padding:24px;background:white;border-radius:12px;overflow:auto}
+</style>
+<h1>Session persistence fixture</h1>
+<p>With <code>?seed=1</code> this page stores one marker in each client-side store. Without it, the page only reads and reports. A surviving authenticated-like session shows all three markers after tab close, app quit, and relaunch.</p>
+<pre id="session-markers">{"cookie":null,"localStorage":null,"indexedDB":null}</pre>
+<script>
+const params = new URLSearchParams(location.search);
+function readCookie(name) {
+  const hit = document.cookie.split('; ').find(part => part.startsWith(name + '='));
+  return hit ? decodeURIComponent(hit.slice(name.length + 1)) : null;
+}
+async function readIndexedDB() {
+  return new Promise(resolve => {
+    const open = indexedDB.open('aether-session-fixture', 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('markers');
+    open.onsuccess = () => {
+      const tx = open.result.transaction('markers', 'readonly');
+      const get = tx.objectStore('markers').get('marker');
+      get.onsuccess = () => resolve(get.result ?? null);
+      get.onerror = () => resolve(null);
+    };
+    open.onerror = () => resolve(null);
+  });
+}
+(async () => {
+  if (params.get('seed') === '1') {
+    document.cookie = 'aether_marker=' + encodeURIComponent('cookie-alive')
+      + '; Max-Age=31536000; Path=/; SameSite=Lax';
+    localStorage.setItem('aether_marker', 'storage-alive');
+    await new Promise(resolve => {
+      const open = indexedDB.open('aether-session-fixture', 1);
+      open.onupgradeneeded = () => open.result.createObjectStore('markers');
+      open.onsuccess = () => {
+        const tx = open.result.transaction('markers', 'readwrite');
+        tx.objectStore('markers').put('idb-alive', 'marker');
+        tx.oncomplete = resolve;
+        tx.onerror = resolve;
+      };
+      open.onerror = resolve;
+    });
+  }
+  const report = {
+    cookie: readCookie('aether_marker'),
+    localStorage: localStorage.getItem('aether_marker'),
+    indexedDB: await readIndexedDB(),
+  };
+  document.querySelector('#session-markers').textContent = JSON.stringify(report);
+})();
+</script>
+</html>

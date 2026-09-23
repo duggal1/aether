@@ -2,9 +2,11 @@ import SwiftUI
 
 public struct SidebarTabListView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherIsFullscreen) private var fullscreen
+    @Environment(\.aetherTrafficLeading) private var trafficLeading
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var addingShortcut = false
-    @Namespace private var tabGlass
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
@@ -14,8 +16,8 @@ public struct SidebarTabListView: View {
                 ProfileSwitcherView(window: window)
                 Spacer(minLength: 0)
             }
-            .padding(.leading, 76).padding(.trailing, 6)
-            .frame(height: 48)
+            .padding(.leading, fullscreen ? 12 : trafficLeading).padding(.trailing, 6)
+            .frame(height: 40)
 
             if window.workspace.preferences.showFavorites {
                 let pinned = window.workspace.pinnedShortcuts()
@@ -32,13 +34,14 @@ public struct SidebarTabListView: View {
 
             Button { _ = window.newTab() } label: {
                 HStack(spacing: 9) {
-                    BrowserIconView(icon: .plus, tint: theme.muted).iconSize(14)
-                        .offset(y: -0.5)
-                    Text("New Tab").font(AetherType.emphasis(12)).foregroundStyle(theme.muted)
+                    BrowserIconView(icon: .plus, tint: chrome?.icon ?? theme.ink)
+                        .iconSize(13)
+                        .frame(width: 15, height: 15)
+                    Text("New Tab").font(AetherType.body(12)).foregroundStyle(chrome?.text ?? theme.ink)
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 8)
-                .frame(height: 35)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
                 .contentShape(Rectangle())
             }
             .buttonStyle(SidebarRowStyle(reduced: reduced, radius: 7))
@@ -46,24 +49,22 @@ public struct SidebarTabListView: View {
             .padding(.horizontal, 6)
 
             ScrollView {
-                AetherGlassCluster(spacing: 4) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        if !window.tabs.filter(\.isPinned).isEmpty {
-                            sectionHeader("Pinned")
-                            ForEach(window.tabs.filter(\.isPinned)) { tab in
-                                TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
-                                            window: window, namespace: tabGlass)
-                            }
-                        }
-                        ForEach(window.tabs.filter { !$0.isPinned }) { tab in
+                VStack(alignment: .leading, spacing: 2) {
+                    if !window.tabs.filter(\.isPinned).isEmpty {
+                        sectionHeader("Pinned")
+                        ForEach(window.tabs.filter(\.isPinned)) { tab in
                             TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
-                                        window: window, namespace: tabGlass)
+                                        window: window)
                         }
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.top, 2)
-                    .padding(.bottom, 12)
+                    ForEach(window.tabs.filter { !$0.isPinned }) { tab in
+                        TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
+                                    window: window)
+                    }
                 }
+                .padding(.horizontal, 6)
+                .padding(.top, 2)
+                .padding(.bottom, 12)
             }
             .scrollClipDisabled()
             .mask {
@@ -82,9 +83,15 @@ public struct SidebarTabListView: View {
             Spacer(minLength: 0)
 
             HStack(spacing: 2) {
-                ChromeButton(.history, help: "History", selected: window.showsHistory) { window.showsHistory = true }
-                ChromeButton(.bookmark, help: "Bookmarks", selected: window.showsBookmarks) { window.showsBookmarks = true }
-                Spacer(minLength: 0)
+                ChromeButton(.history, help: "History", selected: window.showsHistory) {
+                    window.showsHistory.toggle()
+                }
+                ChromeButton(.bookmark, help: "Bookmarks", selected: window.showsBookmarks) {
+                    window.showsBookmarks.toggle()
+                }
+                Spacer(minLength: 8)
+                ProfileIndicatorStrip(window: window)
+                Spacer(minLength: 8)
                 ChromeButton(.search, help: "Search tabs", selected: window.showsTabSearch) {
                     window.showsTabSearch.toggle()
                 }
@@ -92,6 +99,7 @@ public struct SidebarTabListView: View {
             .padding(.horizontal, 9).padding(.bottom, 12)
         }
         .frame(width: window.workspace.preferences.transientSidebarWidth ?? window.workspace.preferences.sidebarWidth)
+        .frame(maxHeight: .infinity)
         .background { AetherChromeBackground(.sidebar) }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
@@ -102,10 +110,6 @@ public struct SidebarTabListView: View {
         Button { _ = window.newTab(url: item.url) } label: {
             DomainIcon(item.url, size: 17)
                 .frame(maxWidth: .infinity).frame(height: 41)
-                .background {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(theme.card)
-                }
         }
         .buttonStyle(SidebarTileStyle(reduced: reduced))
         .focusEffectDisabled()
@@ -121,8 +125,8 @@ public struct SidebarTabListView: View {
             BrowserIconView(icon: .plus, tint: theme.soft).iconSize(13)
                 .frame(maxWidth: .infinity).frame(height: 41)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(theme.muted.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
                 }
         }
         .buttonStyle(.plain)
@@ -140,33 +144,74 @@ public struct SidebarTabListView: View {
     }
 }
 
+// One bright active dot and muted inactive dots, centered in the sidebar footer.
+struct ProfileIndicatorStrip: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
+    let window: BrowserWindowModel
+
+    var body: some View {
+        let ids = window.workspace.profiles.prefix(5).map(\.id)
+        let active = ids.firstIndex(of: window.activeProfileID) ?? 0
+        HStack(spacing: 3) {
+            ForEach(Array(ids.enumerated()), id: \.offset) { index, _ in
+                Circle()
+                    .fill(index == active
+                          ? (chrome?.text ?? theme.ink)
+                          : (chrome?.secondary ?? theme.muted).opacity(0.45))
+                    .frame(width: 5, height: 5)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 struct SidebarRowStyle: ButtonStyle {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
+    @State private var hovering = false
     let reduced: Bool
     var radius: CGFloat = AetherMetrics.fieldRadius
     func makeBody(configuration: Configuration) -> some View {
+        let active = hovering || configuration.isPressed
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         configuration.label
             .background { AetherFocusedFill(radius: radius) }
             .focusEffectDisabled()
             .pointerStyle(.link)
-            .background(configuration.isPressed ? theme.hover : .clear,
-                        in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background {
+                shape.fill(.clear)
+                    .glassEffect(.regular.tint(Color.black.opacity(active ? 0.24 : 0.14)), in: shape)
+                    .glassEffectTransition(.materialize)
+                    .opacity(active ? 1 : 0)
+            }
+            .onHover { hovering = $0 }
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
             .animation(AetherMotion.press(reduced), value: configuration.isPressed)
+            .animation(AetherMotion.hover(reduced), value: hovering)
     }
 }
 
 struct SidebarTileStyle: ButtonStyle {
     @Environment(\.aetherTheme) private var theme
+    @State private var hovering = false
     let reduced: Bool
     func makeBody(configuration: Configuration) -> some View {
+        let active = hovering || configuration.isPressed
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         configuration.label
             .background { AetherFocusedFill(radius: 8) }
             .focusEffectDisabled()
             .pointerStyle(.link)
-            .background(configuration.isPressed ? theme.hover : .clear,
-                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background {
+                shape.fill(.clear)
+                    .glassEffect(.regular.tint(Color.black.opacity(active ? 0.24 : 0.14)), in: shape)
+                    .glassEffectTransition(.materialize)
+                    .opacity(active ? 1 : 0)
+            }
+            .onHover { hovering = $0 }
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
             .animation(AetherMotion.press(reduced), value: configuration.isPressed)
+            .animation(AetherMotion.hover(reduced), value: hovering)
     }
 }

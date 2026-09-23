@@ -87,10 +87,46 @@ extension WebKitPage {
   }
 
   func pixels() async throws -> PixelBuffer {
-    let config = WKSnapshotConfiguration()
-    config.rect = view.bounds
-    config.snapshotWidth = NSNumber(value: view.bounds.width)
-    let image = try await view.takeSnapshot(configuration: config)
+    final class Once: @unchecked Sendable {
+      private let lock = NSLock()
+      private var done = false
+      func run(_ body: @Sendable () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !done else { return }
+        done = true
+        body()
+      }
+    }
+    let once = Once()
+    let image: NSImage = try await withCheckedThrowingContinuation { continuation in
+      Task { @MainActor [weak self] in
+        guard let self else {
+          once.run {
+            continuation.resume(throwing: BrowserRuntimeError.invalidState("The page was closed."))
+          }
+          return
+        }
+        do {
+          let config = WKSnapshotConfiguration()
+          config.rect = self.view.bounds
+          config.snapshotWidth = NSNumber(value: self.view.bounds.width)
+          let captured = try await self.view.takeSnapshot(configuration: config)
+          once.run { continuation.resume(returning: captured) }
+        } catch {
+          once.run { continuation.resume(throwing: error) }
+        }
+      }
+      Task {
+        try? await Task.sleep(for: .seconds(30))
+        if !Task.isCancelled {
+          once.run {
+            continuation.resume(
+              throwing: BrowserRuntimeError.timeout("The page snapshot took too long."))
+          }
+        }
+      }
+    }
     guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
       throw RendererError.renderingFailed
     }

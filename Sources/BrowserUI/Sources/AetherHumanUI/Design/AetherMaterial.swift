@@ -92,58 +92,192 @@ struct AetherDitherOverlay: View {
     }
 }
 
-// Native macOS sidebar material must remain visible: do not cover it with opaque chrome.
-private struct AetherNativeSidebarMaterial: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
+struct AetherSidebarMaterialView: NSViewRepresentable {
+    func makeNSView(context: Context) -> SidebarBlurView {
+        let view = SidebarBlurView()
         view.material = .sidebar
         view.blendingMode = .behindWindow
         view.state = .active
+        view.appearance = NSAppearance(named: .darkAqua)
         return view
     }
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = .sidebar
-        view.blendingMode = .behindWindow
-        view.state = .active
-    }
+    func updateNSView(_ view: SidebarBlurView, context: Context) {}
+}
+
+final class SidebarBlurView: NSVisualEffectView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
 public struct AetherChromeBackground: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var appearance
     public let role: AetherChromeRole
     public init(_ role: AetherChromeRole) { self.role = role }
 
+    private var isDark: Bool {
+        switch role {
+        case .sidebar: true
+        case .toolbar: appearance?.isDark ?? theme.dark
+        }
+    }
+
     public var body: some View {
-        ZStack {
+        Group {
             if role == .sidebar {
-                AetherNativeSidebarMaterial()
-                theme.chrome.opacity(theme.dark ? 0.34 : 0.58)
+                // Stable neutral sidebar glass. The NSVisualEffectView samples
+                // the desktop behind the window; no in-window glass layer may
+                // sit here or the adjacent webpage stains the full-height
+                // background. The veil strength is static: hover must never
+                // retint the whole sidebar.
+                ZStack {
+                    AetherSidebarMaterialView()
+                    Color.black.opacity(0.52)
+                }
             } else {
-                theme.chrome
+                (appearance?.toolbarBG ?? theme.chrome)
+                    .allowsHitTesting(false)
             }
         }
+        .environment(\.colorScheme, isDark ? .dark : .light)
         .accessibilityHidden(true)
     }
 }
 
 public struct AetherPopoverBackground: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var appearance
     public init() {}
     public var body: some View {
-        RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
-            .fill(theme.card.opacity(0.92))
-            .background { RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous).fill(.regularMaterial) }
-            .overlay {
-                RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
-                    .strokeBorder(theme.hairline, lineWidth: 0.5)
-            }
+        let dark = appearance?.isDark ?? theme.dark
+        let shape = RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
+        ZStack {
+            (dark
+             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
+             : Color.white.opacity(0.72))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.30)),
+                             in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public struct AetherSettingsCardBackground: View {
+    @Environment(\.aetherTheme) private var theme
+    public init() {}
+    public var body: some View {
+        let dark = theme.dark
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        ZStack {
+            (dark
+             ? Color(.sRGB, red: 0x1C / 255, green: 0x1C / 255, blue: 0x1C / 255, opacity: 0.58)
+             : Color.white.opacity(0.62))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.32)),
+                             in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public struct JevQueryBarBackground: View {
+    @Environment(\.aetherTheme) private var theme
+    public init() {}
+    public var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        ZStack {
+            (theme.dark
+             ? Color(.sRGB, red: 0x1F / 255, green: 0x1F / 255, blue: 0x1F / 255, opacity: 0.72)
+             : Color.white.opacity(0.72))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.28) : Color.white.opacity(0.30)),
+                             in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, theme.dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public struct AetherSuggestionBackground: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var appearance
+    public init() {}
+    public var body: some View {
+        let dark = appearance?.isDark ?? theme.dark
+        let shape = RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
+        ZStack {
+            (dark
+             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
+             : Color.white.opacity(0.72))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.30)),
+                             in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public struct AetherModalBackdrop: View {
+    @Environment(\.colorScheme) private var scheme
+    public init() {}
+    public var body: some View {
+        Color.clear
+        .transition(.opacity)
+        .accessibilityHidden(true)
     }
 }
 
 public struct AetherSheetBackground: View {
     @Environment(\.aetherTheme) private var theme
     public init() {}
-    public var body: some View { theme.modal }
+    public var body: some View {
+        let dark = theme.dark
+        let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
+        ZStack {
+            (dark
+             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
+             : Color.white.opacity(0.72))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.30)),
+                             in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public struct AetherOverlayPanelBackground: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var appearance
+    public init() {}
+    public var body: some View {
+        let dark = appearance?.isDark ?? theme.dark
+        let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
+        ZStack {
+            (dark
+             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
+             : Color.white.opacity(0.72))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.32) : Color.white.opacity(0.30)), in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 }
 
 public struct AetherCardBackground: View {

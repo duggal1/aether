@@ -3,14 +3,14 @@ import CoreText
 import SwiftUI
 
 public enum AetherTextWeight: String, CaseIterable, Sendable {
-    case regular
+    case body
     case emphasis
     case medium
 
     public var usWeightClass: Double {
         switch self {
-        case .regular: 400
-        case .emphasis: 500
+        case .body: 400
+        case .emphasis: 450
         case .medium: 500
         }
     }
@@ -75,7 +75,7 @@ public enum AetherFontRegistry {
         var directories: [URL] = []
         var roots: [URL] = []
         if let resources = Bundle.main.resourceURL { roots.append(resources) }
-        roots.append(Bundle.module.resourceURL)
+        if let moduleResources = Bundle.module.resourceURL { roots.append(moduleResources) }
         if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
             roots.append(executable.deletingLastPathComponent())
         }

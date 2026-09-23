@@ -1,0 +1,7 @@
+1 r1-immediate HARNESS_ERROR 0 https://www.clay.com/pricing
+2 r1-home HARNESS_ERROR 0 https://www.clay.com/
+3 r1-link HARNESS_ERROR 0 https://www.clay.com/pricing
+4 r1-back HARNESS_ERROR 0 https://www.clay.com/
+5 r1-forward HARNESS_ERROR 0 https://www.clay.com/pricing
+6 r1-reload HARNESS_ERROR 0 https://www.clay.com/pricing
+{"HARNESS_ERROR": 6}

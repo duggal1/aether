@@ -16,8 +16,23 @@ public enum AetherBadgeVariant: String, CaseIterable, Sendable {
         }
     }
 
-    func background(_ dark: Bool) -> Color { Self.hex(shades.0).opacity(0.19) }
-    func foreground(_ dark: Bool) -> Color { Self.hex(dark ? shades.2 : shades.1).opacity(1) }
+    func background(_ dark: Bool) -> Color {
+        switch self {
+        case .green:
+            return Color(red: 22 / 255, green: 163 / 255, blue: 74 / 255, opacity: 0.12)
+        default:
+            return Self.hex(shades.0).opacity(0.19)
+        }
+    }
+    func foreground(_ dark: Bool) -> Color {
+        switch self {
+        case .green:
+            return dark ? Color(red: 74 / 255, green: 222 / 255, blue: 128 / 255, opacity: 1)
+                        : Self.hex(shades.1)
+        default:
+            return Self.hex(dark ? shades.2 : shades.1).opacity(1)
+        }
+    }
 
     private static func hex(_ hex: UInt) -> Color {
         Color(.sRGB, red: Double((hex >> 16) & 255) / 255,
@@ -44,7 +59,7 @@ public struct AetherBadge: View {
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
             .background(variant.background(theme.dark),
-                        in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        in: RoundedRectangle(cornerRadius: 5, style: .continuous))
             .accessibilityLabel(title)
     }
 }

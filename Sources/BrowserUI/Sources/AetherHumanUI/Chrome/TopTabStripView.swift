@@ -2,8 +2,12 @@ import SwiftUI
 
 public struct TopTabStripView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherIsFullscreen) private var fullscreen
+    @Environment(\.aetherTrafficLeading) private var trafficLeading
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @BrowserState private var addingShortcut = false
+    @BrowserState private var newTabHovering = false
+
     let window: BrowserWindowModel
     let showsChrome: Bool
     public init(window: BrowserWindowModel, showsChrome: Bool = true) {
@@ -15,50 +19,48 @@ public struct TopTabStripView: View {
         HStack(spacing: 0) {
             HStack(spacing: 7) {
                 ProfileSwitcherView(window: window)
-                    .padding(.leading, 4)
                 IncognitoToggleView(window: window)
-                let pinned = window.workspace.pinnedShortcuts()
-                if !pinned.isEmpty {
-                    ForEach(pinned.prefix(6)) { item in
-                        shortcutPill(item)
-                    }
-                }
-                Button { addingShortcut = true } label: {
-                    BrowserIconView(icon: .plus, tint: theme.soft).iconSize(11)
-                        .frame(width: 21, height: 25)
-                }
-                .buttonStyle(.plain)
-                .aetherPointingCursor()
-                .focusEffectDisabled()
-                .help("Add shortcut")
-                .padding(.trailing, 9)
             }
-            .frame(width: AetherMetrics.profileClusterWidth, height: AetherMetrics.profileClusterHeight)
-            .offset(y: -1)
+            .frame(height: AetherMetrics.profileClusterHeight)
             .zIndex(7)
-            .padding(.trailing, 5)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
-                    ForEach(Array(window.tabs.enumerated()), id: \.element.id) { offset, tab in
-                        TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: false,
-                                    window: window, topFused: true, isFirst: offset == 0)
-                            .frame(width: AetherMetrics.tabWidth)
+            .padding(.trailing, 4)
+            GeometryReader { proxy in
+                let layout = tabLayout(available: proxy.size.width)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        let pinned = window.workspace.pinnedShortcuts()
+                        if !pinned.isEmpty {
+                            ForEach(pinned.prefix(6)) { item in
+                                shortcutPill(item)
+                            }
+                        }
+                        ForEach(Array(window.tabs.enumerated()), id: \.element.id) { offset, tab in
+                            TabItemView(tab: tab, selected: window.selectedID == tab.id, compact: layout.compact,
+                                        window: window, topFused: true, isFirst: offset == 0)
+                                .frame(width: layout.tabWidth)
+                        }
+                        Button { _ = window.newTab() } label: {
+                            BrowserIconView(icon: .plus,
+                                            tint: newTabHovering ? (chrome?.text ?? theme.ink)
+                                                                 : (chrome?.icon ?? theme.muted))
+                                .iconSize(14)
+                                .frame(width: 29, height: AetherMetrics.tabHeight)
+                                .background { AetherInteractionSurface(active: newTabHovering, radius: 6) }
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .aetherPointingCursor()
+                        .focusEffectDisabled()
+                        .help("New tab")
+                        .padding(.leading, 4)
+                        .animation(AetherMotion.hover(reduced), value: newTabHovering)
+                        .onHover { newTabHovering = $0 }
                     }
-                    Button { _ = window.newTab() } label: {
-                        BrowserIconView(icon: .plus, tint: theme.muted)
-                            .iconSize(13)
-                            .frame(width: 29, height: AetherMetrics.tabHeight)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .aetherPointingCursor()
-                    .focusEffectDisabled()
-                    .help("New tab")
-                    .padding(.leading, 4)
-                    .offset(y: 1)
+                    .padding(.top, 2)
                 }
-                .padding(.top, 2)
+                .animation(AetherMotion.tab(reduced), value: layout.key)
             }
+            .frame(height: AetherMetrics.chromeHeight)
             HStack(spacing: 9) {
                 ChromeButton(.arrowDown, help: "Search tabs ⇧⌘A", selected: window.showsTabSearch) {
                     window.showsTabSearch.toggle()
@@ -67,12 +69,26 @@ public struct TopTabStripView: View {
             .padding(.leading, 10)
             .padding(.trailing, 2)
         }
-        .padding(.leading, 78).padding(.trailing, 8)
+        .padding(.leading, fullscreen ? 12 : trafficLeading + 2).padding(.trailing, 8)
         .frame(height: AetherMetrics.chromeHeight)
-        .background { if showsChrome { AetherChromeBackground(.toolbar) } }
+        .background { if showsChrome { (chrome?.addressBG ?? theme.omnibox).allowsHitTesting(false) } }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
-        .sheet(isPresented: $addingShortcut) { ShortcutEditor(workspace: window.workspace, shortcut: nil) }
+    }
+
+    private struct TopTabLayout {
+        let tabWidth: CGFloat
+        let compact: Bool
+        let key: String
+    }
+
+    private func tabLayout(available: CGFloat) -> TopTabLayout {
+        let pills = CGFloat(min(6, window.workspace.pinnedShortcuts().count)) * 21
+        let reserve = pills + 33 + 8
+        let count = max(window.tabs.count, 1)
+        let width = min(AetherMetrics.tabWidth, max(46, (available - reserve) / CGFloat(count)))
+        return TopTabLayout(tabWidth: width, compact: width < 108,
+                            key: "\(window.tabs.count)|\(Int(available))")
     }
 
     private func shortcutPill(_ item: BrowserShortcut) -> some View {

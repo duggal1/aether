@@ -11,15 +11,21 @@ public struct SettingsSidebarView: View {
                 .font(AetherType.emphasis(14))
                 .foregroundStyle(theme.heading)
                 .padding(.horizontal, 11).padding(.top, 26).padding(.bottom, 21)
-            ForEach(SettingsSection.allCases) { section in
-                settingsRow(section)
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    ForEach(SettingsSection.allCases) { section in
+                        settingsRow(section)
+                    }
+                }
+                .padding(.bottom, 8)
             }
-            Spacer(minLength: 0)
+            .scrollClipDisabled(false)
         }
         .padding(.horizontal, 11)
         .padding(.bottom, 14)
+        .padding(.leading, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.chrome)
+        .background(.clear)
     }
 
     private func settingsRow(_ section: SettingsSection) -> some View {
@@ -27,11 +33,7 @@ public struct SettingsSidebarView: View {
             withAnimation(AetherMotion.snappy(reduced)) { selection = section }
         } label: {
             HStack(spacing: 11) {
-                Image(systemName: nativeIcon(for: section).rawValue)
-                    .font(AetherType.symbol(16))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(selection == section ? theme.ink : theme.muted)
-                    .frame(width: 20)
+                sectionIcon(for: section)
                 Text(section.rawValue).font(AetherType.emphasis(13)).lineLimit(1)
                 Spacer(minLength: 0)
             }
@@ -39,7 +41,7 @@ public struct SettingsSidebarView: View {
             .padding(.horizontal, 12).frame(height: 37)
             .background {
                 if selection == section {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(theme.hover)
                 }
             }
@@ -53,18 +55,47 @@ public struct SettingsSidebarView: View {
         .animation(AetherMotion.selection(reduced), value: selection)
     }
 
+    @ViewBuilder private func sectionIcon(for section: SettingsSection) -> some View {
+        let tint = selection == section ? theme.ink : theme.muted
+        if let custom = customIcon(for: section) {
+            AetherCustomIconView(custom, tint: tint, size: 16)
+                .frame(width: 20, height: 20, alignment: .center)
+        } else {
+            Image(systemName: nativeIcon(for: section).rawValue)
+                .font(AetherType.symbol(16))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .frame(width: 20)
+        }
+    }
+
+    private func customIcon(for section: SettingsSection) -> AetherCustomIcon? {
+        switch section {
+        case .general: .gear
+        case .tabs: .tabsGrid
+        case .downloads: .downloadFolder
+        case .advanced: .sliders
+        case .networkPrivacy: .server
+        case .searchLocation: .gps
+        default: nil
+        }
+    }
+
     private func nativeIcon(for section: SettingsSection) -> AetherSymbol {
         switch section {
         case .general: .settings
         case .tabs: .tabLayout
         case .profiles: .profiles
         case .search: .search
+        case .searchIntelligence: .automation
         case .privacy: .privacy
         case .passwords: .passwords
         case .downloads: .download
         case .appearance: .appearance
         case .shortcuts: .shortcuts
         case .advanced: .advanced
+        case .networkPrivacy: .network
+        case .searchLocation: .location
         }
     }
 }

@@ -12,21 +12,21 @@ public struct ReaderView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
-                Text("Reader").font(AetherType.panelTitle(19)).foregroundStyle(theme.heading)
+                Text("Reader").font(AetherType.panelTitle(19)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
                 Spacer(minLength: 8)
                 if let markdown {
                     Button("Copy Markdown") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(markdown, forType: .string)
                     }
-                    .aetherGlassButton()
+                    .aetherButton()
                     Button("Export .md") {
                         let panel = NSSavePanel(); panel.nameFieldStringValue = "article.md"
                         if panel.runModal() == .OK, let url = panel.url {
                             try? markdown.write(to: url, atomically: true, encoding: .utf8)
                         }
                     }
-                    .aetherGlassButton()
+                    .aetherButton()
                 }
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
@@ -48,6 +48,7 @@ public struct ReaderView: View {
         }
         .frame(width: 800, height: 560)
         .background { AetherSheetBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
         .task {
             guard let page = window.selected?.enginePageID,
                   let provider = window.workspace.engine as? any BrowserReaderProviding else { return }

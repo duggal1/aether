@@ -22,7 +22,7 @@ struct BrowserDaemon {
     } else {
       tokenPath = path + ".token"
     }
-    let unauthenticated = arguments.contains("--no-auth")
+    let unauthenticated = !arguments.contains("--token-file") || arguments.contains("--no-auth")
 
     let engine = NativeBrowserEngine()
     let dispatcher = AgentCommandDispatcher(engine: engine)

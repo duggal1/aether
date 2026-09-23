@@ -10,7 +10,6 @@ import Images
 import JavaScript
 import JevSearch
 import Layout
-import Media
 import Navigation
 import Networking
 import Persistence
@@ -87,21 +86,12 @@ public actor BrowserRuntime {
     var pages: [PageID: PageRecord]
     var downloads: [DownloadID: DownloadRecord]
     var bookmarks: [BookmarkInfo]
-    var media: MediaRegistry
-    var mediaBridge: JSMediaBridge
-    var mediaMirror: MediaMirror
-    var pendingPlay: [NodeID: [PendingPlay]]
     var blocker: FilterEngine
   }
 
   struct StoredSearchProvider: Codable {
     var endpoint: String
     var queryParameter: String
-  }
-
-  struct PendingPlay: Sendable {
-    var token: UUID
-    var completion: @Sendable (Bool, String?) -> Void
   }
 
   private let contextCounter = AtomicCounter()
@@ -140,6 +130,7 @@ public actor BrowserRuntime {
   var webEphemeral: Set<ContextID> = []
   var webEphemeralStores: [ContextID: AnyObject] = [:]
   var webContextRules: [ContextID: AnyObject] = [:]
+  var webProxyEndpoints: [ContextID: WebProxyEndpoint] = [:]
 
   let suggestService: SearchSuggestService
 
@@ -150,8 +141,6 @@ public actor BrowserRuntime {
 
   public func createContext(name: String) -> BrowserContextInfo {
     let id = ContextID(rawValue: contextCounter.next())
-    let bridge = JSMediaBridge()
-    let mirror = MediaMirror()
     let record = ContextRecord(
       id: id,
       name: name.isEmpty ? "context-\(id.rawValue)" : name,
@@ -162,47 +151,8 @@ public actor BrowserRuntime {
       pages: [:],
       downloads: [:],
       bookmarks: [],
-      media: MediaRegistry(),
-      mediaBridge: bridge,
-      mediaMirror: mirror,
-      pendingPlay: [:],
       blocker: FilterEngine()
     )
-    bridge.snapshot = { [mirror] node in mirror.get(node) }
-    bridge.play = { [weak self] node, completion in
-      Task { await self?.requestPlay(node: node, completion: completion) }
-    }
-    bridge.pause = { [weak self] node in
-      Task { await self?.requestPause(node: node) }
-    }
-    bridge.seek = { [weak self] node, seconds, completion in
-      Task {
-        let ok = await self?.requestSeek(node: node, seconds: seconds) ?? false
-        completion?(ok)
-      }
-    }
-    bridge.setValue = { [weak self] node, name, value in
-      let assignment: MediaAssignment
-      switch name {
-      case "currentTime":
-        guard case .number(let seconds) = value else { return }
-        assignment = .currentTime(seconds)
-      case "volume":
-        guard case .number(let volume) = value else { return }
-        assignment = .volume(volume)
-      case "muted":
-        assignment = .muted(value.truthy)
-      case "playbackRate":
-        guard case .number(let rate) = value else { return }
-        assignment = .rate(rate)
-      default:
-        return
-      }
-      Task { await self?.requestMediaSet(node: node, assignment: assignment) }
-    }
-    bridge.reload = { [weak self] node in
-      Task { await self?.requestReload(node: node) }
-    }
     contexts[id] = record
     webProfileIdentifiers[id] = UUID()
     return BrowserContextInfo(id: id, name: record.name, pageCount: 0)
@@ -221,10 +171,8 @@ public actor BrowserRuntime {
     webProfileIdentifiers[id] = nil
     webEphemeral.remove(id)
     webContextRules[id] = nil
+    webProxyEndpoints[id] = nil
     await purgeEphemeralStore(for: id)
-    for pageID in removed.pages.keys {
-      await removed.media.removePage(pageID)
-    }
   }
 
   public func listContexts() -> [BrowserContextInfo] {
@@ -420,212 +368,6 @@ public actor BrowserRuntime {
       throw BrowserRuntimeError.profileNotConfigured(contextID)
     }
     return try profile.getKV(scope: "checkpoints", key: key)
-  }
-
-  private func syncMedia(contextID: ContextID, pageID: PageID, loaded: LoadedPage) async {
-    guard let context = contexts[contextID] else { return }
-    let live = await context.media.sync(
-      pageID: pageID, document: loaded.document, baseURL: loaded.url
-    ) { [weak self] node, event in
-      Task { await self?.mediaEvent(contextID: contextID, node: node, event: event) }
-    }
-    for node in live {
-      await refreshMediaMirror(contextID: contextID, node: node)
-    }
-  }
-
-  private func refreshMediaMirror(contextID: ContextID, node: NodeID) async {
-    guard let context = contexts[contextID],
-      let element = await context.media.element(node)
-    else { return }
-    let state = await context.media.snapshot(node, tag: element.tag)
-    var values = JSMediaBridge.stateValues(state)
-    values["tag"] = .string(element.tag)
-    context.mediaMirror.set(node, values: values)
-  }
-
-  private func mediaEvent(contextID: ContextID, node: NodeID, event: MediaEvent) async {
-    await refreshMediaMirror(contextID: contextID, node: node)
-    if event == .playing || event == .error {
-      guard var context = contexts[contextID] else { return }
-      let pending = context.pendingPlay.removeValue(forKey: node) ?? []
-      contexts[contextID] = context
-      var message: String? = nil
-      if event == .error {
-        message = "media error"
-        if let element = await context.media.element(node) {
-          let state = await context.media.snapshot(element.node, tag: element.tag)
-          message = state.error?.message ?? "media error"
-        }
-      }
-      for entry in pending { entry.completion(event == .playing, message) }
-    }
-    guard let context = contexts[contextID],
-      let pageID = await context.media.page(containing: node),
-      let runtime = context.pages[pageID]?.javascript
-    else { return }
-    _ = try? runtime.dispatchEvent(type: event.rawValue, target: node)
-  }
-
-  private func requestPlay(
-    node: NodeID, completion: (@Sendable (Bool, String?) -> Void)?
-  ) async {
-    guard let (contextID, context) = await contextContaining(node: node),
-      await context.media.element(node) != nil
-    else {
-      completion?(false, "no playable source")
-      return
-    }
-    if let completion {
-      let token = UUID()
-      var updated = context
-      updated.pendingPlay[node, default: []].append(PendingPlay(token: token, completion: completion))
-      contexts[contextID] = updated
-      Task { [weak self] in
-        try? await Task.sleep(for: .seconds(15))
-        await self?.expirePlay(node: node, token: token)
-      }
-    }
-    await context.media.play(node)
-  }
-
-  private func expirePlay(node: NodeID, token: UUID) async {
-    for (contextID, var context) in contexts {
-      guard var pending = context.pendingPlay[node] else { continue }
-      guard let position = pending.firstIndex(where: { $0.token == token }) else { continue }
-      let entry = pending.remove(at: position)
-      context.pendingPlay[node] = pending.isEmpty ? nil : pending
-      contexts[contextID] = context
-      entry.completion(false, "play timed out")
-      return
-    }
-  }
-
-  private func requestPause(node: NodeID) async {
-    guard let (_, context) = await contextContaining(node: node) else { return }
-    await context.media.pause(node)
-  }
-
-  private func requestSeek(node: NodeID, seconds: Double) async -> Bool {
-    guard let (contextID, context) = await contextContaining(node: node) else { return false }
-    let ok = await context.media.seek(node, to: seconds)
-    await refreshMediaMirror(contextID: contextID, node: node)
-    return ok
-  }
-
-  private func requestMediaSet(node: NodeID, assignment: MediaAssignment) async {
-    guard let (contextID, context) = await contextContaining(node: node) else { return }
-    switch assignment {
-    case .currentTime(let seconds):
-      _ = await context.media.seek(node, to: seconds)
-    case .volume(let volume):
-      await context.media.setVolume(node, volume: volume)
-    case .muted(let muted):
-      await context.media.setMuted(node, muted: muted)
-    case .rate(let rate):
-      await context.media.setRate(node, rate: rate)
-    }
-    await refreshMediaMirror(contextID: contextID, node: node)
-  }
-
-  private func requestReload(node: NodeID) async {
-    guard let (contextID, context) = await contextContaining(node: node) else { return }
-    await context.media.reload(node)
-    await refreshMediaMirror(contextID: contextID, node: node)
-  }
-
-  private func contextContaining(node: NodeID) async -> (ContextID, ContextRecord)? {
-    for (id, context) in contexts {
-      if await context.media.element(node) != nil { return (id, context) }
-    }
-    return nil
-  }
-
-  public func mediaStates(pageID: PageID) async throws -> [MediaElementState] {
-    guard let contextID = contextID(containing: pageID),
-      let loaded = contexts[contextID]?.pages[pageID]?.loaded
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    await syncMedia(contextID: contextID, pageID: pageID, loaded: loaded)
-    guard let context = contexts[contextID] else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    var states: [MediaElementState] = []
-    for element in await context.media.elements(pageID: pageID) {
-      states.append(await context.media.snapshot(element.node, tag: element.tag))
-    }
-    return states
-  }
-
-  public func mediaCommand(
-    pageID: PageID, node: NodeID, action: MediaAction, time: Double? = nil,
-    value: Double? = nil, muted: Bool? = nil, rate: Double? = nil
-  ) async throws -> MediaElementState {
-    guard let contextID = contextID(containing: pageID),
-      let context = contexts[contextID]
-    else { throw BrowserRuntimeError.pageNotFound(pageID) }
-    guard await context.media.element(node) != nil else {
-      throw BrowserRuntimeError.nodeNotFound(node)
-    }
-    switch action {
-    case .play:
-      await requestPlay(node: node, completion: nil)
-      if let settled = await settleMedia(
-        contextID: contextID, node: node, timeout: 10, predicate: { !$0.paused })
-      { return settled }
-      throw BrowserRuntimeError.invalidNavigation("Playback did not start")
-    case .pause:
-      await requestPause(node: node)
-      if let settled = await settleMedia(
-        contextID: contextID, node: node, timeout: 3, predicate: { $0.paused })
-      { return settled }
-      throw BrowserRuntimeError.invalidNavigation("Pause did not apply")
-    case .seek:
-      guard let time, await requestSeek(node: node, seconds: time) else {
-        throw BrowserRuntimeError.invalidNavigation("Seek target is out of range")
-      }
-      if let settled = await settleMedia(
-        contextID: contextID, node: node, timeout: 5,
-        predicate: { abs($0.currentTime - time) < 0.35 })
-      { return settled }
-      throw BrowserRuntimeError.invalidNavigation("Seek did not settle")
-    case .setVolume:
-      guard let value else { throw BrowserRuntimeError.invalidNavigation("Volume is required") }
-      await context.media.setVolume(node, volume: value)
-      await refreshMediaMirror(contextID: contextID, node: node)
-    case .setMuted:
-      await context.media.setMuted(node, muted: muted ?? true)
-      await refreshMediaMirror(contextID: contextID, node: node)
-    case .setRate:
-      guard let rate else { throw BrowserRuntimeError.invalidNavigation("Rate is required") }
-      await context.media.setRate(node, rate: rate)
-      await refreshMediaMirror(contextID: contextID, node: node)
-    case .load:
-      await requestReload(node: node)
-    }
-    guard let state = await mediaSnapshotState(contextID: contextID, node: node) else {
-      throw BrowserRuntimeError.nodeNotFound(node)
-    }
-    return state
-  }
-
-  private func mediaSnapshotState(contextID: ContextID, node: NodeID) async -> MediaElementState? {
-    guard let context = contexts[contextID],
-      let element = await context.media.element(node)
-    else { return nil }
-    await refreshMediaMirror(contextID: contextID, node: node)
-    return await context.media.snapshot(element.node, tag: element.tag)
-  }
-
-  private func settleMedia(
-    contextID: ContextID, node: NodeID, timeout: Double,
-    predicate: (MediaElementState) -> Bool
-  ) async -> MediaElementState? {
-    let deadline = Date().addingTimeInterval(timeout)
-    while Date() < deadline {
-      if let state = await mediaSnapshotState(contextID: contextID, node: node),
-        predicate(state)
-      { return state }
-      try? await Task.sleep(for: .milliseconds(100))
-    }
-    return nil
   }
 
   public func addBookmark(contextID: ContextID, url: URL, title: String) throws -> BookmarkInfo {
@@ -869,9 +611,7 @@ public actor BrowserRuntime {
     await stopNavigation(pageID: pageID)
     if let page = webPages.removeValue(forKey: pageID) { await page.close() }
     webStates[pageID] = nil
-    guard let context = contexts[contextID] else { return }
     contexts[contextID]?.pages.removeValue(forKey: pageID)
-    await context.media.removePage(pageID)
   }
 
   public func suspendPage(_ pageID: PageID) async throws -> BrowserPageInfo {
@@ -905,20 +645,22 @@ public actor BrowserRuntime {
   }
 
   @discardableResult
-  public func goBack(pageID: PageID) async throws -> BrowserPageInfo {
-    try await webPage(pageID).back()
+  public func goBack(pageID: PageID, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    try await webPage(pageID).back(settle: settle)
     return try await synchronizedWebInfo(pageID)
   }
 
   @discardableResult
-  public func goForward(pageID: PageID) async throws -> BrowserPageInfo {
-    try await webPage(pageID).forward()
+  public func goForward(pageID: PageID, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    try await webPage(pageID).forward(settle: settle)
     return try await synchronizedWebInfo(pageID)
   }
 
   @discardableResult
-  public func reload(pageID: PageID, bypassCache: Bool = false) async throws -> BrowserPageInfo {
-    try await webPage(pageID).reload(bypassCache: bypassCache)
+  public func reload(pageID: PageID, bypassCache: Bool = false, settle: PageReadiness = .complete)
+    async throws -> BrowserPageInfo
+  {
+    try await webPage(pageID).reload(bypassCache: bypassCache, settle: settle)
     return try await synchronizedWebInfo(pageID)
   }
 
@@ -1558,7 +1300,6 @@ public actor BrowserRuntime {
     configureRuntime(
       host.runtime, page: &page, loaded: loaded, jar: context.network.cookieJar,
       network: context.network)
-    host.runtime.mediaHost = context.mediaBridge
     loaded.scriptErrors.append(contentsOf: host.run(loaded.scripts))
     host.pump()
     let runtime = host.runtime
@@ -1600,7 +1341,6 @@ public actor BrowserRuntime {
     }
     context.pages[pageID] = page
     contexts[contextID] = context
-    await syncMedia(contextID: contextID, pageID: pageID, loaded: loaded)
     return info(for: page)
   }
 
@@ -2269,4 +2009,3 @@ struct RankedNavigationSuggestion: Sendable {
   var suggestion: NavigationSuggestion
   var score: Double
 }
-

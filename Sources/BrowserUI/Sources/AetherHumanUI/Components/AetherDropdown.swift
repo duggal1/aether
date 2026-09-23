@@ -53,7 +53,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
                 AetherSymbolView(open ? .discloseUp : .discloseDown, tint: theme.muted, size: 10)
             }
             .padding(.horizontal, 10)
-            .frame(minWidth: 160, minHeight: 34)
+            .frame(minWidth: 160, minHeight: 30)
             .background(theme.settingsRaised, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .contentShape(Rectangle())
         }
@@ -98,9 +98,10 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
         .buttonStyle(.plain)
         .aetherPointingCursor()
         .focusEffectDisabled()
+        .animation(AetherMotion.hover(reduced), value: highlighted)
         .onHover { hovering in
             if hovering {
-                withAnimation(AetherMotion.hover(reduced)) { highlighted = option.value }
+                highlighted = option.value
             }
         }
         .accessibilityAddTraits(option.value == selection ? .isSelected : [])
@@ -108,7 +109,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
 
     private func rowFill(_ option: AetherDropdownOption<Value>) -> Color {
         if option.value == selection { return theme.selection }
-        if option.value == highlighted { return theme.hover }
+        if option.value == highlighted { return theme.dropdownNested }
         return .clear
     }
 }

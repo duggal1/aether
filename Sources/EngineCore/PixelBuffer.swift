@@ -69,6 +69,7 @@ public struct PixelBuffer: Hashable, Sendable {
   extension PixelBuffer {
     private func writePNG(to url: URL) throws {
       var mutable = bytes
+      let encoded = NSMutableData()
       guard
         let context = CGContext(
           data: &mutable,
@@ -79,13 +80,14 @@ public struct PixelBuffer: Hashable, Sendable {
           space: CGColorSpaceCreateDeviceRGB(),
           bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ), let image = context.makeImage(),
-        let destination = CGImageDestinationCreateWithURL(
-          url as CFURL, UTType.png.identifier as CFString, 1, nil)
+        let destination = CGImageDestinationCreateWithData(
+          encoded, UTType.png.identifier as CFString, 1, nil)
       else {
         throw PixelBufferError.encodingFailed
       }
       CGImageDestinationAddImage(destination, image, nil)
       guard CGImageDestinationFinalize(destination) else { throw PixelBufferError.encodingFailed }
+      try (encoded as Data).write(to: url, options: .atomic)
     }
   }
 #endif

@@ -26,11 +26,15 @@ extension BrowserRuntime {
     await searchIntelligence.completions(prefix: prefix, local: local, limit: limit)
   }
 
-  public func jevAvailability() -> JevSearchAvailability {
+  public func jevAvailability() async -> JevSearchAvailability {
     JevSearchAvailability(
-      intelligence: searchIntelligence.intelligenceAvailable,
-      retrieval: searchIntelligence.retrievalAvailable,
-      model: searchIntelligence.modelName)
+      intelligence: await searchIntelligence.intelligenceAvailable,
+      retrieval: await searchIntelligence.retrievalAvailable,
+      model: await searchIntelligence.modelName)
+  }
+
+  public func updateJevSearchKeys(typeSafeKey: String, search1APIKey: String) async {
+    await searchIntelligence.updateKeys(typeSafeKey: typeSafeKey, search1APIKey: search1APIKey)
   }
 
   public func invalidateJevSearchCaches() async {

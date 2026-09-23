@@ -29,7 +29,7 @@ public struct JevSearchResultsView: View {
                         .padding(.top, 60)
                 } else if let outcome {
                     LazyVStack(alignment: .leading, spacing: 6) {
-                        ForEach(outcome.candidates) { candidate in
+                        ForEach(outcome.candidates.filter { $0.kind != .history }) { candidate in
                             row(candidate)
                         }
                     }
@@ -63,7 +63,7 @@ public struct JevSearchResultsView: View {
                 }
                 .padding(.horizontal, 17)
                 .frame(maxWidth: .infinity, minHeight: 69, alignment: .leading)
-                .background(theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+.background(theme.card, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
         }
         .accessibilityLabel("Searching")
@@ -73,24 +73,35 @@ public struct JevSearchResultsView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 9) {
                 BrowserIconView(icon: .search, tint: theme.muted).iconSize(13)
-                Text(query).font(AetherType.panelTitle(17)).foregroundStyle(theme.heading)
+                Text(query).font(AetherType.panelTitle(17)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
             }
+            .padding(.horizontal, 14)
+            .frame(height: 46)
+            .background { JevQueryBarBackground() }
             HStack(spacing: 7) {
                 if let outcome {
-                    AetherBadge(outcome.degraded ? "Search limited" : label(outcome), variant: outcome.degraded ? .rose : .violet)
+                    AetherBadge(outcome.degraded ? "Search limited" : label(outcome), variant: outcome.degraded ? .rose : .sky)
+                        .id("verdict-\(label(outcome))-\(outcome.degraded)")
+                        .transition(.opacity)
                     if outcome.retrievalCount > 0 {
                         AetherBadge("\(outcome.retrievalCount) retrieved", variant: .green)
+                            .id("retrieved-\(outcome.retrievalCount)")
+                            .transition(.opacity)
                     }
                     if let model = outcome.model {
                         AetherBadge(model, variant: .sky)
+                            .id("model-\(model)")
+                            .transition(.opacity)
                     }
                 } else {
                     AetherBadge("Jev search", variant: .orange)
                 }
             }
+            .animation(AetherMotion.textResolve(reduced), value: badgeKey(outcome))
             if let outcome, outcome.degraded {
-                Text("Jev could not judge this query. Add TYPESAFE_API_KEY and SEARCH1API_API_KEY to .env for full search intelligence.")
+                Text("Jev could not judge this query. Add your API keys in Settings › Search Intelligence for full search intelligence.")
                     .font(AetherType.body(12)).foregroundStyle(theme.error)
+                    .transition(.opacity)
             }
         }
         .padding(.bottom, 14)
@@ -99,6 +110,11 @@ public struct JevSearchResultsView: View {
     private func label(_ outcome: BrowserSearchOutcome) -> String {
         let percent = Int((max(0, min(1, outcome.confidence)) * 100).rounded())
         return "\(outcome.intent) · \(percent)%"
+    }
+
+    private func badgeKey(_ outcome: BrowserSearchOutcome?) -> String {
+        guard let outcome else { return "none" }
+        return "\(label(outcome))|\(outcome.degraded)|\(outcome.retrievalCount)|\(outcome.model ?? "")"
     }
 
     private func row(_ candidate: BrowserSearchCandidate) -> some View {

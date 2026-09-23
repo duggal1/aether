@@ -2,10 +2,12 @@ import SwiftUI
 
 public struct NewTabView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var editing: BrowserShortcut?
     @BrowserState private var adding = false
     @BrowserState private var hoveredShortcut: UUID?
+    @State private var shortcutMenuID: UUID?
     @BrowserState private var ask = ""
     @FocusState private var askFocused: Bool
     let window: BrowserWindowModel
@@ -18,6 +20,7 @@ public struct NewTabView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     AetherLogo()
+                        .opacity(scheme == .dark ? 0.8 : 0.72)
                         .frame(width: 46)
                         .accessibilityLabel("Aether")
                     askCard
@@ -28,7 +31,7 @@ public struct NewTabView: View {
                     .frame(maxWidth: 480)
                     .padding(.top, 8)
                 }
-                .frame(maxWidth: 696)
+                .frame(maxWidth: 640)
                 .padding(.horizontal, 32)
                 .padding(.top, max(42, geometry.size.height * 0.18))
                 .padding(.bottom, 36)
@@ -58,10 +61,10 @@ public struct NewTabView: View {
                 .onSubmit(submitAsk)
             Button(action: submitAsk) {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(AetherType.symbol(13))
                     .foregroundStyle(canSubmit ? theme.ink : theme.muted)
                     .frame(width: 26, height: 26)
-                    .background(canSubmit ? theme.control : theme.raised, in: Circle())
+                    .background(canSubmit ? theme.selected : theme.control, in: Circle())
                     .contentShape(Circle())
             }
             .buttonStyle(AetherPressStyle(reduced: reduced))
@@ -72,8 +75,7 @@ public struct NewTabView: View {
         }
         .padding(.horizontal, 14)
         .frame(height: 52)
-        .background(theme.card.opacity(0.35), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .animation(AetherMotion.focus(reduced), value: askFocused)
     }
 
@@ -90,7 +92,7 @@ public struct NewTabView: View {
                 VStack(spacing: 9) {
                     DomainIcon(item.url, size: 28)
                         .frame(width: 54, height: 54)
-                        .background(theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+.background(theme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     Text(item.name)
                         .font(AetherType.body(12)).foregroundStyle(theme.muted)
                         .lineLimit(1).frame(maxWidth: 102)
@@ -101,43 +103,70 @@ public struct NewTabView: View {
             .buttonStyle(.plain)
             .aetherPointingCursor()
             .help(item.url)
-            .contextMenu { shortcutActions(item) }
+            .overlay { SecondaryClickSurface { shortcutMenuID = item.id } }
 
-            Menu { shortcutActions(item) } label: {
+            Button { shortcutMenuID = item.id } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(AetherType.symbol(14))
                     .foregroundStyle(theme.textStrong)
                     .frame(width: 23, height: 23)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .background { AetherInteractionSurface(active: shortcutMenuID == item.id, radius: 6) }
                     .contentShape(Rectangle())
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
             .fixedSize()
             .padding(.top, 2)
             .padding(.trailing, 3)
             .opacity(hoveredShortcut == item.id ? 1 : 0)
+            .animation(AetherMotion.focus(reduced), value: hoveredShortcut)
             .allowsHitTesting(hoveredShortcut == item.id)
             .aetherPointingCursor()
             .help("Shortcut actions for \(item.name)")
             .accessibilityLabel("Shortcut actions for \(item.name)")
         }
         .frame(width: 108, height: 94)
+        .popover(isPresented: Binding(get: { shortcutMenuID == item.id }, set: { if !$0 { shortcutMenuID = nil } }), arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 2) { shortcutActions(item) }
+                .padding(7)
+                .frame(width: 218)
+                .background { AetherPopoverBackground() }
+                .environment(\.aetherChromeAppearance, theme.dark ? .dark : .light)
+                .preferredColorScheme(theme.dark ? .dark : .light)
+                .presentationBackground(.clear)
+        }
         .contentShape(Rectangle())
         .onHover { inside in
-            withAnimation(AetherMotion.focus(reduced)) {
-                hoveredShortcut = inside ? item.id : (hoveredShortcut == item.id ? nil : hoveredShortcut)
-            }
+            hoveredShortcut = inside ? item.id : (hoveredShortcut == item.id ? nil : hoveredShortcut)
         }
     }
 
     @ViewBuilder private func shortcutActions(_ item: BrowserShortcut) -> some View {
-        Button("Open in New Tab") { _ = window.newTab(url: item.url) }
-        Button(item.isPinned ? "Unpin from Toolbar" : "Pin to Toolbar") {
+        shortcutAction("Open in New Tab", icon: .plus) { _ = window.newTab(url: item.url) }
+        shortcutAction(item.isPinned ? "Unpin from Toolbar" : "Pin to Toolbar", icon: .pin) {
             window.workspace.toggleShortcutPin(item.id)
         }
-        Button("Edit Shortcut") { editing = item }
-        Button("Remove Shortcut", role: .destructive) { window.workspace.removeShortcut(item.id) }
+        shortcutAction("Edit Shortcut", icon: .gear) { editing = item }
+        shortcutAction("Remove Shortcut", icon: .close) { window.workspace.removeShortcut(item.id) }
+    }
+
+    private func shortcutAction(_ title: String, icon: BrowserIcon, action: @escaping () -> Void) -> some View {
+        Button {
+            shortcutMenuID = nil
+            action()
+        } label: {
+            AetherMenuRow(radius: 6) {
+                HStack(spacing: 10) {
+                    BrowserIconView(icon: icon, tint: theme.muted).iconSize(14)
+                    Text(title).font(AetherType.body(12)).foregroundStyle(theme.ink)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 9)
+                .frame(height: 34)
+                .contentShape(Rectangle())
+            }
+        }
+        .buttonStyle(AetherPressStyle(reduced: reduced))
+        .focusEffectDisabled()
     }
 
     private var addTile: some View {
@@ -147,7 +176,7 @@ public struct NewTabView: View {
                     .iconSize(17)
                     .frame(width: 54, height: 54)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .strokeBorder(theme.soft.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
                     }
                 Text("Add")

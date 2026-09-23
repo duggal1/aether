@@ -73,6 +73,72 @@ public struct BrowserProfileLibrary: Codable, Sendable {
     func restoredPages(profileID: UUID) async throws -> [EnginePageSnapshot]
 }
 
+@MainActor public protocol BrowserNetworkRouting: AnyObject {
+    func applyNetworkRoute(profileID: UUID, route: BrowserNetworkRoute, endpoint: RouteEndpoint?) async throws -> NetworkRouteStatus
+    func currentRouteStatus(profileID: UUID) -> NetworkRouteStatus
+    func observedExitIP(profileID: UUID) -> String?
+}
+
+@MainActor public protocol BrowserProxyCredentialStoring: AnyObject {
+    func saveProxyCredential(endpointID: String, username: String, password: String) throws
+    func deleteProxyCredential(endpointID: String) throws
+}
+
+public enum PasskeyAuthorizationState: String, Sendable, Equatable, CaseIterable {
+    case authorized
+    case denied
+    case notDetermined
+    case unavailable
+
+    public var label: String {
+        switch self {
+        case .authorized: "Allowed"
+        case .denied: "Denied in System Settings"
+        case .notDetermined: "Not requested yet"
+        case .unavailable: "Not available"
+        }
+    }
+}
+
+@MainActor public protocol BrowserPasskeyCapability: AnyObject {
+    var passkeyDeviceConfigured: Bool { get }
+    var passkeyLocalAuthAvailable: Bool { get }
+    func passkeyAuthorizationState() -> PasskeyAuthorizationState
+    func requestPasskeyAuthorization() async -> PasskeyAuthorizationState
+}
+
 @MainActor public protocol BrowserAutomationProviding: AnyObject {
     func authorizeAutomation(profileID: UUID) async throws -> String
+}
+
+public enum EngineSessionState: String, Sendable, Equatable, CaseIterable {
+    case notLoaded
+    case loading
+    case navigated
+    case reauthenticationRequired
+    case failed
+
+    public var label: String {
+        switch self {
+        case .notLoaded: "Not loaded"
+        case .loading: "Loading"
+        case .navigated: "Loaded"
+        case .reauthenticationRequired: "Reauthentication required"
+        case .failed: "Failed"
+        }
+    }
+
+    public var detail: String {
+        switch self {
+        case .notLoaded: "This tab has not navigated yet."
+        case .loading: "The page is still loading."
+        case .navigated: "The page loaded. This does not prove anyone is signed in."
+        case .reauthenticationRequired: "The site refused the session or redirected to sign in. Nothing was cleared; sign in normally."
+        case .failed: "Navigation failed before the site could respond."
+        }
+    }
+}
+
+@MainActor public protocol BrowserSessionStateProviding: AnyObject {
+    func sessionState(pageID: String) async -> EngineSessionState
 }

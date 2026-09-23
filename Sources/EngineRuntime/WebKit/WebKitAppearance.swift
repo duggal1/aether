@@ -7,5 +7,8 @@ enum WebKitAppearance {
   @MainActor static func install(in configuration: WKWebViewConfiguration) {
     configuration.applicationNameForUserAgent = browserToken
     configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+    configuration.suppressesIncrementalRendering = false
+    configuration.upgradeKnownHostsToHTTPS = true
+    configuration.mediaTypesRequiringUserActionForPlayback = []
   }
 }

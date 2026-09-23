@@ -107,6 +107,17 @@ struct SearchInputTests {
     #expect(SearchInput.directURL("apple") == nil)
   }
 
+  @Test func matchesSharedAddressRules() {
+    #expect(SearchInput.directURL("youtube.com/watch?v=dQw4w9WgXcQ")?.absoluteString
+      == "https://youtube.com/watch?v=dQw4w9WgXcQ")
+    #expect(SearchInput.directURL("127.0.0.1:8765/")?.absoluteString == "http://127.0.0.1:8765/")
+    #expect(SearchInput.directURL("192.168.1.1")?.absoluteString == "http://192.168.1.1")
+    #expect(SearchInput.directURL("[::1]:3000")?.absoluteString == "http://[::1]:3000")
+    #expect(SearchInput.directURL("hi") == nil)
+    #expect(SearchInput.directURL("v1.2") == nil)
+    #expect(SearchInput.directURL("https://person:secret@example.com/") == nil)
+  }
+
   @Test func guessesOneWordDomainsOnly() {
     #expect(SearchInput.domainGuesses("apple", limit: 3) == ["apple.com", "apple.org", "apple.io"])
     #expect(SearchInput.domainGuesses("two words", limit: 3).isEmpty)

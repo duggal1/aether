@@ -24,27 +24,22 @@ public struct ShortcutEditor: View {
         }
         .padding(18)
         .frame(width: 380)
-        .background(theme.modal)
-        .overlay {
-            RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
-                .strokeBorder(theme.hairline, lineWidth: 1)
-                .allowsHitTesting(false)
-        }
-        .aetherDarkGlassShadow(dark: theme.dark)
+        .background { AetherSheetBackground() }
+        .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
     }
 
     private var heading: some View {
         Text(shortcut == nil ? "Add Shortcut" : "Edit Shortcut")
-            .font(AetherType.panelTitle(20))
+            .font(AetherType.panelTitle(20)).tracking(AetherTracking.heading)
             .foregroundStyle(theme.heading)
     }
 
     private var fields: some View {
         VStack(alignment: .leading, spacing: 7) {
             label("Name")
-            AetherField("Website name", text: $name)
+            AetherField("Website name", text: $name, horizontalPadding: 11)
             label("Address").padding(.top, 6)
-            AetherField("https://example.com", text: $url)
+            AetherField("https://example.com", text: $url, horizontalPadding: 11)
         }
     }
 
@@ -59,10 +54,9 @@ public struct ShortcutEditor: View {
         HStack(spacing: 8) {
             Spacer()
             Button("Cancel") { dismiss() }
-                .aetherGlassButton()
-                .focusEffectDisabled()
+                .aetherButton()
             Button("Save") { save() }
-                .aetherGlassProminentButton()
+                .aetherProminentButton()
                 .keyboardShortcut(.defaultAction)
                 .focusEffectDisabled()
                 .disabled(!canSave)

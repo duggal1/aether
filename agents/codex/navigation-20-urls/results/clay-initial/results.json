@@ -1,0 +1,209 @@
+{
+  "attempts": 6,
+  "counts": {
+    "HARNESS_ERROR": 6
+  },
+  "metrics": {
+    "observed_dom_ms": {
+      "observed": 1,
+      "missing": 5,
+      "median_ms": 223.94016600446776,
+      "p95_ms": 223.94016600446776,
+      "max_ms": 223.94016600446776
+    },
+    "observed_window_heading_ms": {
+      "observed": 0,
+      "missing": 6,
+      "median_ms": null,
+      "p95_ms": null,
+      "max_ms": null
+    },
+    "observed_complete_ms": {
+      "observed": 1,
+      "missing": 5,
+      "median_ms": 223.94016600446776,
+      "p95_ms": 223.94016600446776,
+      "max_ms": 223.94016600446776
+    },
+    "dispatch_ms": {
+      "observed": 6,
+      "missing": 0,
+      "median_ms": 189.50545848929323,
+      "p95_ms": 694.3626250140369,
+      "max_ms": 694.3626250140369
+    },
+    "probe_ms": {
+      "observed": 6,
+      "missing": 0,
+      "median_ms": 143.6202289914945,
+      "p95_ms": 621.9094160187524,
+      "max_ms": 621.9094160187524
+    },
+    "fcp_ms": {
+      "observed": 0,
+      "missing": 6,
+      "median_ms": null,
+      "p95_ms": null,
+      "max_ms": null
+    },
+    "document_load_ms": {
+      "observed": 0,
+      "missing": 6,
+      "median_ms": null,
+      "p95_ms": null,
+      "max_ms": null
+    }
+  },
+  "results": [
+    {
+      "index": 1,
+      "action": "r1-immediate",
+      "expected": "https://www.clay.com/pricing",
+      "started_epoch": 1790166674.416946,
+      "status": "HARNESS_ERROR",
+      "observed_dom_ms": null,
+      "observed_window_heading_ms": null,
+      "observed_complete_ms": null,
+      "errors": [
+        "CalledProcessError(2, ['/tmp/aether_winid/winid', 'AetherApp'])"
+      ],
+      "samples": [
+        {
+          "ms": 1101.4537909941282,
+          "url": "about:blank",
+          "readyState": "complete",
+          "textLength": 0,
+          "visibility": "visible"
+        }
+      ],
+      "dispatch_ms": 694.3626250140369,
+      "probe_ms": 397.7270000032149,
+      "trace": "[webkit-nav] [scope=1 begin url=https://www.c/]\n[webkit-nav] [scope=1 cancelWaiting waiterScope=1]\n[webkit-nav] [scope=2 begin url=https://www.clay.com/pricing]\n[webkit-nav] [scope=2 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=stale url=https://www.c/]\n[webkit-nav] [scope=2 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.clay.com/pricing]\n"
+    },
+    {
+      "index": 2,
+      "action": "r1-home",
+      "expected": "https://www.clay.com/",
+      "started_epoch": 1790166675.61884,
+      "status": "HARNESS_ERROR",
+      "observed_dom_ms": null,
+      "observed_window_heading_ms": null,
+      "observed_complete_ms": null,
+      "errors": [
+        "CalledProcessError(2, ['/tmp/aether_winid/winid', 'AetherApp'])"
+      ],
+      "samples": [
+        {
+          "ms": 550.0754170061555,
+          "url": "https://www.clay.com/pricing",
+          "readyState": "loading",
+          "textLength": 5,
+          "visibility": "visible"
+        }
+      ],
+      "dispatch_ms": 349.0277919918299,
+      "probe_ms": 201.0327499883715,
+      "trace": "[webkit-nav] [scope=2 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]\n[webkit-nav] [scope=2 didCommit tracked=true url=https://www.clay.com/pricing t=0.430s]\n[webkit-nav] [scope=2 stop waiters=0]\n[webkit-nav] [scope=3 begin url=https://www.clay.com/pricing]\n[webkit-nav] [scope=3 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.clay.com/pricing]\n"
+    },
+    {
+      "index": 3,
+      "action": "r1-link",
+      "expected": "https://www.clay.com/pricing",
+      "started_epoch": 1790166676.2399092,
+      "status": "HARNESS_ERROR",
+      "observed_dom_ms": null,
+      "observed_window_heading_ms": null,
+      "observed_complete_ms": null,
+      "errors": [
+        "CalledProcessError(2, ['/tmp/aether_winid/winid', 'AetherApp'])"
+      ],
+      "samples": [
+        {
+          "ms": 210.04879201063886,
+          "url": "https://www.clay.com/pricing",
+          "readyState": "loading",
+          "textLength": 1,
+          "visibility": "visible"
+        }
+      ],
+      "dispatch_ms": 123.81737501709722,
+      "probe_ms": 86.20770799461752,
+      "trace": "[webkit-nav] [scope=3 decideAction scheme=https mainFrame=true type=0 mainNavTracked=tracked url=https://www.clay.com/pricing#]\n[webkit-nav] [scope=3 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]\n[webkit-nav] [scope=3 didCommit tracked=true url=https://www.clay.com/pricing t=0.316s]\n"
+    },
+    {
+      "index": 4,
+      "action": "r1-back",
+      "expected": "https://www.clay.com/",
+      "started_epoch": 1790166676.537594,
+      "status": "HARNESS_ERROR",
+      "observed_dom_ms": null,
+      "observed_window_heading_ms": null,
+      "observed_complete_ms": null,
+      "errors": [
+        "CalledProcessError(2, ['/tmp/aether_winid/winid', 'AetherApp'])"
+      ],
+      "samples": [
+        {
+          "ms": 802.8384170029312,
+          "url": "https://www.clay.com/pricing",
+          "readyState": "loading",
+          "textLength": 5,
+          "visibility": "visible"
+        }
+      ],
+      "dispatch_ms": 180.91299998923205,
+      "probe_ms": 621.9094160187524,
+      "trace": "[webkit-nav] [scope=3 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://117293819.intellimizeio.com/storage.html]\n[webkit-nav] [scope=3 stop waiters=0]\n[webkit-nav] [scope=4 begin url=https://www.clay.com/pricing]\n[webkit-nav] [scope=4 decideAction scheme=https mainFrame=true type=2 mainNavTracked=tracked url=https://www.clay.com/pricing]\n[webkit-nav] [scope=4 didStartProvisional tracked=true retired=false url=https://www.clay.com/pricing]\n[webkit-nav] [scope=4 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]\n"
+    },
+    {
+      "index": 5,
+      "action": "r1-forward",
+      "expected": "https://www.clay.com/pricing",
+      "started_epoch": 1790166677.489593,
+      "status": "HARNESS_ERROR",
+      "observed_dom_ms": null,
+      "observed_window_heading_ms": null,
+      "observed_complete_ms": null,
+      "errors": [
+        "CalledProcessError(2, ['/tmp/aether_winid/winid', 'AetherApp'])"
+      ],
+      "samples": [
+        {
+          "ms": 227.45274999761023,
+          "url": "https://www.clay.com/pricing",
+          "readyState": "interactive",
+          "textLength": 5,
+          "visibility": "visible"
+        }
+      ],
+      "dispatch_ms": 192.60404197848402,
+      "probe_ms": 34.83741599484347,
+      "trace": "[webkit-nav] [scope=4 stop waiters=0]\n[webkit-nav] [scope=5 begin url=https://www.clay.com/pricing]\n"
+    },
+    {
+      "index": 6,
+      "action": "r1-reload",
+      "expected": "https://www.clay.com/pricing",
+      "started_epoch": 1790166677.882582,
+      "status": "HARNESS_ERROR",
+      "observed_dom_ms": 223.94016600446776,
+      "observed_window_heading_ms": null,
+      "observed_complete_ms": 223.94016600446776,
+      "errors": [
+        "CalledProcessError(2, ['/tmp/aether_winid/winid', 'AetherApp'])"
+      ],
+      "samples": [
+        {
+          "ms": 223.94016600446776,
+          "url": "https://www.clay.com/pricing",
+          "readyState": "complete",
+          "textLength": 7251,
+          "visibility": "visible"
+        }
+      ],
+      "dispatch_ms": 186.40687500010245,
+      "probe_ms": 37.52366700791754,
+      "trace": "[webkit-nav] [scope=5 decideAction scheme=https mainFrame=true type=2 mainNavTracked=tracked url=https://www.clay.com/pricing]\n[webkit-nav] [scope=5 didStartProvisional tracked=true retired=false url=https://www.clay.com/pricing]\n[webkit-nav] [scope=5 didCommit tracked=true url=https://www.clay.com/pricing t=0.223s]\n[webkit-nav] [scope=5 didFail tracked=true domain=NSURLErrorDomain code=-999 class=benign committed=5 t=0.386s]\n[webkit-nav] [scope=6 begin url=https://www.clay.com/pricing]\n[webkit-nav] [scope=6 decideAction scheme=https mainFrame=true type=3 mainNavTracked=tracked url=https://www.clay.com/pricing]\n[webkit-nav] [scope=6 didStartProvisional tracked=true retired=false url=https://www.clay.com/pricing]\n"
+    }
+  ]
+}

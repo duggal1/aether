@@ -1,0 +1,56 @@
+ M Docs/WEBKIT.md
+ M Sources/AetherApp/Integration/AetherEngineAdapter.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/IncognitoToggleView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/NavigationBarView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/OmniboxSuggestionsView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/OmniboxView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/ProfileSwitcherView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/SidebarTabListView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/TabItemView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Chrome/TopTabStripView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Components/AetherField.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Components/AetherRow.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Components/BrowserIcons.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Components/ChromeButton.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Components/DomainIcon.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherFontRegistry.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherGlass.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherMaterial.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherMotion.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherPalette.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherSymbols.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Design/AetherTheme.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Engine/BrowserFeaturePorts.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Engine/DisconnectedEnginePort.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Foundation/AddressResolver.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Foundation/BrowserPersistence.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Models/BrowserModels.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Models/BrowserTab.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Pages/NewTabView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Panels/BookmarksView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Panels/HistoryView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Settings/PasswordsSettingsView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Settings/SettingsSection.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Settings/SettingsSidebarView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Settings/SettingsWindowView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/Settings/ShortcutsSettingsView.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/State/BrowserPreferences.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/State/BrowserWindowModel.swift
+ M Sources/BrowserUI/Sources/AetherHumanUI/State/BrowserWorkspace.swift
+ M Sources/BrowserUI/Sources/icons/AetherBrandMarks.swift
+ M Sources/BrowserUI/Sources/icons/AetherCustomIcons.swift
+ M Sources/EngineRuntime/BrowserRuntime.swift
+ M Sources/EngineRuntime/WebKit/SystemWebRuntime.swift
+ M Sources/EngineRuntime/WebKit/WebCookieStorage.swift
+ M Sources/EngineRuntime/WebKit/WebKitPage.swift
+ M Tests/AgentTests/WebKitDOMPerformanceTests.swift
+?? Sources/AetherApp/Integration/AetherEngineAdapter+Network.swift
+?? Sources/BrowserUI/Sources/AetherHumanUI/Engine/BrowserNetworkRoute.swift
+?? Sources/BrowserUI/Sources/AetherHumanUI/Foundation/AetherKeychain.swift
+?? Sources/BrowserUI/Sources/AetherHumanUI/Settings/NetworkSettingsView.swift
+?? Sources/BrowserUI/Sources/AetherHumanUI/Settings/SearchLocationSettingsView.swift
+?? Sources/BrowserUI/Tests/AetherHumanUITests/Step3IdentityTests.swift
+?? Tests/AgentTests/WebKitProxyIsolationTests.swift
+?? agents/buffy/step3-identity-sessions/
+?? agents/opencode/type-safe-rpc/
+?? work/plan/new-features/step3-browser-identity-sessions-privacy.md
