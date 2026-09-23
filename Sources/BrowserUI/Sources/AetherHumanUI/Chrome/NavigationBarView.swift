@@ -4,7 +4,6 @@ public struct NavigationBarView: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @BrowserState private var showsMore = false
     let window: BrowserWindowModel
     let showsChrome: Bool
     public init(window: BrowserWindowModel, showsChrome: Bool = true) {
@@ -34,18 +33,16 @@ public struct NavigationBarView: View {
             OmniboxView(window: window).padding(.horizontal, 7)
             HStack(spacing: 2) {
                 ChromeButton(.search, help: "Search tabs, history, bookmarks \u{21E7}\u{2318}A",
-                             selected: window.showsTabSearch, iconSize: 14) { window.showsTabSearch.toggle() }
+                             selected: window.showsTabSearch, iconSize: 14) {
+                    window.closeMenus()
+                    window.showsTabSearch.toggle()
+                }
                 ChromeButton(.history, help: "History \u{2318}Y", selected: window.showsHistory, iconSize: 14) {
+                    window.closeMenus()
                     window.showsHistory.toggle()
                 }
-                ChromeButton(.moreHorizontal, help: "More browser actions", selected: showsMore, iconSize: 14) {
-                    showsMore.toggle()
-                }
-                .popover(isPresented: $showsMore, arrowEdge: .bottom) {
-                    MoreMenuView(window: window)
-                        .presentationBackground(.clear)
-                        .preferredColorScheme(chrome?.isDark ?? theme.dark ? .dark : .light)
-                        .environment(\.aetherChromeAppearance, chrome ?? (theme.dark ? .dark : .light))
+                ChromeButton(.moreHorizontal, help: "More browser actions", selected: window.showsMoreMenu, iconSize: 14) {
+                    window.showsMoreMenu.toggle()
                 }
             }
         }
@@ -56,13 +53,15 @@ public struct NavigationBarView: View {
         .environment(\.colorScheme, chrome?.isDark ?? theme.dark ? .dark : .light)
     }
 
-    // Dia geometry: in top-tabs mode the strip, the active tab, and this bar
-    // are one continuous address-input surface. In sidebar mode the bar keeps
-    // the general toolbar surface with a distinct address pill.
+    // Dia attachment: in top-tabs mode this bar is the same address-input
+    // surface as the active tab, and its background reaches 3pt up behind the
+    // strip so the junction can never show a gap or hairline at any scale.
+    // The strip's scroll clipping would eat a tab-side overlap, so the bridge
+    // is painted from the bar side (which renders above the strip).
     private var barSurface: some View {
         Group {
             if window.arrangement == .top {
-                chrome?.addressBG ?? theme.omnibox
+                (chrome?.addressBG ?? theme.omnibox).padding(.top, -3)
             } else {
                 AetherChromeBackground(.toolbar)
             }

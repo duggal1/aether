@@ -93,15 +93,20 @@ struct AetherDitherOverlay: View {
 }
 
 struct AetherSidebarMaterialView: NSViewRepresentable {
+    let fullscreen: Bool
+
     func makeNSView(context: Context) -> SidebarBlurView {
         let view = SidebarBlurView()
         view.material = .sidebar
-        view.blendingMode = .behindWindow
+        view.blendingMode = fullscreen ? .withinWindow : .behindWindow
         view.state = .active
         view.appearance = NSAppearance(named: .darkAqua)
         return view
     }
-    func updateNSView(_ view: SidebarBlurView, context: Context) {}
+    func updateNSView(_ view: SidebarBlurView, context: Context) {
+        let mode: NSVisualEffectView.BlendingMode = fullscreen ? .withinWindow : .behindWindow
+        if view.blendingMode != mode { view.blendingMode = mode }
+    }
 }
 
 final class SidebarBlurView: NSVisualEffectView {
@@ -111,6 +116,7 @@ final class SidebarBlurView: NSVisualEffectView {
 public struct AetherChromeBackground: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var appearance
+    @Environment(\.aetherIsFullscreen) private var fullscreen
     public let role: AetherChromeRole
     public init(_ role: AetherChromeRole) { self.role = role }
 
@@ -124,13 +130,11 @@ public struct AetherChromeBackground: View {
     public var body: some View {
         Group {
             if role == .sidebar {
-                // Stable neutral sidebar glass. The NSVisualEffectView samples
-                // the desktop behind the window; no in-window glass layer may
-                // sit here or the adjacent webpage stains the full-height
-                // background. The veil strength is static: hover must never
-                // retint the whole sidebar.
                 ZStack {
-                    AetherSidebarMaterialView()
+                    if fullscreen {
+                        Color(.sRGB, red: 0x17 / 255, green: 0x17 / 255, blue: 0x17 / 255, opacity: 1)
+                    }
+                    AetherSidebarMaterialView(fullscreen: fullscreen)
                     Color.black.opacity(0.52)
                 }
             } else {

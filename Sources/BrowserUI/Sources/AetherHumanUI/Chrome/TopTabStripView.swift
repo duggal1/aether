@@ -45,7 +45,7 @@ public struct TopTabStripView: View {
                                                                  : (chrome?.icon ?? theme.muted))
                                 .iconSize(14)
                                 .frame(width: 29, height: AetherMetrics.tabHeight)
-                                .background { AetherInteractionSurface(active: newTabHovering, radius: 6) }
+                                .background { AetherInteractionSurface(active: newTabHovering, radius: AetherMetrics.utilityRadius) }
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -71,7 +71,7 @@ public struct TopTabStripView: View {
         }
         .padding(.leading, fullscreen ? 12 : trafficLeading + 2).padding(.trailing, 8)
         .frame(height: AetherMetrics.chromeHeight)
-        .background { if showsChrome { (chrome?.addressBG ?? theme.omnibox).allowsHitTesting(false) } }
+        .background { if showsChrome { AetherChromeBackground(.toolbar) } }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
     }

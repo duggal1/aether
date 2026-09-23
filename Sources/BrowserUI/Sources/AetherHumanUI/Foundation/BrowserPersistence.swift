@@ -1,6 +1,6 @@
 import Foundation
 
-public struct BrowserArchive: Codable {
+public struct BrowserArchive: Codable, Sendable {
     public var profiles: [BrowserProfile]
     public var bookmarks: [BrowserBookmark]
     public var visits: [BrowserVisit]

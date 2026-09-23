@@ -104,7 +104,7 @@ final class SocketWorkerTable: @unchecked Sendable {
   }
 
   func removeClient(_ fd: Int32) {
-    lock.withLock { $0.clients.remove(fd) }
+    _ = lock.withLock { $0.clients.remove(fd) }
   }
 
   func interruptAll() {

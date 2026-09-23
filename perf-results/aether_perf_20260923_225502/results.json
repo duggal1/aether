@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "app": ".build/Aether.app",
+    "binary_sha256": "8e1cf51d87c8489a8a41314f0488fe7834c0de445d4d3f8b4fad487ef8c78f6a",
+    "binary_mtime": 1790184302.243818,
+    "routes": [
+      "https://clay.com/",
+      "https://clay.com/pricing"
+    ],
+    "steps": 6,
+    "median_to_ready_ms": 539.3,
+    "mean_to_ready_ms": 1801.5,
+    "min_to_ready_ms": 94.7,
+    "max_to_ready_ms": 7711.5
+  },
+  "steps": [
+    {
+      "step": "cold_launch_to_ready",
+      "to_ready_ms": 7711.5,
+      "url": "https://www.clay.com/",
+      "title": "https://www.clay.com/",
+      "screenshot": "cold_clay.png"
+    },
+    {
+      "step": "warm_open:https://clay.com/",
+      "dispatch_ms": 0.0,
+      "to_ready_ms": 1813.2,
+      "url": "https://www.clay.com/",
+      "title": "https://www.clay.com/",
+      "progress": 0.30000000000000004,
+      "screenshot": "warm_home.png"
+    },
+    {
+      "step": "route:https://clay.com/pricing",
+      "dispatch_ms": 37.4,
+      "to_ready_ms": 829.9,
+      "url": "https://www.clay.com/pricing",
+      "title": "Compare plans, features & costs | Clay.com",
+      "progress": 0.49997060970810575,
+      "screenshot": "warm_route1.png"
+    },
+    {
+      "step": "back",
+      "dispatch_ms": 16.6,
+      "to_ready_ms": 248.7,
+      "url": "https://www.clay.com/",
+      "title": "https://www.clay.com/",
+      "progress": 0.4999999926463624,
+      "screenshot": "warm_back.png"
+    },
+    {
+      "step": "forward",
+      "dispatch_ms": 20.0,
+      "to_ready_ms": 110.7,
+      "url": "https://www.clay.com/pricing",
+      "title": "https://www.clay.com/pricing",
+      "progress": 0.1,
+      "screenshot": "warm_forward.png"
+    },
+    {
+      "step": "reload",
+      "dispatch_ms": 13.5,
+      "to_ready_ms": 94.7,
+      "url": "https://www.clay.com/pricing",
+      "title": "Compare plans, features & costs | Clay.com",
+      "progress": 0.30000000000000004,
+      "screenshot": "warm_reload.png"
+    }
+  ]
+}

@@ -75,9 +75,10 @@ public struct TabItemView: View {
                     if tab.loadState == .loading && (!topFused || compact) {
                         TerminalLoader().frame(width: 16, height: 16)
                     } else {
-                        DomainIcon(tab.url, size: topFused ? 16 : 15)
+                        DomainIcon(tab.url, size: topFused ? 16 : 15,
+                                   logoTint: chrome?.icon ?? theme.ink)
                             .frame(width: 16, alignment: .center)
-                            .opacity((replacesFavicon || (topFused && !compact)) && hovering ? 0 : 1)
+                            .opacity(replacesFavicon && hovering ? 0 : 1)
                     }
                 }
                 .frame(maxWidth: compact ? .infinity : nil)
@@ -194,17 +195,11 @@ public struct TabItemView: View {
             if selected {
                 fusedActive
             } else if hovering {
-                UnevenRoundedRectangle(topLeadingRadius: AetherMetrics.fieldRadius + 2,
-                                       topTrailingRadius: AetherMetrics.fieldRadius + 2)
+                FusedTopTabShape(leftFoot: !isFirst)
                     .fill(chrome?.hover ?? theme.hover)
-            } else {
-                UnevenRoundedRectangle(topLeadingRadius: AetherMetrics.fieldRadius + 2,
-                                       topTrailingRadius: AetherMetrics.fieldRadius + 2)
-                    .fill(chrome?.selected ?? theme.hover)
-                    .opacity(0.55)
             }
         } else if selected {
-            let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
             shape.fill(.clear)
                 .glassEffect(hovering
                              ? .regular.interactive().tint(Color.black.opacity(0.30))
@@ -212,7 +207,7 @@ public struct TabItemView: View {
                              in: shape)
                 .glassEffectTransition(.materialize)
         } else if hovering {
-            let hoverShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            let hoverShape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
             hoverShape.fill(.clear)
                 .glassEffect(.regular.tint(Color.black.opacity(0.16)), in: hoverShape)
                 .glassEffectTransition(.materialize)
@@ -220,7 +215,7 @@ public struct TabItemView: View {
     }
 
     @ViewBuilder private var fusedActive: some View {
-        FusedTopTabShape(leftFoot: !(isFirst && topFused))
+        FusedTopTabShape(leftFoot: !isFirst)
             .fill(chrome?.addressBG ?? theme.omnibox)
             .padding(.bottom, -1)
     }
@@ -254,25 +249,36 @@ private struct SidebarHoverPreview: View {
 
 struct FusedTopTabShape: Shape {
     var leftFoot = true
+
     func path(in rect: CGRect) -> Path {
-        let rTop: CGFloat = 12
-        let fillet: CGFloat = 12
-        let minX = rect.minX
-        let maxX = rect.maxX
-        let minY = rect.minY
-        let maxY = rect.maxY
+        let radius = min(AetherMetrics.tabRadius, rect.width / 2, rect.height / 2)
+        let shoulder = min(CGFloat(12), rect.height - radius)
+        let curve = radius * 0.55228475
+        let left = rect.minX
+        let right = rect.maxX
+        let top = rect.minY
+        let bottom = rect.maxY
+
         var path = Path()
-        path.move(to: CGPoint(x: minX + rTop, y: minY))
-        path.addLine(to: CGPoint(x: maxX - rTop, y: minY))
-        path.addQuadCurve(to: CGPoint(x: maxX, y: minY + rTop), control: CGPoint(x: maxX, y: minY))
-        path.addLine(to: CGPoint(x: maxX, y: maxY - fillet))
-        path.addQuadCurve(to: CGPoint(x: maxX + fillet, y: maxY), control: CGPoint(x: maxX, y: maxY))
-        path.addLine(to: CGPoint(x: leftFoot ? minX - fillet : minX, y: maxY))
+        path.move(to: CGPoint(x: left + radius, y: top))
+        path.addLine(to: CGPoint(x: right - radius, y: top))
+        path.addCurve(to: CGPoint(x: right, y: top + radius),
+                      control1: CGPoint(x: right - radius + curve, y: top),
+                      control2: CGPoint(x: right, y: top + radius - curve))
+        path.addLine(to: CGPoint(x: right, y: bottom - shoulder))
+        path.addCurve(to: CGPoint(x: right + shoulder, y: bottom),
+                      control1: CGPoint(x: right, y: bottom - shoulder * 0.45),
+                      control2: CGPoint(x: right + shoulder * 0.45, y: bottom))
+        path.addLine(to: CGPoint(x: leftFoot ? left - shoulder : left, y: bottom))
         if leftFoot {
-            path.addQuadCurve(to: CGPoint(x: minX, y: maxY - fillet), control: CGPoint(x: minX, y: maxY))
+            path.addCurve(to: CGPoint(x: left, y: bottom - shoulder),
+                          control1: CGPoint(x: left - shoulder * 0.45, y: bottom),
+                          control2: CGPoint(x: left, y: bottom - shoulder * 0.45))
         }
-        path.addLine(to: CGPoint(x: minX, y: minY + rTop))
-        path.addQuadCurve(to: CGPoint(x: minX + rTop, y: minY), control: CGPoint(x: minX, y: minY))
+        path.addLine(to: CGPoint(x: left, y: top + radius))
+        path.addCurve(to: CGPoint(x: left + radius, y: top),
+                      control1: CGPoint(x: left, y: top + radius - curve),
+                      control2: CGPoint(x: left + radius - curve, y: top))
         path.closeSubpath()
         return path
     }

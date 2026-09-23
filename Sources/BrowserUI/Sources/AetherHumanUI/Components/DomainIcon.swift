@@ -6,10 +6,12 @@ public struct DomainIcon: View {
     @State private var image: NSImage?
     let url: String?
     let size: CGFloat
+    let logoTint: Color?
 
-    public init(_ url: String?, size: CGFloat = 16) {
+    public init(_ url: String?, size: CGFloat = 16, logoTint: Color? = nil) {
         self.url = url
         self.size = size
+        self.logoTint = logoTint
     }
 
     private var host: String? {
@@ -22,12 +24,13 @@ public struct DomainIcon: View {
             if let image {
                 Image(nsImage: image)
                     .resizable()
+                    .renderingMode(.original)
                     .interpolation(.high)
                     .scaledToFit()
                     .frame(width: size * 0.9, height: size * 0.9)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
             } else if host == nil {
-                AetherLogo()
+                AetherLogo(tint: logoTint)
                     .opacity(scheme == .dark ? 0.8 : 0.72)
                     .frame(width: size * 0.9, height: size * 0.9)
             } else {

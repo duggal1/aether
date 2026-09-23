@@ -18,6 +18,11 @@ public struct SearchSettingsView: View {
             SettingsToggle("Show suggestions while typing", value: Binding(get: { workspace.preferences.showSearchSuggestions }, set: { workspace.preferences.showSearchSuggestions = $0 }))
             SettingsToggle("Suggestions from \(workspace.preferences.provider.searchName)", value: Binding(get: { workspace.preferences.providerSuggestions }, set: { workspace.preferences.providerSuggestions = $0 }))
         }
+        AetherSection("System search") {
+            SettingsToggle("Show saved pages in Spotlight", value: Binding(
+                get: { workspace.preferences.spotlightSavedPages },
+                set: { workspace.setSpotlightSavedPages($0) }))
+        }
     }
 }
 

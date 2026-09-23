@@ -29,7 +29,7 @@ public struct JevSearchResultsView: View {
                         .padding(.top, 60)
                 } else if let outcome {
                     LazyVStack(alignment: .leading, spacing: 6) {
-                        ForEach(outcome.candidates.filter { $0.kind != .history }) { candidate in
+                        ForEach(outcome.candidates) { candidate in
                             row(candidate)
                         }
                     }
@@ -184,7 +184,7 @@ public struct JevSearchResultsView: View {
         outcome = nil
         failure = nil
         do {
-            let result = try await provider.jevSearch(query: query, local: window.searchSignals())
+            let result = try await provider.jevSearch(query: query, local: [])
             guard !Task.isCancelled else { return }
             outcome = result
         } catch {

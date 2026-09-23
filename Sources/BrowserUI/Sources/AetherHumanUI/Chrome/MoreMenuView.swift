@@ -34,7 +34,6 @@ struct AetherMenuPressStyle: ButtonStyle {
 }
 
 public struct MoreMenuView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
@@ -57,7 +56,7 @@ public struct MoreMenuView: View {
             row(window.arrangement == .top ? "Use Sidebar Tabs" : "Use Top Tabs", .sidebar) {
                 window.toggleArrangement()
             }
-            Button(action: { dismiss(); window.showsSettings = true }) {
+            Button(action: { window.showsMoreMenu = false; window.showsSettings = true }) {
                 menuLabel(.gear, "Settings")
             }
             .buttonStyle(AetherMenuPressStyle())
@@ -71,7 +70,7 @@ public struct MoreMenuView: View {
     }
 
     private func row(_ title: String, _ icon: BrowserIcon, action: @escaping () -> Void) -> some View {
-        Button { dismiss(); action() } label: {
+        Button { window.showsMoreMenu = false; action() } label: {
             menuLabel(icon, title)
         }
         .buttonStyle(AetherMenuPressStyle())

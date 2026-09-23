@@ -5,6 +5,7 @@ public struct BrowserWindowView: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduced
+    @Environment(\.aetherTrafficLeading) private var trafficLeading
     @Environment(\.openWindow) private var openWindow
     let window: BrowserWindowModel
     let isFullscreen: Bool
@@ -122,7 +123,8 @@ public struct BrowserWindowView: View {
                                 // Click-to-dismiss lives on page content only. It
                                 // must never cover the toolbar or its buttons
                                 // would stop receiving clicks while a panel is open.
-                                if window.showsTabSearch || window.showsHistory || window.showsBookmarks {
+                                if window.showsTabSearch || window.showsHistory || window.showsBookmarks
+                                    || window.showsProfileMenu || window.showsMoreMenu {
                                     Color.clear
                                         .contentShape(Rectangle())
                                         .onTapGesture { closeOverlays() }
@@ -166,6 +168,32 @@ public struct BrowserWindowView: View {
                 .environment(\.aetherChromeAppearance, chromeAppearance)
                 .zIndex(22)
             }
+            // Window-owned menu panels: exact shapes with no popover container,
+            // so corner radius and glass are pixel-true and never ring hollow.
+            if window.showsProfileMenu {
+                AetherThemeScope {
+                    ProfileMenuPanel(window: window)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.top, 44)
+                .padding(.leading, profileMenuLeading)
+                .transition(AetherMotion.panelTransition(reduced))
+                .environment(\.colorScheme, chromeAppearance.isDark ? .dark : .light)
+                .environment(\.aetherChromeAppearance, chromeAppearance)
+                .zIndex(21)
+            }
+            if window.showsMoreMenu {
+                AetherThemeScope {
+                    MoreMenuView(window: window)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, (window.arrangement == .top ? 42 : 0) + 40 + 6)
+                .padding(.trailing, 8)
+                .transition(AetherMotion.panelTransition(reduced))
+                .environment(\.colorScheme, chromeAppearance.isDark ? .dark : .light)
+                .environment(\.aetherChromeAppearance, chromeAppearance)
+                .zIndex(21)
+            }
         }
         .environment(\.aetherChromeAppearance, chromeAppearance)
         .environment(\.aetherIsFullscreen, isFullscreen)
@@ -174,8 +202,15 @@ public struct BrowserWindowView: View {
         .preferredColorScheme(window.workspace.preferences.appearance.colorScheme)
         .animation(AetherMotion.panel(reduced), value: window.showsTabSearch)
         .animation(AetherMotion.panel(reduced), value: window.showsHistory || window.showsBookmarks)
+        .animation(AetherMotion.panel(reduced), value: window.showsProfileMenu || window.showsMoreMenu)
         .animation(AetherMotion.sidebar(reduced), value: window.sidebarCollapsed)
         .animation(AetherMotion.sidebar(reduced), value: window.arrangement)
+        .sheet(isPresented: Binding(get: { window.showsNewProfile }, set: { window.showsNewProfile = $0 })) {
+            NewProfileSheet(window: window)
+        }
+        .sheet(isPresented: Binding(get: { window.showsRenameProfile }, set: { window.showsRenameProfile = $0 })) {
+            RenameProfileSheet(window: window)
+        }
         .sheet(isPresented: Binding(get: { window.showsDownloads }, set: { window.showsDownloads = $0 })) {
             DownloadsView(window: window)
         }
@@ -197,6 +232,12 @@ public struct BrowserWindowView: View {
         window.showsTabSearch = false
         window.showsHistory = false
         window.showsBookmarks = false
+        window.closeMenus()
+    }
+
+    private var profileMenuLeading: CGFloat {
+        if isFullscreen { return 12 }
+        return trafficLeading + (window.arrangement == .top ? 2 : 0)
     }
 
     // No rounding along the shared sidebar/browser seam: rounding there exposes

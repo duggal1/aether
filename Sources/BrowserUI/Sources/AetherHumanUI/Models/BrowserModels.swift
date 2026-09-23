@@ -100,8 +100,10 @@ public struct BrowserVisit: Codable, Identifiable, Hashable, Sendable {
     public var title: String
     public var url: String
     public var visitedAt: Date
+    public var excerpt: String?
     public init(profileID: UUID, title: String, url: String) {
         id = UUID(); self.profileID = profileID; self.title = title; self.url = url; visitedAt = Date()
+        excerpt = nil
     }
 }
 

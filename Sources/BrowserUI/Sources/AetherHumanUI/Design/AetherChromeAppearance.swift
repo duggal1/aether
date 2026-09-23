@@ -24,6 +24,13 @@ public enum AetherChromeAppearance: Sendable {
         }
     }
 
+    public var addressInputBG: Color {
+        switch self {
+        case .light: Color(.sRGB, red: 0xFA / 255, green: 0xFA / 255, blue: 0xFA / 255, opacity: 1)
+        case .dark: Color(.sRGB, red: 0x27 / 255, green: 0x27 / 255, blue: 0x27 / 255, opacity: 1)
+        }
+    }
+
     public var hover: Color {
         switch self {
         case .light: Color(.sRGB, red: 0xF5 / 255, green: 0xF5 / 255, blue: 0xF4 / 255, opacity: 0.80)

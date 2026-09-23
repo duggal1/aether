@@ -45,7 +45,17 @@ enum WebKitCookieBridge {
   static func remove(
     _ context: WebKitContext, name: String, domain: String, path: String
   ) async throws {
-    let cookies = await context.store.httpCookieStore.allCookies()
+    let host = domain.hasPrefix(".") ? String(domain.dropFirst()) : domain
+    var components = URLComponents()
+    components.scheme = "https"
+    components.host = host.isEmpty ? nil : host
+    components.path = path.isEmpty ? "/" : path
+    let cookies: [HTTPCookie]
+    if let url = components.url {
+      cookies = await context.store.httpCookieStore.cookies(for: url)
+    } else {
+      cookies = await context.store.httpCookieStore.allCookies()
+    }
     for cookie in cookies where cookie.name == name
       && (cookie.domain == domain || cookie.domain == "." + domain) && cookie.path == path
     {

@@ -25,7 +25,7 @@ public struct SettingsSidebarView: View {
         .padding(.bottom, 14)
         .padding(.leading, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.clear)
+        .background(theme.chrome)
     }
 
     private func settingsRow(_ section: SettingsSection) -> some View {

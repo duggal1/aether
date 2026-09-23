@@ -38,7 +38,7 @@ public struct AetherField: View {
             }
         }
         .padding(.horizontal, horizontalPadding)
-        .frame(height: 40)
+        .frame(height: 36)
         .background {
             RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
                 .fill(theme.dialogField)

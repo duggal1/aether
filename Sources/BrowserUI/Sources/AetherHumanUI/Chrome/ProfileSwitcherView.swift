@@ -4,13 +4,7 @@ public struct ProfileSwitcherView: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @BrowserState private var showing = false
     @BrowserState private var hovering = false
-    @BrowserState private var creating = false
-    @BrowserState private var renaming = false
-    @BrowserState private var profileName = ""
-    @BrowserState private var renameText = ""
-    @BrowserState private var newProfileColor = 0
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
@@ -18,16 +12,19 @@ public struct ProfileSwitcherView: View {
     private var iconColor: Color { chrome?.icon ?? theme.muted }
 
     public var body: some View {
-        Button { showing.toggle() } label: {
+        Button {
+            window.showsProfileMenu.toggle()
+            window.showsMoreMenu = false
+        } label: {
             HStack(spacing: 5) {
                 Text(window.workspace.name(for: window.activeProfileID))
-                    .font(AetherType.body(11)).lineLimit(1)
+                    .font(AetherType.body(10.5)).lineLimit(1)
                     .fontWeight(.regular)
-                BrowserIconView(icon: .arrowDown, tint: iconColor).iconSize(9)
+                BrowserIconView(icon: .arrowDown, tint: iconColor).iconSize(8)
             }
             .foregroundStyle(labelColor)
-            .padding(.horizontal, 10)
-            .frame(height: 24)
+            .padding(.horizontal, 12)
+            .frame(height: 22)
             .background { pickerGlass }
             .contentShape(Rectangle())
         }
@@ -37,21 +34,13 @@ public struct ProfileSwitcherView: View {
         .onHover { hovering = $0 }
         .help("Switch profile")
         .accessibilityLabel("Profile: \(window.workspace.name(for: window.activeProfileID))")
-        .popover(isPresented: $showing, arrowEdge: .bottom) {
-            dropdown
-                .presentationBackground(.clear)
-                .preferredColorScheme(appearance.isDark ? .dark : .light)
-                .environment(\.aetherChromeAppearance, appearance)
-        }
-        .sheet(isPresented: $creating) { newProfileSheet }
-        .sheet(isPresented: $renaming) { renameSheet }
     }
 
     @ViewBuilder private var pickerGlass: some View {
-        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
         let dark = appearance.isDark
         shape.fill(.clear)
-            .glassEffect(hovering || showing
+            .glassEffect(hovering || window.showsProfileMenu
                          ? .regular.interactive().tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.32))
                          : .regular.tint(dark ? Color.black.opacity(0.24) : Color.white.opacity(0.26)),
                          in: shape)
@@ -61,13 +50,26 @@ public struct ProfileSwitcherView: View {
             .accessibilityHidden(true)
     }
 
-    // Custom liquid-glass dropdown: restrained dark tint, compact rows, subtle hover.
-    private var dropdown: some View {
+    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
+}
+
+// Window-owned overlay panel: exact 8pt shape, no popover container chrome,
+// so the rendered corners match the specified radius with no hollow ring.
+public struct ProfileMenuPanel: View {
+    @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
+    let window: BrowserWindowModel
+    public init(window: BrowserWindowModel) { self.window = window }
+
+    private var labelColor: Color { chrome?.text ?? theme.ink }
+    private var iconColor: Color { chrome?.icon ?? theme.muted }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
                 Button {
                     window.switchProfile(profile.id)
-                    showing = false
+                    window.showsProfileMenu = false
                 } label: {
                     profileRow(profile, index: index)
                 }
@@ -76,9 +78,8 @@ public struct ProfileSwitcherView: View {
             }
             Divider().padding(.vertical, 5)
             Button {
-                renameText = window.workspace.name(for: window.activeProfileID)
-                renaming = true
-                showing = false
+                window.showsRenameProfile = true
+                window.showsProfileMenu = false
             } label: {
                 AetherMenuRow(radius: 6) {
                     Text("Rename Profile")
@@ -92,8 +93,14 @@ public struct ProfileSwitcherView: View {
             .buttonStyle(AetherMenuPressStyle())
             .focusEffectDisabled()
             Divider().padding(.vertical, 5)
-            actionRow(.plus, "New Profile") { creating = true; showing = false }
-            actionRow(.gear, "Profile Settings") { showing = false; window.showsSettings = true }
+            actionRow(.plus, "New Profile") {
+                window.showsNewProfile = true
+                window.showsProfileMenu = false
+            }
+            actionRow(.gear, "Profile Settings") {
+                window.showsProfileMenu = false
+                window.showsSettings = true
+            }
         }
         .padding(6)
         .frame(width: 218)
@@ -154,15 +161,45 @@ public struct ProfileSwitcherView: View {
         .disabled(!enabled)
     }
 
-    private var newProfileSheet: some View {
+    static let swatches: [Color] = [
+        Color(red: 0xFF / 255, green: 0xFF / 255, blue: 0xFF / 255),
+        Color(red: 0x00 / 255, green: 0xA5 / 255, blue: 0x6E / 255),
+        Color(red: 0x00 / 255, green: 0x96 / 255, blue: 0xDE / 255),
+        Color(red: 0x74 / 255, green: 0x6C / 255, blue: 0xC4 / 255),
+        Color(red: 0xE8 / 255, green: 0x9B / 255, blue: 0x00 / 255),
+        Color(red: 0xDC / 255, green: 0x64 / 255, blue: 0x7D / 255),
+        Color(red: 0xF0 / 255, green: 0x55 / 255, blue: 0x63 / 255),
+        Color(red: 0xEE / 255, green: 0x5F / 255, blue: 0x2C / 255),
+    ]
+
+    static func swatchIndex(for profile: BrowserProfile) -> Int {
+        if profile.colorIndex >= 0 { return profile.colorIndex % swatches.count }
+        var hasher = Hasher()
+        hasher.combine(profile.id)
+        return abs(hasher.finalize()) % swatches.count
+    }
+
+    static func swatch(for profile: BrowserProfile) -> Color {
+        swatches[swatchIndex(for: profile)]
+    }
+}
+
+public struct NewProfileSheet: View {
+    @Environment(\.aetherTheme) private var theme
+    @BrowserState private var profileName = ""
+    @BrowserState private var newProfileColor = 0
+    let window: BrowserWindowModel
+    public init(window: BrowserWindowModel) { self.window = window }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("New Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
             AetherField("Profile name", text: $profileName, horizontalPadding: 12)
             HStack(spacing: 12) {
-                ForEach(0..<Self.swatches.count, id: \.self) { index in
+                ForEach(0..<ProfileMenuPanel.swatches.count, id: \.self) { index in
                     Button { newProfileColor = index } label: {
                         Circle()
-                            .fill(Self.swatches[index])
+                            .fill(ProfileMenuPanel.swatches[index])
                             .brightness(0.035)
                             .frame(width: 28, height: 28)
                             .overlay {
@@ -184,13 +221,13 @@ public struct ProfileSwitcherView: View {
             .padding(.top, 2)
             HStack(spacing: 8) {
                 Spacer()
-                Button("Cancel") { creating = false }
+                Button("Cancel") { window.showsNewProfile = false }
                     .aetherButton()
                     .frame(minWidth: 88, minHeight: 30)
                 Button("Save") {
                     let profile = window.workspace.createProfile(profileName, colorIndex: newProfileColor)
                     window.switchProfile(profile.id)
-                    profileName = ""; newProfileColor = 0; creating = false
+                    window.showsNewProfile = false
                 }
                 .keyboardShortcut(.defaultAction)
                 .aetherProminentButton()
@@ -204,19 +241,31 @@ public struct ProfileSwitcherView: View {
         .background { AetherSheetBackground() }
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
     }
+}
 
-    private var renameSheet: some View {
+public struct RenameProfileSheet: View {
+    @Environment(\.aetherTheme) private var theme
+    @BrowserState private var renameText = ""
+    let window: BrowserWindowModel
+    public init(window: BrowserWindowModel) { self.window = window }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Rename Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
             AetherField("Profile name", text: $renameText, horizontalPadding: 12)
+                .onAppear {
+                    if renameText.isEmpty {
+                        renameText = window.workspace.name(for: window.activeProfileID)
+                    }
+                }
             HStack(spacing: 8) {
                 Spacer()
-                Button("Cancel") { renaming = false }
+                Button("Cancel") { window.showsRenameProfile = false }
                     .aetherButton()
                     .frame(minWidth: 88, minHeight: 30)
                 Button("Save") {
                     window.workspace.renameProfile(window.activeProfileID, to: renameText)
-                    renaming = false
+                    window.showsRenameProfile = false
                 }
                 .keyboardShortcut(.defaultAction)
                 .aetherProminentButton()
@@ -229,27 +278,5 @@ public struct ProfileSwitcherView: View {
         .frame(width: 388)
         .background { AetherSheetBackground() }
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
-    }
-
-    static let swatches: [Color] = [
-        Color(red: 0xFF / 255, green: 0xFF / 255, blue: 0xFF / 255),
-        Color(red: 0x00 / 255, green: 0xA5 / 255, blue: 0x6E / 255),
-        Color(red: 0x00 / 255, green: 0x96 / 255, blue: 0xDE / 255),
-        Color(red: 0x74 / 255, green: 0x6C / 255, blue: 0xC4 / 255),
-        Color(red: 0xE8 / 255, green: 0x9B / 255, blue: 0x00 / 255),
-        Color(red: 0xDC / 255, green: 0x64 / 255, blue: 0x7D / 255),
-        Color(red: 0xF0 / 255, green: 0x55 / 255, blue: 0x63 / 255),
-        Color(red: 0xEE / 255, green: 0x5F / 255, blue: 0x2C / 255),
-    ]
-
-    static func swatchIndex(for profile: BrowserProfile) -> Int {
-        if profile.colorIndex >= 0 { return profile.colorIndex % swatches.count }
-        var hasher = Hasher()
-        hasher.combine(profile.id)
-        return abs(hasher.finalize()) % swatches.count
-    }
-
-    static func swatch(for profile: BrowserProfile) -> Color {
-        swatches[swatchIndex(for: profile)]
     }
 }

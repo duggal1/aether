@@ -44,7 +44,7 @@ public struct SidebarTabListView: View {
                 .frame(height: 32)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(SidebarRowStyle(reduced: reduced, radius: 7))
+            .buttonStyle(SidebarRowStyle(reduced: reduced, radius: AetherMetrics.fieldRadius))
             .focusEffectDisabled()
             .padding(.horizontal, 6)
 
@@ -84,15 +84,18 @@ public struct SidebarTabListView: View {
 
             HStack(spacing: 2) {
                 ChromeButton(.history, help: "History", selected: window.showsHistory) {
+                    window.closeMenus()
                     window.showsHistory.toggle()
                 }
                 ChromeButton(.bookmark, help: "Bookmarks", selected: window.showsBookmarks) {
+                    window.closeMenus()
                     window.showsBookmarks.toggle()
                 }
                 Spacer(minLength: 8)
                 ProfileIndicatorStrip(window: window)
                 Spacer(minLength: 8)
                 ChromeButton(.search, help: "Search tabs", selected: window.showsTabSearch) {
+                    window.closeMenus()
                     window.showsTabSearch.toggle()
                 }
             }

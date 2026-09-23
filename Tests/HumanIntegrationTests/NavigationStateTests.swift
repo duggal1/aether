@@ -99,7 +99,7 @@ struct NavigationStateTests {
         #expect(tab.url == nil)
     }
 
-    @Test func committedContentStaysLoadingUntilDocumentFinishes() async throws {
+    @Test func committedContentReportsReadyWhileSubresourcesFinish() async throws {
         let engine = StubPageEngine()
         engine.navigateDelay = .milliseconds(300)
         let window = BrowserWindowModel(workspace: BrowserWorkspace(engine: engine))
@@ -113,16 +113,16 @@ struct NavigationStateTests {
             contentReady: false, progress: 0.4))
         #expect(await awaitTab(tab) { !$0.contentReady && $0.isLoading })
         #expect(tab.loadState == .loading)
-        // Commit is not readiness: the document is still loading, so the tab
-        // must keep its loading state instead of reporting ready over a
-        // blank or hydrating page.
+        // Commit is visual readiness: the document is on screen, so the tab
+        // reports ready even while subresources (ads, analytics) still load.
+        // isLoading stays true so the stop control keeps working.
         engine.emit(settledState(pageID, "https://apple.com", loading: true,
             contentReady: true, progress: 0.8))
         #expect(await awaitTab(tab) { $0.contentReady && $0.isLoading })
-        #expect(tab.loadState == .loading)
+        #expect(tab.loadState == .ready)
         #expect(tab.isLoading)
         #expect(tab.loadProgress == 0.8)
-        #expect(tab.pendingURL == "https://apple.com")
+        #expect(tab.pendingURL == nil)
         engine.emit(settledState(pageID, "https://apple.com", loading: false,
             contentReady: true, progress: 1))
         #expect(await awaitTab(tab) { !$0.isLoading })

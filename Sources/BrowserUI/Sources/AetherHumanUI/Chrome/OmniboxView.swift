@@ -10,7 +10,6 @@ public struct OmniboxView: View {
     @BrowserState private var resignNonce = 0
     @BrowserState private var progressP = 0.0
     @BrowserState private var progressOpacity = 0.0
-    @BrowserState private var progressNonce = 0
     @Namespace private var glassNS
     let window: BrowserWindowModel
 
@@ -113,8 +112,8 @@ public struct OmniboxView: View {
         .padding(.leading, 12).padding(.trailing, 6)
         .frame(height: 30)
         .background {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(appearance.addressBG)
+            RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+                .fill(appearance.addressInputBG)
         }
         .modifier(DiaProgressEffect(p: progressP, opacity: progressOpacity, focused: focused,
                                     trio: window.workspace.preferences.progressColor.gradientTrio))
@@ -212,7 +211,6 @@ public struct OmniboxView: View {
     private func isLoadingNow() -> Bool { window.selected?.loadState == .loading }
 
     private func startProgress() {
-        progressNonce += 1
         if reduced {
             progressOpacity = 1
             progressP = 0.06
@@ -233,15 +231,8 @@ public struct OmniboxView: View {
 
     private func finishProgress() {
         guard progressOpacity > 0 || progressP > 0 else { return }
-        progressNonce += 1
-        let nonce = progressNonce
-        withAnimation(.linear(duration: 0.12)) { progressP = 1 }
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.13))
-            guard !Task.isCancelled, nonce == progressNonce else { return }
-            progressOpacity = 0
-            progressP = 0
-        }
+        progressOpacity = 0
+        progressP = 0
     }
 }
 
@@ -263,7 +254,7 @@ private struct DiaProgressEffect: AnimatableModifier {
                                   focused: focused, trio: trio)
             }
             .opacity(opacity)
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous))
         }
     }
 }

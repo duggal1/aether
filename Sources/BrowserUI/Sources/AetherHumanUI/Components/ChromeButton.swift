@@ -38,7 +38,7 @@ public struct ChromeButton: View {
     }
 
     @ViewBuilder private var surface: some View {
-        AetherInteractionSurface(active: enabled && (hovering || selected), radius: 6, selected: selected)
+        AetherInteractionSurface(active: enabled && (hovering || selected), radius: AetherMetrics.utilityRadius, selected: selected)
     }
 
     private var tint: Color {

@@ -64,6 +64,11 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     }
   }
 
+  func warmDefaultProfile(_ profileID: UUID) async throws {
+    let context = try await context(for: profileID)
+    try await engine.runtime.warmProfileStore(contextID: context)
+  }
+
   func page(_ id: String) throws -> PageID {
     guard let page = pages[id] else { throw BrowserPortError.pageUnavailable }
     return page

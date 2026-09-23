@@ -23,7 +23,7 @@ public struct SettingsWindowView: View {
 
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: true) {
-                        VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 16) {
                             Color.clear.frame(height: 0).id("settingsTop")
                             sectionContent
                             Color.clear.frame(height: 12)
@@ -43,10 +43,10 @@ public struct SettingsWindowView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background { AetherSheetBackground() }
+            .background(theme.background)
         }
         .frame(width: 800, height: 550)
-        .background { AetherSheetBackground() }
+        .background(theme.background)
         .toggleStyle(.switch)
         .controlSize(.regular)
         .aetherTypography()

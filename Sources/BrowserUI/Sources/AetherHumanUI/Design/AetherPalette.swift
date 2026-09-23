@@ -214,11 +214,12 @@ public enum AetherPalette {
 }
 
 public enum AetherMetrics {
-    public static let cardRadius: CGFloat = 8
-    public static let fieldRadius: CGFloat = 6
-    public static let utilityRadius: CGFloat = 5
+    public static let cardRadius: CGFloat = 12
+    public static let fieldRadius: CGFloat = 10
+    public static let utilityRadius: CGFloat = 8
     public static let menuRadius: CGFloat = 12
-    public static let panelRadius: CGFloat = 12
+    public static let panelRadius: CGFloat = 14
+    public static let tabRadius: CGFloat = 14
     public static let tabHeight: CGFloat = 40
     public static let rowHeight: CGFloat = 33
     public static let chromeHeight: CGFloat = 42

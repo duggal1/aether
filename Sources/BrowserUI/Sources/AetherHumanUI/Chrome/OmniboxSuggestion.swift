@@ -53,18 +53,19 @@ enum OmniboxSuggestionBuilder {
     static func rows(prefix raw: String, provider: SearchProvider, tabs: [OmniboxTabSource],
                      bookmarks: [BrowserBookmark], visits: [BrowserVisit],
                      completions: [String], accepted: [String: Int], rememberedSite: URL? = nil,
+                     suggestedSites: [OmniboxSuggestion] = [], rankedHistory: [UUID] = [],
                      limit: Int = 9) -> [OmniboxSuggestion] {
         let prefix = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prefix.isEmpty else { return [] }
         let needle = prefix.lowercased()
         var rows: [OmniboxSuggestion] = [intentRow(prefix: prefix, provider: provider,
                                                    rememberedSite: rememberedSite)]
-        var seenHosts = Set<String>()
+        var seenURLs = Set<String>()
         var seenTitles = Set<String>()
 
         func accept(url: String?, title: String) -> Bool {
-            if let url, let host = URL(string: url)?.host?.lowercased() {
-                guard seenHosts.insert(host).inserted else { return false }
+            if let url {
+                guard seenURLs.insert(url.lowercased()).inserted else { return false }
             }
             return seenTitles.insert(title.lowercased()).inserted
         }
@@ -84,11 +85,20 @@ enum OmniboxSuggestionBuilder {
                                           score: score + 18 + boost(needle, bookmark.title, accepted)))
         }
         for visit in visits.prefix(visitScan) {
-            guard let score = matchScore(needle: needle, host: host(of: visit.url), text: visit.title),
+            let rank = rankedHistory.firstIndex(of: visit.id)
+            let score = matchScore(needle: needle, host: host(of: visit.url), text: visit.title)
+                ?? (visit.excerpt?.localizedCaseInsensitiveContains(needle) == true ? 105 : nil)
+                ?? (rank == nil ? nil : 100)
+            guard let score,
                   accept(url: visit.url, title: visit.title) else { continue }
             rows.append(OmniboxSuggestion(kind: .history, title: visit.title, host: host(of: visit.url),
                                           url: visit.url, matched: matched(needle, visit.title),
-                                          score: score + frecency(visit.visitedAt) + boost(needle, visit.title, accepted)))
+                                          score: score + frecency(visit.visitedAt)
+                                            + boost(needle, visit.title, accepted)
+                                            + (rank.map { 310 - Double($0 * 20) } ?? 0)))
+        }
+        for site in suggestedSites where accept(url: site.url, title: site.title) {
+            rows.append(site)
         }
         for (index, completion) in completions.enumerated() {
             guard accept(url: nil, title: completion) else { continue }

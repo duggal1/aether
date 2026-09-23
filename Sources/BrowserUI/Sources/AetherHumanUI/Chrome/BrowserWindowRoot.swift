@@ -1,4 +1,5 @@
 import AppKit
+import CoreSpotlight
 import SwiftUI
 
 public struct BrowserWindowRoot: View {
@@ -46,6 +47,14 @@ public struct BrowserWindowRoot: View {
         .onChange(of: isFullscreen) { _, _ in
             measureTrafficLights()
             refreshHoverTracking()
+        }
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            guard let raw = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+                  let id = UUID(uuidString: raw),
+                  let bookmark = workspace.bookmarks.first(where: { $0.id == id }),
+                  let window else { return }
+            window.switchProfile(bookmark.profileID)
+            _ = window.newTab(url: bookmark.url)
         }
     }
 

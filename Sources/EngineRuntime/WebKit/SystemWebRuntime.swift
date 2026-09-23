@@ -96,6 +96,10 @@ extension BrowserRuntime {
 
   public func isWebContentLive(pageID: PageID) -> Bool { webPages[pageID] != nil }
 
+  public func warmProfileStore(contextID: ContextID) async throws {
+    _ = try await webContextForCookies(contextID)
+  }
+
   func restoreWebContent(_ id: PageID) async throws {
     guard webPages[id] == nil else { return }
     let record = try requirePage(id)
@@ -126,6 +130,8 @@ extension BrowserRuntime {
   }
 
   func navigateWeb(pageID: PageID, request: HTTPRequest, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
+    let probeOn = WebKitNavigationProbe.enabled
+    let start = probeOn ? Date() : nil
     let page = try await webPage(pageID)
     var native = URLRequest(url: request.url)
     native.httpMethod = request.method.rawValue
@@ -137,7 +143,19 @@ extension BrowserRuntime {
       receiveWebState(await page.state(), pageID: pageID)
       throw error
     }
-    return try await synchronizedWebInfo(pageID)
+    let info = try await synchronizedWebInfo(pageID)
+    if let start {
+      let total = Date().timeIntervalSince(start) * 1000
+      let tail: String
+      if let committedAt = await page.committedAt {
+        tail = String(format: " commitToReturn=%.1fms", Date().timeIntervalSince(committedAt) * 1000)
+      } else {
+        tail = ""
+      }
+      WebKitNavigationProbe.log(
+        String(format: "navigate total=%.1fms settle=%@%@", total, String(describing: settle), tail))
+    }
+    return info
   }
 
   public func findWebText(pageID: PageID, query: String, forward: Bool) async throws -> Int {

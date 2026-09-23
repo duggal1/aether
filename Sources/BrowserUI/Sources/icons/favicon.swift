@@ -7,11 +7,14 @@ public struct AetherLogo: View {
 
     @Environment(\.colorScheme)
     private var colorScheme
+    private let tint: Color?
+
+    public init(tint: Color? = nil) { self.tint = tint }
 
     public var body: some View {
         AetherLogoShape()
             .fill(
-                colorScheme == .dark
+                tint ?? (colorScheme == .dark
                     ? Color(
                         red: 245 / 255,
                         green: 245 / 255,
@@ -21,7 +24,7 @@ public struct AetherLogo: View {
                         red: 28 / 255,
                         green: 25 / 255,
                         blue: 23 / 255
-                    )
+                    ))
             )
             .aspectRatio(
                 142 / 109,
@@ -30,7 +33,6 @@ public struct AetherLogo: View {
             .accessibilityLabel("Aether")
     }
 
-    public init() {}
 }
 
 // MARK: - Vector Shape

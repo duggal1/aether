@@ -12,7 +12,9 @@ final class AppAutomationHost {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("aether-agent", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
       attributes: [.posixPermissions: 0o700])
-    socketPath = directory.appendingPathComponent("browser.sock").path
+    let name = CommandLine.arguments.contains("--silent-verification")
+      ? "verify-\(ProcessInfo.processInfo.processIdentifier).sock" : "browser.sock"
+    socketPath = directory.appendingPathComponent(name).path
     guard socketPath.utf8.count < 104 else { throw BrowserPortError.unsupported("automation socket path exceeding macOS limits") }
     let server = AgentSocketServer(path: socketPath)
     let dispatcher = AgentCommandDispatcher(engine: engine)

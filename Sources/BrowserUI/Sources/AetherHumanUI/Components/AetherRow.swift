@@ -41,8 +41,8 @@ public struct AetherRow<Accessory: View>: View {
                     .padding(.leading, (symbol == nil && customIcon == nil) ? 0 : 34)
             }
         }
-        .padding(.horizontal, 15)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 9)
     }
 }
 

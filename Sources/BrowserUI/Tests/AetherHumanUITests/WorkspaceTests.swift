@@ -25,4 +25,13 @@ struct WorkspaceTests {
         window.setArrangement(.top)
         #expect(window.selectedID == before)
     }
+
+    @Test func navigationURLMatchingToleratesCanonicalForms() {
+        #expect(BrowserWindowModel.sameNavigationURL("https://github.com", "https://github.com/"))
+        #expect(BrowserWindowModel.sameNavigationURL("https://github.com/", "https://github.com"))
+        #expect(BrowserWindowModel.sameNavigationURL("HTTPS://GitHub.COM/pricing", "https://github.com/pricing"))
+        #expect(!BrowserWindowModel.sameNavigationURL("https://github.com", "https://github.com/pricing"))
+        #expect(!BrowserWindowModel.sameNavigationURL("https://github.com", "https://gitlab.com/"))
+        #expect(!BrowserWindowModel.sameNavigationURL("https://github.com", nil))
+    }
 }

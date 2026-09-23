@@ -18,22 +18,24 @@ public struct NewTabView: View {
     public var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 28) {
                     AetherLogo()
-                        .opacity(scheme == .dark ? 0.8 : 0.72)
-                        .frame(width: 46)
+                        .opacity(scheme == .dark ? 0.82 : 0.72)
+                        .frame(width: 52)
                         .accessibilityLabel("Aether")
                     askCard
-                    LazyVGrid(columns: columns, alignment: .center, spacing: 18) {
-                        ForEach(window.workspace.shortcuts) { item in shortcut(item) }
-                        addTile
+                    if !canSubmit {
+                        LazyVGrid(columns: columns, alignment: .center, spacing: 18) {
+                            ForEach(window.workspace.shortcuts) { item in shortcut(item) }
+                            addTile
+                        }
+                        .frame(maxWidth: 480)
+                        .padding(.top, 10)
                     }
-                    .frame(maxWidth: 480)
-                    .padding(.top, 8)
                 }
-                .frame(maxWidth: 640)
+                .frame(maxWidth: 680)
                 .padding(.horizontal, 32)
-                .padding(.top, max(42, geometry.size.height * 0.18))
+                .padding(.top, max(80, geometry.size.height * 0.25))
                 .padding(.bottom, 36)
                 .frame(maxWidth: .infinity)
             }
@@ -45,45 +47,155 @@ public struct NewTabView: View {
         .task {
             AetherFaviconStore.shared.prefetch(window.workspace.shortcuts.compactMap { URL(string: $0.url)?.host })
         }
+        .onChange(of: ask) { _, value in
+            window.suggestions.update(prefix: value, window: window, forceIntelligence: true)
+        }
+        .onChange(of: window.activeProfileID) { _, _ in
+            window.suggestions.update(prefix: ask, window: window, forceIntelligence: true)
+        }
+        .onDisappear { window.suggestions.dismiss() }
     }
 
     private var canSubmit: Bool { !ask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     private var askCard: some View {
-        HStack(spacing: 11) {
-            BrowserIconView(icon: .search, tint: theme.fieldIcon).iconSize(16)
-            TextField("Ask anything…", text: $ask,
-                      prompt: Text("Ask anything…").foregroundStyle(theme.placeholder))
-                .textFieldStyle(.plain)
-                .font(AetherType.placeholder(14))
-                .foregroundStyle(theme.ink)
-                .focused($askFocused)
-                .onSubmit(submitAsk)
-            Button(action: submitAsk) {
-                Image(systemName: "arrow.up")
-                    .font(AetherType.symbol(13))
-                    .foregroundStyle(canSubmit ? theme.ink : theme.muted)
-                    .frame(width: 26, height: 26)
-                    .background(canSubmit ? theme.selected : theme.control, in: Circle())
-                    .contentShape(Circle())
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                BrowserIconView(icon: .search, tint: theme.muted).iconSize(17)
+                TextField("Search or enter a website", text: $ask,
+                          prompt: Text("Search or enter a website").foregroundStyle(theme.placeholder))
+                    .textFieldStyle(.plain)
+                    .font(AetherType.body(17))
+                    .foregroundStyle(theme.ink)
+                    .focused($askFocused)
+                    .onSubmit(submitAsk)
+                    .onKeyPress(.upArrow) { window.suggestions.move(-1); return .handled }
+                    .onKeyPress(.downArrow) { window.suggestions.move(1); return .handled }
+                    .accessibilityIdentifier("aether.center-search")
             }
-            .buttonStyle(AetherPressStyle(reduced: reduced))
-            .aetherPointingCursor()
-            .disabled(!canSubmit)
-            .help("Search or open address")
-            .accessibilityLabel("Search or open address")
+            .padding(.horizontal, 22)
+            .frame(height: 66)
+            if canSubmit {
+                suggestionRows
+                HStack(spacing: 12) {
+                    Button("Search Google") { searchGoogle() }
+                        .font(AetherType.body(12))
+                        .foregroundStyle(theme.muted)
+                        .buttonStyle(.plain)
+                        .aetherPointingCursor()
+                    Spacer()
+                    Button(action: submitAsk) {
+                        HStack(spacing: 8) {
+                            Text("Search with Jev")
+                            Image(systemName: "return")
+                        }
+                        .font(AetherType.emphasis(12))
+                        .foregroundStyle(theme.heading)
+                        .padding(.horizontal, 15)
+                        .frame(height: 32)
+                        .background(theme.selected, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .aetherPointingCursor()
+                }
+                .padding(.horizontal, 22)
+                .padding(.bottom, 18)
+            }
         }
-        .padding(.horizontal, 14)
-        .frame(height: 52)
-        .background(theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .animation(AetherMotion.focus(reduced), value: askFocused)
+    }
+
+    private var suggestionRows: some View {
+        VStack(spacing: 2) {
+            ForEach(Array(window.suggestions.rows.prefix(7).enumerated()), id: \.element.id) { index, row in
+                Button { choose(row) } label: {
+                    HStack(spacing: 13) {
+                        suggestionIcon(row)
+                            .frame(width: 19, height: 19)
+                        Text(row.title)
+                            .font(AetherType.body(14))
+                            .foregroundStyle(theme.ink)
+                            .lineLimit(1)
+                        Spacer(minLength: 8)
+                        if let host = row.host, !row.title.localizedCaseInsensitiveContains(host) {
+                            Text(host)
+                                .font(AetherType.caption(12))
+                                .foregroundStyle(theme.muted)
+                                .lineLimit(1)
+                        }
+                        if index == window.suggestions.selected {
+                            Image(systemName: "return")
+                                .font(AetherType.symbol(12))
+                                .foregroundStyle(theme.muted)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 46)
+                    .background(index == window.suggestions.selected ? theme.selected : .clear,
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .aetherPointingCursor()
+                .accessibilityIdentifier("aether.center-suggestion.\(row.kind.rawValue)")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.bottom, 10)
     }
 
     private func submitAsk() {
         let text = ask.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        if let direct = AddressResolver.directURL(text) {
+            ask = ""
+            window.suggestions.dismiss()
+            window.navigateSelected(direct.absoluteString)
+            return
+        }
+        if let row = window.suggestions.selectedRow {
+            choose(row)
+            return
+        }
         ask = ""
+        window.suggestions.dismiss()
         window.navigateSelected(text, intelligence: true)
+    }
+
+    private func choose(_ row: OmniboxSuggestion) {
+        window.suggestions.record(row, profileID: window.activeProfileID)
+        let query = ask.trimmingCharacters(in: .whitespacesAndNewlines)
+        ask = ""
+        window.suggestions.dismiss()
+        if row.kind == .tab, let id = row.tabID {
+            window.select(id)
+        } else if let url = row.url {
+            window.navigateSelected(url)
+        } else {
+            window.navigateSelected(row.completion ?? query, intelligence: true)
+        }
+    }
+
+    private func searchGoogle() {
+        let query = ask.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = SearchProvider.google.searchURL(for: query,
+            locality: window.workspace.preferences.searchLocality,
+            localityTerms: window.workspace.preferences.localityQueryTerms) else { return }
+        ask = ""
+        window.suggestions.dismiss()
+        window.navigateSelected(url.absoluteString)
+    }
+
+    @ViewBuilder private func suggestionIcon(_ row: OmniboxSuggestion) -> some View {
+        switch row.kind {
+        case .completion:
+            BrowserIconView(icon: .search, tint: theme.muted).iconSize(16)
+        case .open where row.url == nil:
+            BrowserIconView(icon: .search, tint: theme.muted).iconSize(16)
+        default:
+            DomainIcon(row.url, size: 19)
+        }
     }
 
     private func shortcut(_ item: BrowserShortcut) -> some View {

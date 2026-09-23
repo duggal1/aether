@@ -149,6 +149,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   private var historyDirty = true
   private var lastProgressPublishedAt: Date = .distantPast
   private var lastPublishedProgress: Double = 0
+  private(set) var committedAt: Date?
 
   private func elapsed(_ scope: UInt64) -> String {
     guard let start = scopeStartedAt[scope] else { return "t=?" }
@@ -164,6 +165,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   init(context: WebKitContext, viewport: Size, changed: @escaping @Sendable (WebPageState) -> Void) {
     self.context = context
     self.changed = changed
+    let viewStart = WebKitNavigationProbe.enabled ? Date() : nil
     let configuration = WKWebViewConfiguration()
     configuration.websiteDataStore = context.store
     configuration.preferences.inactiveSchedulingPolicy = .suspend
@@ -171,6 +173,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     if let rules = context.rules { configuration.userContentController.add(rules) }
     view = WKWebView(frame: NSRect(x: 0, y: 0, width: viewport.width, height: viewport.height),
       configuration: configuration)
+    if let viewStart {
+      let ms = Date().timeIntervalSince(viewStart) * 1000
+      WebKitNavigationProbe.log(String(format: "view-alloc %.1fms", ms))
+    }
     super.init()
     view.navigationDelegate = self
     view.allowsBackForwardNavigationGestures = true
@@ -283,6 +289,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     currentScope = nextScope
     scopeStartedAt[nextScope] = Date()
     committedScope = nil
+    committedAt = nil
     interruptedScope = nil
     halted = false
     historyDirty = true
@@ -295,7 +302,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   private func armDeadline(for key: ObjectIdentifier) {
     deadlines[key] = Task { [weak self] in
       do { try await Task.sleep(for: .seconds(60)) } catch { return }
-      await self?.expire(key)
+      self?.expire(key)
     }
   }
 
@@ -322,6 +329,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     currentScope &+= 1
     scopeStartedAt[currentScope] = Date()
     committedScope = nil
+    committedAt = nil
     interruptedScope = nil
     halted = false
     historyDirty = true
@@ -499,6 +507,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     loaded = true
     contentReady = true
     committedScope = currentScope
+    committedAt = Date()
     historyDirty = true
     lastError = nil
     publish()
@@ -585,6 +594,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     loaded = false
     contentReady = false
     committedScope = nil
+    committedAt = nil
     for key in Array(waiters.keys) {
       resolve(key, error: BrowserRuntimeError.invalidState(message))
     }

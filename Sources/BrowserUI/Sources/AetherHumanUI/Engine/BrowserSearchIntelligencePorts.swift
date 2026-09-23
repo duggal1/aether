@@ -75,6 +75,30 @@ public struct BrowserSearchSignal: Sendable, Hashable {
     }
 }
 
+public struct BrowserSearchMemory: Sendable, Hashable {
+    public let id: UUID
+    public let title: String
+    public let url: String
+    public let excerpt: String
+
+    public init(id: UUID, title: String, url: String, excerpt: String) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.excerpt = excerpt
+    }
+}
+
+@MainActor
+public protocol BrowserNativeSearchIntelligence: AnyObject {
+    func rankHistory(query: String, pages: [BrowserSearchMemory]) async -> [UUID]
+}
+
+@MainActor
+public protocol BrowserPageTextProviding: AnyObject {
+    func indexablePageText(pageID: String) async throws -> String
+}
+
 @MainActor
 public protocol BrowserSearchIntelligence: AnyObject {
     func jevSearch(query: String, local: [BrowserSearchSignal]) async throws -> BrowserSearchOutcome

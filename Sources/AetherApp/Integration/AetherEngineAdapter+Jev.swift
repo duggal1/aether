@@ -27,6 +27,23 @@ extension AetherEngineAdapter: BrowserSearchIntelligence {
   }
 }
 
+extension AetherEngineAdapter: BrowserNativeSearchIntelligence {
+  func rankHistory(query: String, pages: [BrowserSearchMemory]) async -> [UUID] {
+    let candidates = pages.map {
+      NativeSearchPage(id: $0.id.uuidString, title: $0.title, url: $0.url, excerpt: $0.excerpt)
+    }
+    let ids = await engine.runtime.rankSearchHistory(query: query, pages: candidates)
+    return ids.compactMap(UUID.init(uuidString:))
+  }
+}
+
+extension AetherEngineAdapter: BrowserPageTextProviding {
+  func indexablePageText(pageID: String) async throws -> String {
+    let source = "(() => { const root = document.querySelector('main') || document.body; return (root?.innerText || '').slice(0, 1600) })()"
+    return try await engine.runtime.evaluate(pageID: page(pageID), source: source).value
+  }
+}
+
 extension BrowserSearchSignal {
   var localSignal: LocalSignal? {
     guard let address = URL(string: url), address.host != nil else { return nil }

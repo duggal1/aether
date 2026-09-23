@@ -97,7 +97,7 @@ struct BrowserControl {
     case "app-navigate":
       guard args.count == 3 else { throw CLIError.usage }
       request = AgentRequest(method: "app.navigate", params: ["tab": .string(args[1]), "url": .string(args[2])])
-    case "app-select", "app-close", "app-back", "app-forward", "app-reload":
+    case "app-select", "app-close", "app-back", "app-forward", "app-reload", "app-metrics":
       guard args.count == 2 else { throw CLIError.usage }
       request = AgentRequest(method: command.replacingOccurrences(of: "-", with: "."), params: ["tab": .string(args[1])])
     case "ping": request = AgentRequest(method: .ping)
@@ -731,7 +731,7 @@ struct BrowserControl {
     browserctl --app app-tabs
     browserctl --app app-open <url>
     browserctl --app app-navigate <tab-uuid> <url>
-    browserctl --app app-select|app-close|app-back|app-forward|app-reload <tab-uuid>
+    browserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>
     Use --app in place of --socket <path> for any command against the running app. No token required.
     Optional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]
     browserctl inspect <url>

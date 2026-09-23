@@ -149,8 +149,8 @@ struct PaletteContractTests {
         #expect(AetherMetrics.chromeHeight == 42)
         #expect(AetherMetrics.tabHeight == 40)
         #expect(AetherMetrics.tapTarget == 44)
-        #expect(AetherMetrics.menuRadius == 12)
-        #expect(AetherMetrics.panelRadius == 12)
+        #expect(AetherMetrics.menuRadius == 8)
+        #expect(AetherMetrics.panelRadius == 10)
     }
 }
 

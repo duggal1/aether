@@ -18,6 +18,7 @@ public final class BrowserTab: Identifiable {
     public var loadState: TabLoadState = .newTab
     public var loadProgress: Double = 0
     public var contentReady = false
+    public var paintReady = true
     public var isLoading = false
     public var pendingURL: String?
     public var canGoBack = false

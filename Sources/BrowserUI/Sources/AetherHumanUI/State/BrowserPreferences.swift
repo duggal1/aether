@@ -12,6 +12,7 @@ public final class BrowserPreferences {
     public var showFullAddress: Bool { didSet { save() } }
     public var showSearchSuggestions: Bool { didSet { save() } }
     public var providerSuggestions: Bool { didSet { save() } }
+    public var spotlightSavedPages: Bool { didSet { save() } }
     public var sidebarWidth: Double { didSet { save() } }
     public var transientSidebarWidth: Double?
     public var downloadFolder: String { didSet { save() } }
@@ -34,6 +35,7 @@ public final class BrowserPreferences {
         showFullAddress = defaults.object(forKey: "aether.fullAddress") as? Bool ?? false
         showSearchSuggestions = defaults.object(forKey: "aether.suggest") as? Bool ?? true
         providerSuggestions = defaults.object(forKey: "aether.suggest.web") as? Bool ?? true
+        spotlightSavedPages = defaults.object(forKey: "aether.search.spotlight") as? Bool ?? false
         sidebarWidth = max(188, min(324, defaults.object(forKey: "aether.sidebarWidth") as? Double ?? 190))
         downloadFolder = defaults.string(forKey: "aether.downloads") ?? "Downloads"
         privacy = BrowserPrivacyPolicy(
@@ -80,6 +82,7 @@ public final class BrowserPreferences {
         defaults.set(showFullAddress, forKey: "aether.fullAddress")
         defaults.set(showSearchSuggestions, forKey: "aether.suggest")
         defaults.set(providerSuggestions, forKey: "aether.suggest.web")
+        defaults.set(spotlightSavedPages, forKey: "aether.search.spotlight")
         defaults.set(sidebarWidth, forKey: "aether.sidebarWidth")
         defaults.set(downloadFolder, forKey: "aether.downloads")
         defaults.set(privacy.blockAds, forKey: "aether.blockAds")

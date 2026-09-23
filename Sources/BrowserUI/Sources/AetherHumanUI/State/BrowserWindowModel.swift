@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import WebKit
 
 @MainActor @Observable
 public final class BrowserWindowModel: Identifiable {
@@ -13,6 +14,10 @@ public final class BrowserWindowModel: Identifiable {
     public var showsTabSearch = false
     public var showsHistory = false
     public var showsBookmarks = false
+    public var showsProfileMenu = false
+    public var showsMoreMenu = false
+    public var showsNewProfile = false
+    public var showsRenameProfile = false
     public var showsDownloads = false
     public var showsInspector = false
     public var showsReader = false
@@ -23,7 +28,6 @@ public final class BrowserWindowModel: Identifiable {
     public let suggestions = OmniboxSuggestionModel()
     public var alert: String?
     public private(set) var glow = AetherNavigationGlowState()
-    @ObservationIgnored private var glowSettleTask: Task<Void, Never>?
     @ObservationIgnored private var navigationTasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored private var navigationEpochs: [UUID: UInt64] = [:]
     @ObservationIgnored private var observation: Task<Void, Never>?
@@ -120,6 +124,7 @@ public final class BrowserWindowModel: Identifiable {
 
     public func select(_ id: UUID) {
         guard tabs.contains(where: { $0.id == id }) else { return }
+        closeMenus()
         selectionByProfile[activeProfileID] = id
         if let tab = tabs.first(where: { $0.id == id }), tab.needsRestoreLoad, let url = tab.url {
             tab.needsRestoreLoad = false
@@ -128,6 +133,7 @@ public final class BrowserWindowModel: Identifiable {
         workspace.scheduleSessionSave()
     }
     @discardableResult public func newTab(url: String? = nil) -> BrowserTab {
+        closeMenus()
         let tab = BrowserTab(profileID: activeProfileID)
         tabsByProfile[activeProfileID, default: []].append(tab)
         selectionByProfile[activeProfileID] = tab.id
@@ -169,6 +175,7 @@ public final class BrowserWindowModel: Identifiable {
     }
     public func removeProfile(_ id: UUID, switchTo next: UUID) {
         for tab in tabsByProfile[id] ?? [] {
+            navigationTasks.removeValue(forKey: tab.id)?.cancel()
             if let page = tab.enginePageID { surfaces.release(page); Task { await workspace.engine.close(pageID: page) } }
         }
         tabsByProfile.removeValue(forKey: id)
@@ -248,6 +255,7 @@ public final class BrowserWindowModel: Identifiable {
         tab.url = destination.absoluteString
         tab.pendingURL = destination.absoluteString
         tab.contentReady = false
+        tab.paintReady = false
         tab.siteSurface = nil
         tab.sitePrefersDark = nil
         tab.loadState = .loading
@@ -269,6 +277,8 @@ public final class BrowserWindowModel: Identifiable {
                 }
                 guard self.isCurrent(epoch, tab: tab) else { return }
                 try await workspace.engine.navigate(pageID: page, url: destination)
+                guard self.isCurrent(epoch, tab: tab) else { return }
+                await self.probePaint(tab, pageID: page, epoch: epoch)
                 guard self.isCurrent(epoch, tab: tab) else { return }
                 try await refresh(tab)
 
@@ -309,6 +319,23 @@ public final class BrowserWindowModel: Identifiable {
         let empty: Set<String> = ["", "/"]
         let pathMatch = a.path == b.path || (empty.contains(a.path) && empty.contains(b.path))
         return pathMatch && (a.query ?? "") == (b.query ?? "")
+    }
+
+    private static let paintProbeJS =
+        "performance.getEntriesByType('paint').some(entry => entry.name === 'first-contentful-paint')"
+
+    private func probePaint(_ tab: BrowserTab, pageID: String, epoch: UInt64) async {
+        guard let webView = workspace.engine.surface(pageID: pageID) as? WKWebView else { return }
+        while true {
+            guard isCurrent(epoch, tab: tab), !Task.isCancelled else { return }
+            if let painted = try? await webView.evaluateJavaScript(Self.paintProbeJS) as? Bool,
+               painted {
+                guard isCurrent(epoch, tab: tab), !Task.isCancelled else { return }
+                tab.paintReady = true
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+        }
     }
     public func startJevSearch(_ tab: BrowserTab, query: String) {
         navigationTasks[tab.id]?.cancel()
@@ -360,22 +387,12 @@ public final class BrowserWindowModel: Identifiable {
         apply(state, to: tab)
     }
     public func beginNavigationGlow() {
-        glowSettleTask?.cancel()
-        glowSettleTask = nil
         glow.begin()
     }
     private func finishGlow(_ failed: Bool) {
         guard glow.phase.isActive else { return }
         if failed { glow.fail() } else { glow.contentVisible() }
-        scheduleGlowSettle(after: failed ? 0.28 : 0.38)
-    }
-    private func scheduleGlowSettle(after delay: TimeInterval) {
-        glowSettleTask?.cancel()
-        glowSettleTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(delay))
-            guard !Task.isCancelled else { return }
-            self?.glow.settle()
-        }
+        glow.settle()
     }
     private func apply(_ state: EnginePageSnapshot, to tab: BrowserTab) {
         if case .search = tab.loadState { return }
@@ -409,7 +426,6 @@ public final class BrowserWindowModel: Identifiable {
                 tab.loadProgress = 0
                 tab.loadState = .newTab
                 if tab.id == selectedID {
-                    glowSettleTask?.cancel()
                     glow.settle()
                 }
                 return
@@ -435,11 +451,28 @@ public final class BrowserWindowModel: Identifiable {
         tab.pendingURL = nil
         if tab.url != state.url { tab.siteSurface = nil; tab.sitePrefersDark = nil }
         tab.url = state.url
+        // Commit alone is not visual readiness: the document can still be
+        // blank (scripts hydrating). Ready requires first paint, observed
+        // directly from the page, never an artificial delay.
+        if !tab.paintReady {
+            tab.loadState = .loading
+            if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
+            return
+        }
         tab.loadState = .ready
         if tab.id == selectedID { finishGlow(false) }
         if let url = state.url, lastNavigationURLs[state.id] != url {
             lastNavigationURLs[state.id] = url
-            workspace.recordVisit(profileID: tab.profileID, title: tab.title, url: url)
+            let visitID = workspace.recordVisit(profileID: tab.profileID, title: tab.title, url: url)
+            if !workspace.isIncognito(tab.profileID),
+               let provider = workspace.engine as? any BrowserPageTextProviding {
+                let profileID = tab.profileID
+                Task { [weak self] in
+                    guard let text = try? await provider.indexablePageText(pageID: state.id),
+                          let self, self.lastNavigationURLs[state.id] == url else { return }
+                    self.workspace.updateVisitExcerpt(visitID, profileID: profileID, text: text)
+                }
+            }
         }
     }
     public func closeWindow() {
@@ -459,9 +492,10 @@ public final class BrowserWindowModel: Identifiable {
         let epoch = beginNavigationEpoch(for: tab)
         if case .stop = action {
             navigationTasks[tab.id]?.cancel()
-            if glow.phase.isActive { glow.fail(); scheduleGlowSettle(after: 0.24) }
+            if glow.phase.isActive { glow.fail(); glow.settle() }
         } else {
             beginNavigationGlow()
+            tab.paintReady = false
             tab.loadState = .loading
         }
         navigationTasks[tab.id] = Task {
@@ -473,6 +507,8 @@ public final class BrowserWindowModel: Identifiable {
                 case .stop: try await workspace.engine.stop(pageID: page)
                 }
                 guard self.isCurrent(epoch, tab: tab) else { return }
+                if action != .stop { await self.probePaint(tab, pageID: page, epoch: epoch) }
+                guard self.isCurrent(epoch, tab: tab) else { return }
                 try await refresh(tab)
             } catch {
                 self.fail(tab, error: error, epoch: epoch)
@@ -482,6 +518,10 @@ public final class BrowserWindowModel: Identifiable {
     public func setArrangement(_ mode: TabArrangement) { workspace.preferences.arrangement = mode }
     public func toggleArrangement() { setArrangement(arrangement == .top ? .sidebar : .top) }
 
+    public func closeMenus() {
+        showsProfileMenu = false
+        showsMoreMenu = false
+    }
     public func toggleSidebar() {
         if arrangement != .sidebar {
             setArrangement(.sidebar)

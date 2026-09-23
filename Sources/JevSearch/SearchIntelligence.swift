@@ -94,8 +94,9 @@ public actor SearchIntelligence {
   }
 
   public func updateKeys(typeSafeKey: String, search1APIKey: String) {
-    configuration.typeSafeKey = typeSafeKey
-    configuration.search1APIKey = search1APIKey
+    let environment = JevConfiguration.load()
+    configuration.typeSafeKey = typeSafeKey.isEmpty ? environment.typeSafeKey : typeSafeKey
+    configuration.search1APIKey = search1APIKey.isEmpty ? environment.search1APIKey : search1APIKey
     intelligence = JevClient(configuration: configuration, transport: transport)
     retrieval = Search1APIClient(configuration: configuration, transport: transport)
     invalidateCaches()
@@ -166,7 +167,7 @@ public actor SearchIntelligence {
     if !configuration.hasIntelligence { degraded = true }
 
     var ordered = Self.ordered(candidates)
-    if degraded || ordered.isEmpty, let fallback = Self.googleFallback(query) {
+    if degraded || retrieved.isEmpty || ordered.isEmpty, let fallback = Self.googleFallback(query) {
       ordered.append(fallback)
     }
     return SearchOutcome(
