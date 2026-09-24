@@ -115,10 +115,20 @@ extension BrowserRuntime {
     guard let contextID = contextID(containing: pageID),
       var page = contexts[contextID]?.pages[pageID],
       state.sequence > (webStates[pageID]?.sequence ?? 0) else { return }
+    let previous = webStates[pageID]
     webStates[pageID] = state
+    let historyChanged = !state.history.isEmpty
+      && (page.history != state.history || page.historyIndex != state.historyIndex)
+    let recordChanged = page.viewport != state.viewport || historyChanged
+      || previous?.url != state.url || previous?.loading != state.loading
+      || previous?.contentReady != state.contentReady || previous?.error != state.error
+    guard recordChanged else {
+      publishPageState(pageID)
+      return
+    }
     page.viewport = state.viewport
     page.lastActive = Date().timeIntervalSince1970
-    if !state.history.isEmpty {
+    if historyChanged {
       page.history = state.history
       page.historyIndex = state.historyIndex
     }
