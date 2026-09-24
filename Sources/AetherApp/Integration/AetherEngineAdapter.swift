@@ -94,7 +94,7 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     return EnginePageSnapshot(id: state.page.id.description, url: url?.absoluteString,
       title: state.page.title, canGoBack: state.page.canGoBack,
       canGoForward: state.page.canGoForward, isLoading: state.loading,
-      contentReady: state.contentReady, progress: state.progress,
+      contentReady: state.contentReady, paintReady: state.painted, progress: state.progress,
       isSecure: url?.scheme == "https", error: state.error, closed: state.closed)
   }
 

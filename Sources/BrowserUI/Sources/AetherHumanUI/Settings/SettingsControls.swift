@@ -40,6 +40,7 @@ public struct SettingsHelp: View {
 public struct AetherColorChoice: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduced
+    @State private var hovering = false
     let title: String
     let color: Color
     let selected: Bool
@@ -53,7 +54,7 @@ public struct AetherColorChoice: View {
     }
 
     public var body: some View {
-        Button(action: action) {
+        Button(action: { action() }) {
             HStack(spacing: 7) {
                 Circle()
                     .fill(color)
@@ -74,12 +75,19 @@ public struct AetherColorChoice: View {
             }
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
+            .background {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(theme.dark ? Color.white.opacity(0.07) : Color.black.opacity(0.05))
+                    .opacity(hovering && !selected ? 1 : 0)
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .aetherPointingCursor()
         .focusEffectDisabled()
+        .onHover { hovering = $0 }
         .animation(AetherMotion.selection(reduced), value: selected)
+        .animation(AetherMotion.hover(reduced), value: hovering)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

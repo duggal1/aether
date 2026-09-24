@@ -65,8 +65,9 @@ public struct ProfileMenuPanel: View {
     private var iconColor: Color { chrome?.icon ?? theme.muted }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
+        GlassEffectContainer(spacing: 4) {
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
                 Button {
                     window.switchProfile(profile.id)
                     window.showsProfileMenu = false
@@ -100,6 +101,7 @@ public struct ProfileMenuPanel: View {
             actionRow(.gear, "Profile Settings") {
                 window.showsProfileMenu = false
                 window.showsSettings = true
+            }
             }
         }
         .padding(6)

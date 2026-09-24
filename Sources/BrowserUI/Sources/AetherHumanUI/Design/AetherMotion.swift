@@ -21,6 +21,7 @@ public enum AetherMotion {
     public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.20, bounce: 0.12) }
     public static func dropdown(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.20, bounce: 0.16) }
     public static func panel(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.22, bounce: 0.08) }
+    public static func container(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.22) }
     public static func morph(_ reduced: Bool) -> Animation? { reduced ? nil : liquid }
     public static func snappy(_ reduced: Bool) -> Animation? { reduced ? nil : snappy }
     public static func smooth(_ reduced: Bool) -> Animation? { reduced ? nil : smooth }
@@ -33,13 +34,13 @@ public enum AetherMotion {
     }
 
     public static func panelTransition(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : .opacity
+        reduced ? .opacity : blurInOut(reduced)
     }
 
     public static func sheetTransition(_ reduced: Bool) -> AnyTransition {
         reduced ? .opacity : AnyTransition.asymmetric(
-            insertion: .scale(scale: 0.94, anchor: .center).combined(with: .opacity),
-            removal: .scale(scale: 0.97, anchor: .center).combined(with: .opacity))
+            insertion: blurInOut(reduced).combined(with: .scale(scale: 0.94, anchor: .center)).combined(with: .opacity),
+            removal: blurInOut(reduced).combined(with: .scale(scale: 0.97, anchor: .center)).combined(with: .opacity))
     }
 
     public static func disclosure(_ reduced: Bool, expanded: Bool) -> AnyTransition {

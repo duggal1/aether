@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import WebKit
 
 @MainActor @Observable
 public final class BrowserWindowModel: Identifiable {
@@ -283,8 +282,6 @@ public final class BrowserWindowModel: Identifiable {
                 try await workspace.engine.navigate(pageID: page, url: destination)
                 AetherLatencyProbe.mark("ui.navigate.dispatched")
                 guard self.isCurrent(epoch, tab: tab) else { return }
-                await self.probePaint(tab, pageID: page, epoch: epoch)
-                guard self.isCurrent(epoch, tab: tab) else { return }
                 try await refresh(tab)
 
             } catch {
@@ -315,28 +312,6 @@ public final class BrowserWindowModel: Identifiable {
         return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 
-    private static let paintProbeJS =
-        "performance.getEntriesByType('paint').some(entry => entry.name === 'first-contentful-paint')"
-
-    private func probePaint(_ tab: BrowserTab, pageID: String, epoch: UInt64) async {
-        guard let webView = workspace.engine.surface(pageID: pageID) as? WKWebView else { return }
-        while true {
-            guard isCurrent(epoch, tab: tab), !Task.isCancelled else { return }
-            if let painted = try? await webView.evaluateJavaScript(Self.paintProbeJS) as? Bool,
-               painted {
-                guard isCurrent(epoch, tab: tab), !Task.isCancelled else { return }
-                tab.paintReady = true
-                return
-            }
-            // A document that finished loading without reporting paint never
-            // will (blank documents, back/forward restores). Stop probing there
-            // instead of holding a per-navigation poll for the rest of the
-            // session.
-            let documentSettled = tab.loadState == .ready || (tab.contentReady && !tab.isLoading)
-            guard !documentSettled else { return }
-            try? await Task.sleep(for: .milliseconds(120))
-        }
-    }
     public func startJevSearch(_ tab: BrowserTab, query: String) {
         navigationTasks[tab.id]?.cancel()
         navigationTasks[tab.id] = nil
@@ -410,6 +385,7 @@ public final class BrowserWindowModel: Identifiable {
         tab.loadProgress = state.progress
         tab.isLoading = state.isLoading
         tab.contentReady = state.contentReady
+        tab.paintReady = state.paintReady
         // An error only replaces the page when there is no usable document yet.
         // A rendered page must never be swapped for a stale or unrelated error
         // overlay.
@@ -498,8 +474,6 @@ public final class BrowserWindowModel: Identifiable {
                 case .reload: try await workspace.engine.reload(pageID: page)
                 case .stop: try await workspace.engine.stop(pageID: page)
                 }
-                guard self.isCurrent(epoch, tab: tab) else { return }
-                if action != .stop { await self.probePaint(tab, pageID: page, epoch: epoch) }
                 guard self.isCurrent(epoch, tab: tab) else { return }
                 try await refresh(tab)
             } catch {

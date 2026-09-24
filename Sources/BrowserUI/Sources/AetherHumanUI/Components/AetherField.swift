@@ -40,8 +40,17 @@ public struct AetherField: View {
         .padding(.horizontal, horizontalPadding)
         .frame(height: 36)
         .background {
-            RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-                .fill(theme.dialogField)
+            let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+            ZStack {
+                AetherStrongBlurView().clipShape(shape)
+                shape.fill(theme.dark
+                    ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.45)
+                    : Color.white.opacity(0.60))
+                shape.fill(.clear)
+                    .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.14) : Color.white.opacity(0.16)),
+                                 in: shape)
+                    .glassEffectTransition(.materialize)
+            }
         }
         .overlay {
             RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)

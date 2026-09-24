@@ -137,8 +137,17 @@ public struct OmniboxView: View {
         .padding(.leading, 12).padding(.trailing, 6)
         .frame(height: 30)
         .background {
-            RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-                .fill(appearance.addressInputBG)
+            let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+            ZStack {
+                AetherStrongBlurView().clipShape(shape)
+                shape.fill(appearance.isDark
+                    ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.45)
+                    : Color.white.opacity(0.60))
+                shape.fill(.clear)
+                    .glassEffect(.regular.tint(appearance.isDark ? Color.black.opacity(0.14) : Color.white.opacity(0.16)),
+                                 in: shape)
+                    .glassEffectTransition(.materialize)
+            }
         }
         .modifier(DiaProgressEffect(p: progressP, opacity: progressOpacity, focused: focused,
                                     trio: window.workspace.preferences.progressColor.gradientTrio))

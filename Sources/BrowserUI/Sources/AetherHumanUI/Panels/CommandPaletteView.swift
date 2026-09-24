@@ -32,6 +32,7 @@ public struct AetherCommandPalette: View {
     }
 
     public var body: some View {
+        GlassEffectContainer(spacing: 8) {
             VStack(alignment: .leading, spacing: 8) {
             searchField
             ScrollView {
@@ -41,7 +42,7 @@ public struct AetherCommandPalette: View {
                             emptyRow("No matching tabs")
                         } else {
                             ForEach(tabMatches) { tab in
-                                row(tab.title, tab.url, url: tab.url, selected: tab.id == window.selectedID) {
+                                row(tab.title, tab.url, url: tab.url, selected: tab.id == window.selectedID, namespace: glassNS) {
                                     window.select(tab.id)
                                     close()
                                 }
@@ -85,6 +86,7 @@ public struct AetherCommandPalette: View {
             Rectangle().fill(appearance.secondary.opacity(0.18)).frame(height: 1)
             row("History", nil, symbol: .history, chevron: true) { close(); window.showsHistory = true }
             row("Bookmarks", nil, symbol: .bookmarks, chevron: true) { close(); window.showsBookmarks = true }
+        }
         }
         .padding(8)
         .frame(width: 322)
@@ -134,9 +136,9 @@ public struct AetherCommandPalette: View {
     }
 
     @ViewBuilder private func row(_ title: String, _ subtitle: String?, url: String? = nil, symbol: AetherSymbol? = nil,
-                                  selected: Bool = false, chevron: Bool = false, action: @escaping () -> Void) -> some View {
+                                  selected: Bool = false, chevron: Bool = false, namespace: Namespace.ID? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            CommandPaletteRowSurface(selected: selected, appearance: appearance) {
+            CommandPaletteRowSurface(selected: selected, appearance: appearance, namespace: namespace) {
             HStack(spacing: 10) {
                 if let url {
                     DomainIcon(url, size: 16)
@@ -174,17 +176,32 @@ private struct CommandPaletteRowSurface<Content: View>: View {
     @State private var hovering = false
     let selected: Bool
     let appearance: AetherChromeAppearance
+    let namespace: Namespace.ID?
     let content: Content
 
-    init(selected: Bool, appearance: AetherChromeAppearance, @ViewBuilder content: () -> Content) {
+    init(selected: Bool, appearance: AetherChromeAppearance, namespace: Namespace.ID? = nil, @ViewBuilder content: () -> Content) {
         self.selected = selected
         self.appearance = appearance
+        self.namespace = namespace
         self.content = content()
     }
 
     var body: some View {
         content
-            .background { AetherInteractionSurface(active: selected || hovering, radius: 8, selected: selected, hovering: hovering) }
+            .background {
+                ZStack {
+                    if selected, let namespace {
+                        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        shape.fill(.clear)
+                            .glassEffect(.regular.tint(appearance.isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
+                            .glassEffectID("palette.selection", in: namespace)
+                            .glassEffectTransition(.matchedGeometry)
+                    } else if selected || hovering {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(selected ? appearance.selectedActive : appearance.hover)
+                    }
+                }
+            }
             .onHover { hovering = $0 }
             .animation(AetherMotion.hover(reduced), value: hovering)
     }

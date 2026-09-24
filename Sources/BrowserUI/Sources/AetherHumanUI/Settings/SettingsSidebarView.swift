@@ -28,7 +28,9 @@ public struct SettingsSidebarView: View {
         .padding(.bottom, 14)
         .padding(.leading, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.chrome)
+        .background(theme.dark
+            ? Color(.sRGB, red: 0x1C / 255, green: 0x1C / 255, blue: 0x1C / 255, opacity: 0.35)
+            : Color.white.opacity(0.30))
     }
 
     private func settingsRow(_ section: SettingsSection) -> some View {
@@ -36,32 +38,6 @@ public struct SettingsSidebarView: View {
             withAnimation(AetherMotion.snappy(reduced)) { selection = section }
         }
         .animation(AetherMotion.selection(reduced), value: selection)
-    }
-
-    @ViewBuilder private func sectionIcon(for section: SettingsSection) -> some View {
-        let tint = selection == section ? theme.ink : theme.muted
-        if let custom = customIcon(for: section) {
-            AetherCustomIconView(custom, tint: tint, size: 16)
-                .frame(width: 20, height: 20, alignment: .center)
-        } else {
-            Image(systemName: nativeIcon(for: section).rawValue)
-                .font(AetherType.symbol(16))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .frame(width: 20)
-        }
-    }
-
-    private func customIcon(for section: SettingsSection) -> AetherCustomIcon? {
-        switch section {
-        case .general: .gear
-        case .tabs: .tabsGrid
-        case .downloads: .downloadFolder
-        case .advanced: .sliders
-        case .networkPrivacy: .server
-        case .searchLocation: .gps
-        default: nil
-        }
     }
 
     private func nativeIcon(for section: SettingsSection) -> AetherSymbol {
@@ -126,28 +102,11 @@ private struct SettingsSidebarRow: View {
     }
     @ViewBuilder private var rowIcon: some View {
         let tint = selected ? theme.ink : theme.muted
-        switch section {
-        case .general, .tabs, .downloads, .advanced, .networkPrivacy, .searchLocation:
-            AetherCustomIconView(customIcon, tint: tint, size: 16)
-                .frame(width: 20, height: 20, alignment: .center)
-        default:
-            Image(systemName: nativeIcon.rawValue)
-                .font(AetherType.symbol(16))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .frame(width: 20)
-        }
-    }
-    private var customIcon: AetherCustomIcon {
-        switch section {
-        case .general: .gear
-        case .tabs: .tabsGrid
-        case .downloads: .downloadFolder
-        case .advanced: .sliders
-        case .networkPrivacy: .server
-        case .searchLocation: .gps
-        default: .gear
-        }
+        Image(systemName: nativeIcon.rawValue)
+            .font(AetherType.symbol(16))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .frame(width: 20)
     }
     private var nativeIcon: AetherSymbol {
         switch section {

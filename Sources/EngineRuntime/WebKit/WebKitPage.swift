@@ -13,6 +13,7 @@ struct WebPageState: Sendable, Equatable {
   let loading: Bool
   let loaded: Bool
   let contentReady: Bool
+  let painted: Bool
   let progress: Double
   let statusCode: Int
   let error: String?
@@ -126,12 +127,13 @@ final class WebKitContext {
 }
 
 @MainActor
-final class WebKitPage: NSObject, WKNavigationDelegate {
+final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   let view: WKWebView
   let context: WebKitContext
   var generation: UInt32 = 1
   var loaded = false
   var contentReady = false
+  var paintReported = false
   var lastError: String?
   var statusCode = 0
   private var sequence: UInt64 = 0
@@ -154,6 +156,19 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   private var lastPublishedProgress: Double = 0
   private(set) var committedAt: Date?
 
+  static let paintHandlerName = "aetherPaint"
+  static let paintObserverJS =
+    "(function(){try{var done=false;function report(){if(done)return;done=true;try{window.webkit.messageHandlers.aetherPaint.postMessage(1);}catch(_){}}var po=new PerformanceObserver(function(list){var entries=list.getEntries();for(var i=0;i<entries.length;i++){if(entries[i].name==='first-contentful-paint'){report();po.disconnect();break;}}});po.observe({type:'paint',buffered:true});}catch(_){}})();"
+
+  func userContentController(_ userContentController: WKUserContentController,
+    didReceive message: WKScriptMessage)
+  {
+    guard message.name == Self.paintHandlerName, message.frameInfo.isMainFrame else { return }
+    guard current != nil, committedScope == currentScope, !paintReported else { return }
+    paintReported = true
+    publish()
+  }
+
   private func elapsed(_ scope: UInt64) -> String {
     guard let start = scopeStartedAt[scope] else { return "t=?" }
     return String(format: "t=%.3fs", Date().timeIntervalSince(start))
@@ -175,6 +190,8 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     configuration.preferences.inactiveSchedulingPolicy = .suspend
     WebKitAppearance.install(in: configuration)
     if let rules = context.rules { configuration.userContentController.add(rules) }
+    configuration.userContentController.addUserScript(WKUserScript(
+      source: WebKitPage.paintObserverJS, injectionTime: .atDocumentStart, forMainFrameOnly: true))
     view = WKWebView(frame: NSRect(x: 0, y: 0, width: viewport.width, height: viewport.height),
       configuration: configuration)
     if let viewStart {
@@ -183,6 +200,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     }
     super.init()
     view.navigationDelegate = self
+    configuration.userContentController.add(self, name: WebKitPage.paintHandlerName)
     view.allowsBackForwardNavigationGestures = true
     view.isInspectable = true
     dialogs = WebKitDialogs()
@@ -207,6 +225,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     Task { @MainActor [weak self] in
       guard let self, !self.publicationScheduled else { return }
       self.publicationScheduled = true
+      await Task.yield()
       self.publish()
       self.publicationScheduled = false
     }
@@ -222,6 +241,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
       viewport: Size(width: view.bounds.width, height: view.bounds.height),
       history: cachedHistory, historyIndex: cachedHistoryIndex,
       loading: isLoading, loaded: loaded, contentReady: contentReady,
+      painted: paintReported,
       progress: view.estimatedProgress,
       statusCode: statusCode, error: lastError)
   }
@@ -245,7 +265,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
       previous.viewport == value.viewport, previous.history == value.history,
       previous.historyIndex == value.historyIndex,       previous.loading == value.loading,
       previous.loaded == value.loaded, previous.contentReady == value.contentReady,
-      previous.statusCode == value.statusCode,
+      previous.painted == value.painted, previous.statusCode == value.statusCode,
       previous.error == value.error {
       let delta = abs(value.progress - lastPublishedProgress)
       let now = Date()
@@ -298,6 +318,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     halted = false
     historyDirty = true
     contentReady = false
+    paintReported = false
     statusCode = 0
     lastError = nil
     return currentScope
@@ -338,6 +359,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     halted = false
     historyDirty = true
     contentReady = false
+    paintReported = false
     statusCode = 0
     lastError = nil
     probe("begin url=\(view.url?.absoluteString ?? "nil")")
@@ -481,6 +503,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
 
   func close() {
     stop()
+    view.configuration.userContentController.removeScriptMessageHandler(forName: Self.paintHandlerName)
     view.navigationDelegate = nil
     view.uiDelegate = nil
     dialogs?.close()
@@ -527,6 +550,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     }
     loaded = true
     lastError = nil
+    if !paintReported { paintReported = true }
     resolve(ObjectIdentifier(navigation))
     endTracking(contentUsable: true)
     publish()

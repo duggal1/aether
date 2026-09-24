@@ -4,6 +4,7 @@ public struct OmniboxSuggestionsView: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var chrome
     @Environment(\.accessibilityReduceMotion) private var reduced
+    @Namespace private var glassNS
     let model: OmniboxSuggestionModel
     let prefix: String
     let provider: SearchProvider
@@ -18,15 +19,18 @@ public struct OmniboxSuggestionsView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
-                if index == separatorIndex { gap }
-                OmniboxSuggestionRow(row: row, prefix: prefix, provider: provider,
-                                     selected: model.selected == index,
-                                     onHoverSelect: { model.select(index) }) {
-                    onChoose(row)
+        GlassEffectContainer(spacing: 8) {
+            VStack(spacing: 0) {
+                ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                    if index == separatorIndex { gap }
+                    OmniboxSuggestionRow(row: row, prefix: prefix, provider: provider,
+                                         selected: model.selected == index,
+                                         namespace: glassNS,
+                                         onHoverSelect: { model.select(index) }) {
+                        onChoose(row)
+                    }
+                    .id(row.id)
                 }
-                .id(row.id)
             }
         }
         .padding(9)
@@ -36,8 +40,8 @@ public struct OmniboxSuggestionsView: View {
         }
         .offset(y: 37)
         .zIndex(2)
-        .transition(.opacity)
-        .animation(AetherMotion.dropdown(reduced), value: model.rows.count)
+        .transition(AetherMotion.blurInOut(reduced))
+        .animation(AetherMotion.container(reduced), value: model.rows.count)
     }
 
     private var separatorIndex: Int? {
@@ -61,6 +65,7 @@ private struct OmniboxSuggestionRow: View {
     let prefix: String
     let provider: SearchProvider
     let selected: Bool
+    let namespace: Namespace.ID
     let onHoverSelect: () -> Void
     let action: () -> Void
 
@@ -79,7 +84,20 @@ private struct OmniboxSuggestionRow: View {
             .padding(.horizontal, 12)
             .frame(height: 40)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background { AetherInteractionSurface(active: selected || hovering, radius: 8, selected: selected, hovering: hovering) }
+            .background {
+                ZStack {
+                    if selected {
+                        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        shape.fill(.clear)
+                            .glassEffect(.regular.tint(appearance.isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
+                            .glassEffectID("omnibox.selection", in: namespace)
+                            .glassEffectTransition(.matchedGeometry)
+                    } else if hovering {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(appearance.hover)
+                    }
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

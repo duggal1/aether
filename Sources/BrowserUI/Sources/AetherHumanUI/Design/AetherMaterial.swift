@@ -113,6 +113,21 @@ final class SidebarBlurView: NSVisualEffectView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
+struct AetherStrongBlurView: NSViewRepresentable {
+    func makeNSView(context: Context) -> PanelBlurView {
+        let view = PanelBlurView()
+        view.material = .hudWindow
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+    func updateNSView(_ view: PanelBlurView, context: Context) {}
+}
+
+final class PanelBlurView: NSVisualEffectView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
 public struct AetherChromeBackground: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var appearance
@@ -156,6 +171,7 @@ public struct AetherPopoverBackground: View {
         let dark = appearance?.isDark ?? theme.dark
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         ZStack {
+            AetherStrongBlurView().clipShape(shape)
             shape.fill(dark
              ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
              : Color.white.opacity(0.55))
@@ -177,6 +193,7 @@ public struct AetherSettingsCardBackground: View {
         let dark = theme.dark
         let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         ZStack {
+            AetherStrongBlurView().clipShape(shape)
             (dark
              ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.30)
              : Color.white.opacity(0.55))
@@ -197,6 +214,7 @@ public struct JevQueryBarBackground: View {
     public var body: some View {
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         ZStack {
+            AetherStrongBlurView().clipShape(shape)
             (theme.dark
              ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
              : Color.white.opacity(0.55))
@@ -219,6 +237,7 @@ public struct AetherSuggestionBackground: View {
         let dark = appearance?.isDark ?? theme.dark
         let shape = RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
         ZStack {
+            AetherStrongBlurView().clipShape(shape)
             (dark
              ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
              : Color.white.opacity(0.55))
@@ -250,6 +269,7 @@ public struct AetherSheetBackground: View {
         let dark = theme.dark
         let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
         ZStack {
+            AetherStrongBlurView().clipShape(shape)
             (dark
              ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
              : Color.white.opacity(0.55))
@@ -272,11 +292,35 @@ public struct AetherOverlayPanelBackground: View {
         let dark = appearance?.isDark ?? theme.dark
         let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
         ZStack {
+            AetherStrongBlurView().clipShape(shape)
             (dark
              ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
              : Color.white.opacity(0.55))
             shape.fill(.clear)
                 .glassEffect(.regular.tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
+                .glassEffectTransition(.materialize)
+        }
+        .environment(\.colorScheme, dark ? .dark : .light)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+public struct AetherSettingsWindowBackground: View {
+    @Environment(\.aetherTheme) private var theme
+    public init() {}
+    public var body: some View {
+        let dark = theme.dark
+        let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
+        ZStack {
+            AetherStrongBlurView().clipShape(shape)
+            AetherStrongBlurView().clipShape(shape)
+            shape.fill(dark
+                ? Color(.sRGB, red: 0x1E / 255, green: 0x1E / 255, blue: 0x1E / 255, opacity: 0.55)
+                : Color.white.opacity(0.60))
+            shape.fill(.clear)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.16) : Color.white.opacity(0.18)),
+                             in: shape)
                 .glassEffectTransition(.materialize)
         }
         .environment(\.colorScheme, dark ? .dark : .light)

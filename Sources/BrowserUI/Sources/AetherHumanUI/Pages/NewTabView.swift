@@ -83,6 +83,7 @@ public struct NewTabView: View {
         .background {
             let shape = RoundedRectangle(cornerRadius: 17, style: .continuous)
             ZStack {
+                AetherStrongBlurView().clipShape(shape)
                 shape.fill(theme.dark
                     ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
                     : Color.white.opacity(0.55))

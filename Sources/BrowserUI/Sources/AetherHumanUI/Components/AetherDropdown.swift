@@ -15,6 +15,7 @@ public struct AetherDropdownOption<Value: Hashable & Sendable>: Identifiable, Se
 public struct AetherDropdown<Value: Hashable & Sendable>: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduced
+    @Namespace private var glassNS
     @State private var open = false
     @State private var highlighted: Value?
     @Binding private var selection: Value
@@ -62,8 +63,10 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
         .help(help ?? label)
         .accessibilityLabel(label)
         .popover(isPresented: $open) {
-            VStack(alignment: .leading, spacing: 1) {
-                ForEach(options) { option in optionRow(option) }
+            GlassEffectContainer(spacing: 4) {
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(options) { option in optionRow(option) }
+                }
             }
             .padding(5)
             .background { AetherPopoverBackground() }
@@ -92,7 +95,20 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
             .padding(.horizontal, 9)
             .frame(height: 30, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(rowFill(option), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background {
+                ZStack {
+                    if option.value == selection {
+                        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        shape.fill(.clear)
+                            .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
+                            .glassEffectID("dropdown.selection", in: glassNS)
+                            .glassEffectTransition(.matchedGeometry)
+                    } else if option.value == highlighted {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(theme.dropdownNested)
+                    }
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -105,11 +121,5 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
             }
         }
         .accessibilityAddTraits(option.value == selection ? .isSelected : [])
-    }
-
-    private func rowFill(_ option: AetherDropdownOption<Value>) -> Color {
-        if option.value == selection { return theme.selection }
-        if option.value == highlighted { return theme.dropdownNested }
-        return .clear
     }
 }

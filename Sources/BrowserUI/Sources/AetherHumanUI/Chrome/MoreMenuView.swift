@@ -43,8 +43,9 @@ public struct MoreMenuView: View {
     private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            row("Search Tabs", .search) { window.showsTabSearch = true }
+        GlassEffectContainer(spacing: 4) {
+            VStack(alignment: .leading, spacing: 1) {
+                row("Search Tabs", .search) { window.showsTabSearch = true }
             row("History", .history) { window.showsHistory = true }
             row("Bookmarks", .bookmark) { window.showsBookmarks = true }
             row("Downloads", .downloadFolder) { window.showsDownloads = true }
@@ -61,6 +62,7 @@ public struct MoreMenuView: View {
             }
             .buttonStyle(AetherMenuPressStyle())
             .focusEffectDisabled()
+            }
         }
         .padding(6)
         .frame(width: 232)
