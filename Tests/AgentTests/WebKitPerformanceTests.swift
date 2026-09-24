@@ -8,6 +8,11 @@ import Testing
   try await runtime.checkWebKitPublication()
 }
 
+@Test func webKitProgressOnlyUpdatesPreservePageActivity() async throws {
+  let runtime = BrowserRuntime()
+  try await runtime.checkWebKitProgressUpdates()
+}
+
 @Test func webKitPublicationScalesWithChangedPages() async throws {
   let runtime = BrowserRuntime()
   try await runtime.measureWebKitPublication()
@@ -25,10 +30,10 @@ extension BrowserRuntime {
     return context
   }
 
-  private func publicationState(_ sequence: UInt64, title: String) -> WebPageState {
+  private func publicationState(_ sequence: UInt64, title: String, progress: Double = 1.0) -> WebPageState {
     WebPageState(sequence: sequence, url: URL(string: "https://fixture.test/"), title: title,
       viewport: Size(width: 1280, height: 800), history: [], historyIndex: -1,
-      loading: false, loaded: true, contentReady: true, progress: 1.0, statusCode: 200, error: nil)
+      loading: false, loaded: true, contentReady: true, progress: progress, statusCode: 200, error: nil)
   }
 
   fileprivate func checkWebKitPublication() async throws {
@@ -61,6 +66,21 @@ extension BrowserRuntime {
     #expect(delivered.last?.closed == true)
     for token in tokens { removePageObserver(token) }
     #expect(observedStates.isEmpty)
+    withExtendedLifetime(stream) {}
+  }
+
+  fileprivate func checkWebKitProgressUpdates() throws {
+    _ = seedPublicationPages(1)
+    let id = PageID(rawValue: 1)
+    receiveWebState(publicationState(1, title: "Fixture", progress: 0.2), pageID: id)
+    let activity = try requirePage(id).lastActive
+    let stream = observePages()
+    receiveWebState(publicationState(2, title: "Fixture", progress: 0.7), pageID: id)
+    #expect(try requirePage(id).lastActive == activity)
+    #expect(observedStates[id]?.progress == 0.7)
+    receiveWebState(publicationState(1, title: "Stale", progress: 0.1), pageID: id)
+    #expect(observedStates[id]?.progress == 0.7)
+    for token in Array(pageObservers.keys) { removePageObserver(token) }
     withExtendedLifetime(stream) {}
   }
 
