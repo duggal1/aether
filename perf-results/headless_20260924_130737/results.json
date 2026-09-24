@@ -1,0 +1,60 @@
+{
+  "summary": {
+    "dia/cold": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "steps": [
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 165.2,
+      "error": "no FCP; last={\"href\": \"https://example.com/\", \"title\": \"Example Domain\", \"readyState\": \"complete\", \"timeOrigin\": 1790235461314.1, \"fcpMs\": null, \"lcpMs\": null, \"requestStartMs\": 99.30000001192093, \"responseStartMs",
+      "elapsedMs": 45239.6
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 29.7,
+      "error": "no FCP; last={\"href\": \"https://example.com/\", \"title\": \"Example Domain\", \"readyState\": \"complete\", \"timeOrigin\": 1790235506563.2, \"fcpMs\": null, \"lcpMs\": null, \"requestStartMs\": 8, \"responseStartMs\": 8.40000003576",
+      "elapsedMs": 45066.3
+    }
+  ]
+}

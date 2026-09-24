@@ -30,7 +30,7 @@ public struct OmniboxSuggestionsView: View {
             }
         }
         .padding(9)
-        .frame(maxWidth: 656)
+        .frame(maxWidth: 600)
         .background {
             AetherSuggestionBackground()
         }
@@ -79,11 +79,11 @@ private struct OmniboxSuggestionRow: View {
             .padding(.horizontal, 12)
             .frame(height: 40)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background { AetherInteractionSurface(active: selected || hovering, radius: 6, selected: selected, hovering: hovering) }
+            .background { AetherInteractionSurface(active: selected || hovering, radius: 8, selected: selected, hovering: hovering) }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .aetherFocusTreatment(radius: 7)
+        .aetherFocusTreatment(radius: 8)
         .focusEffectDisabled()
         .aetherPointingCursor()
         .animation(AetherMotion.textResolve(reduced), value: row.title)

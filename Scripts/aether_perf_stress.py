@@ -30,6 +30,19 @@ SITES = (
 )
 
 
+def url_steps(repeats=1, paired=False, site_filter=None):
+    sites = tuple(site for site in SITES if site_filter is None or site[0] == site_filter)
+    for pass_number in range(1, repeats + 1):
+        if paired:
+            for index, (site, home, route) in enumerate(sites, 1):
+                yield pass_number, index, site, "home", home
+                yield pass_number, index, site, "route", route
+        else:
+            for kind in ("home", "route"):
+                for index, (site, home, route) in enumerate(sites, 1):
+                    yield pass_number, index, site, kind, home if kind == "home" else route
+
+
 def command(args, timeout=120):
     return subprocess.run(args, capture_output=True, text=True, timeout=timeout)
 
@@ -49,9 +62,13 @@ def check_build():
         raise RuntimeError(f"Missing packaged app: {APP}. Finish the current app build before benchmarking.")
     if not os.path.isfile(CTL):
         raise RuntimeError(f"Missing browserctl: {CTL}. Finish the current app build before benchmarking.")
-    latest = max(os.path.getmtime(os.path.join(path, name))
-                 for path, _, files in os.walk(os.path.join(ROOT, "Sources"))
-                 for name in files if name.endswith(".swift"))
+    sources = []
+    for path, directories, files in os.walk(os.path.join(ROOT, "Sources")):
+        directories[:] = [name for name in directories
+                          if name not in ("Tests", "Examples", ".build")]
+        sources.extend(os.path.getmtime(os.path.join(path, name))
+                       for name in files if name.endswith(".swift"))
+    latest = max(sources)
     if latest > os.path.getmtime(BIN):
         raise RuntimeError("Aether.app is older than Swift sources. Finish packaging a current build before benchmarking.")
 
@@ -100,9 +117,10 @@ def tab_state(tab_id):
 
 
 def same_site(requested, actual):
-    wanted = urlsplit(requested).hostname or ""
-    found = urlsplit(actual).hostname or ""
-    return wanted.removeprefix("www.") == found.removeprefix("www.")
+    wanted = urlsplit(requested)
+    found = urlsplit(actual)
+    return (wanted.hostname or "").removeprefix("www.") == (found.hostname or "").removeprefix("www.") \
+        and wanted.path.rstrip("/") == found.path.rstrip("/") and wanted.query == found.query
 
 
 def wait_paint(tab_id, requested, started_wall_ms, timeout):
@@ -157,7 +175,11 @@ def step(pass_number, index, site, kind, requested, action, tab_id, timeout, fol
             "title": tab["title"],
             "fcpMs": metrics.get("fcpMs"),
             "lcpMs": metrics.get("lcpMs"),
+            "requestStartMs": metrics.get("requestStartMs"),
             "responseStartMs": metrics.get("responseStartMs"),
+            "responseEndMs": metrics.get("responseEndMs"),
+            "redirectCount": metrics.get("redirectCount"),
+            "transferSize": metrics.get("transferSize"),
             "domContentLoadedMs": metrics.get("domContentLoadedMs"),
             "loadEventEndMs": metrics.get("loadEventEndMs"),
             "navigationStartDelayMs": round(metrics["timeOrigin"] - started_wall_ms, 1)
@@ -194,11 +216,12 @@ def statistics_for(rows):
     ready = distribution(rows, "toReadyMs")
     documents = [row for row in rows if row.get("navigationKind") == "document"]
     ready["metrics"] = {
-        key: distribution(documents if key in ("fcpMs", "lcpMs", "responseStartMs",
+        key: distribution(documents if key in ("fcpMs", "lcpMs", "requestStartMs", "responseStartMs",
+                                                "responseEndMs",
                                                 "domContentLoadedMs", "loadEventEndMs",
                                                 "navigationStartDelayMs") else rows, key)
         for key in ("dispatchMs", "toReadyMs", "navigationStartDelayMs",
-                    "responseStartMs", "fcpMs", "lcpMs",
+                    "requestStartMs", "responseStartMs", "responseEndMs", "fcpMs", "lcpMs",
                     "domContentLoadedMs", "loadEventEndMs")
     }
     return ready
@@ -210,7 +233,8 @@ def save(folder, stamp, digest, launch_ms, rows):
         "binarySHA256": digest, "appLaunchMs": launch_ms,
         "attempted": len(rows), "successful": completed, "failed": len(rows) - completed,
         "all": statistics_for(rows),
-        "byPass": {"1": statistics_for(rows)},
+        "byPass": {str(number): statistics_for([row for row in rows if row["pass"] == number])
+                   for number in sorted({row["pass"] for row in rows})},
         "bySite": {site: statistics_for([row for row in rows if row["site"] == site])
                    for site, _, _ in SITES},
     }
@@ -247,10 +271,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rebuild", action="store_true", help="clean build and sign Aether.app")
     parser.add_argument("--timeout", type=float, default=45, help="seconds per navigation")
+    parser.add_argument("--repeats", type=int, default=1, help="number of 20-URL passes")
+    parser.add_argument("--paired", action="store_true", help="visit each homepage immediately before its route")
+    parser.add_argument("--site", choices=tuple(site for site, _, _ in SITES),
+                        help="limit each pass to one website and its route")
     parser.add_argument("--no-screenshots", action="store_true", help="skip Aether window captures")
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    if args.repeats <= 0:
+        parser.error("--repeats must be positive")
     if args.rebuild:
         print("== clean release build ==", flush=True)
         result = command([os.path.join(ROOT, "Scripts", "build_aether_app.sh"), "--clean"], timeout=3600)
@@ -277,28 +307,17 @@ def main():
     try:
         launch_ms = launch()
         print(f"Aether.app ready in {launch_ms} ms; sha256={digest[:16]}...", flush=True)
-        print("== All ten homepages ==", flush=True)
-        for index, (site, home, _) in enumerate(SITES, 1):
+        print(f"== {args.repeats} pass(es), {'paired' if args.paired else 'homepage batch then route batch'} ==", flush=True)
+        for pass_number, index, site, kind, url in url_steps(args.repeats, args.paired, args.site):
             if tab_id is None:
-                action = lambda url=home: app("app-open", url)
+                action = lambda url=url: app("app-open", url)
             else:
-                action = lambda id=tab_id, url=home: app("app-navigate", id, url)
-            row, created = step(1, index, site, "home", home, action, tab_id,
+                action = lambda id=tab_id, url=url: app("app-navigate", id, url)
+            row, created = step(pass_number, index, site, kind, url, action, tab_id,
                                 args.timeout, folder, not args.no_screenshots)
             rows.append(row)
             if created:
                 tab_id = created
-        print("== All ten routes ==", flush=True)
-        for index, (site, _, route) in enumerate(SITES, 1):
-            if tab_id:
-                row, _ = step(1, index, site, "route", route,
-                              lambda id=tab_id, url=route: app("app-navigate", id, url),
-                              tab_id, args.timeout, folder, not args.no_screenshots)
-                rows.append(row)
-            else:
-                rows.append({"step": f"pass1_{index:02d}_{site}_route", "pass": 1, "site": site,
-                             "kind": "route", "requestedURL": route, "status": "failed",
-                             "error": "benchmark tab was not created"})
     finally:
         if rows:
             save(folder, stamp, digest, launch_ms, rows)

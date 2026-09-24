@@ -1,0 +1,885 @@
+{
+  "summary": {
+    "binarySHA256": "352a711be8deef595776845f0bc21aef6b0d41c6ecef6e3c858061d68255b353",
+    "appLaunchMs": 2092.3,
+    "attempted": 2,
+    "successful": 2,
+    "failed": 0,
+    "all": {
+      "count": 2,
+      "medianMs": 908.2,
+      "p95Ms": 1203.0,
+      "worstMs": 1203.0,
+      "metrics": {
+        "dispatchMs": {
+          "count": 2,
+          "medianMs": 52.2,
+          "p95Ms": 84.3,
+          "worstMs": 84.3
+        },
+        "toReadyMs": {
+          "count": 2,
+          "medianMs": 908.2,
+          "p95Ms": 1203.0,
+          "worstMs": 1203.0
+        },
+        "navigationStartDelayMs": {
+          "count": 2,
+          "medianMs": 348.6,
+          "p95Ms": 623.5,
+          "worstMs": 623.5
+        },
+        "requestStartMs": {
+          "count": 2,
+          "medianMs": 10.0,
+          "p95Ms": 15,
+          "worstMs": 15
+        },
+        "responseStartMs": {
+          "count": 2,
+          "medianMs": 39.5,
+          "p95Ms": 45,
+          "worstMs": 45
+        },
+        "responseEndMs": {
+          "count": 2,
+          "medianMs": 206.0,
+          "p95Ms": 326,
+          "worstMs": 326
+        },
+        "fcpMs": {
+          "count": 2,
+          "medianMs": 325.0,
+          "p95Ms": 357,
+          "worstMs": 357
+        },
+        "lcpMs": {
+          "count": 0,
+          "medianMs": null,
+          "p95Ms": null,
+          "worstMs": null
+        },
+        "domContentLoadedMs": {
+          "count": 2,
+          "medianMs": 323.5,
+          "p95Ms": 345,
+          "worstMs": 345
+        },
+        "loadEventEndMs": {
+          "count": 2,
+          "medianMs": 414.0,
+          "p95Ms": 442,
+          "worstMs": 442
+        }
+      }
+    },
+    "byPass": {
+      "1": {
+        "count": 2,
+        "medianMs": 908.2,
+        "p95Ms": 1203.0,
+        "worstMs": 1203.0,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 52.2,
+            "p95Ms": 84.3,
+            "worstMs": 84.3
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 908.2,
+            "p95Ms": 1203.0,
+            "worstMs": 1203.0
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 348.6,
+            "p95Ms": 623.5,
+            "worstMs": 623.5
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 10.0,
+            "p95Ms": 15,
+            "worstMs": 15
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 39.5,
+            "p95Ms": 45,
+            "worstMs": 45
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 206.0,
+            "p95Ms": 326,
+            "worstMs": 326
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 325.0,
+            "p95Ms": 357,
+            "worstMs": 357
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 323.5,
+            "p95Ms": 345,
+            "worstMs": 345
+          },
+          "loadEventEndMs": {
+            "count": 2,
+            "medianMs": 414.0,
+            "p95Ms": 442,
+            "worstMs": 442
+          }
+        }
+      }
+    },
+    "bySite": {
+      "clay": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "apollo": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "awwwards": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "land-book": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "calendly": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "wisprflow": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "jack-and-jill": {
+        "count": 2,
+        "medianMs": 908.2,
+        "p95Ms": 1203.0,
+        "worstMs": 1203.0,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 52.2,
+            "p95Ms": 84.3,
+            "worstMs": 84.3
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 908.2,
+            "p95Ms": 1203.0,
+            "worstMs": 1203.0
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 348.6,
+            "p95Ms": 623.5,
+            "worstMs": 623.5
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 10.0,
+            "p95Ms": 15,
+            "worstMs": 15
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 39.5,
+            "p95Ms": 45,
+            "worstMs": 45
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 206.0,
+            "p95Ms": 326,
+            "worstMs": 326
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 325.0,
+            "p95Ms": 357,
+            "worstMs": 357
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 323.5,
+            "p95Ms": 345,
+            "worstMs": 345
+          },
+          "loadEventEndMs": {
+            "count": 2,
+            "medianMs": 414.0,
+            "p95Ms": 442,
+            "worstMs": 442
+          }
+        }
+      },
+      "privy": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "airtable": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "intercom": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": "pass1_01_jack-and-jill_home",
+      "pass": 1,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "ok",
+      "tabID": "D8150A63-3887-4C28-829A-F4397D64451C",
+      "dispatchMs": 84.3,
+      "navigationKind": "document",
+      "toReadyMs": 1203.0,
+      "finalURL": "https://www.jackandjill.ai/",
+      "redirected": false,
+      "title": "Jack & Jill \u2014 where remarkable people meet ambitious companies",
+      "fcpMs": 293,
+      "lcpMs": null,
+      "requestStartMs": 15,
+      "responseStartMs": 45,
+      "responseEndMs": 86,
+      "redirectCount": 0,
+      "transferSize": 23750,
+      "domContentLoadedMs": 302,
+      "loadEventEndMs": 442,
+      "navigationStartDelayMs": 623.5,
+      "uiProgress": 1,
+      "screenshot": "pass1_01_jack-and-jill_home.png"
+    },
+    {
+      "step": "pass1_01_jack-and-jill_route",
+      "pass": 1,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "ok",
+      "tabID": "D8150A63-3887-4C28-829A-F4397D64451C",
+      "dispatchMs": 20.1,
+      "navigationKind": "document",
+      "toReadyMs": 613.5,
+      "finalURL": "https://www.jackandjill.ai/pricing",
+      "redirected": false,
+      "title": "Simple, Transparent Pricing | Jack & Jill",
+      "fcpMs": 357,
+      "lcpMs": null,
+      "requestStartMs": 5,
+      "responseStartMs": 34,
+      "responseEndMs": 326,
+      "redirectCount": 0,
+      "transferSize": 17059,
+      "domContentLoadedMs": 345,
+      "loadEventEndMs": 386,
+      "navigationStartDelayMs": 73.8,
+      "uiProgress": 1,
+      "screenshot": "pass1_01_jack-and-jill_route.png"
+    }
+  ]
+}

@@ -33,7 +33,7 @@ public struct NewTabView: View {
                         .padding(.top, 10)
                     }
                 }
-                .frame(maxWidth: 680)
+                .frame(maxWidth: 600)
                 .padding(.horizontal, 32)
                 .padding(.top, max(80, geometry.size.height * 0.25))
                 .padding(.bottom, 36)
@@ -60,12 +60,12 @@ public struct NewTabView: View {
 
     private var askCard: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                BrowserIconView(icon: .search, tint: theme.muted).iconSize(17)
+            HStack(spacing: 12) {
+                BrowserIconView(icon: .search, tint: theme.muted).iconSize(15)
                 TextField("Search or enter a website", text: $ask,
                           prompt: Text("Search or enter a website").foregroundStyle(theme.placeholder))
                     .textFieldStyle(.plain)
-                    .font(AetherType.body(17))
+                    .font(AetherType.body(15))
                     .foregroundStyle(theme.ink)
                     .focused($askFocused)
                     .onSubmit(submitAsk)
@@ -73,44 +73,33 @@ public struct NewTabView: View {
                     .onKeyPress(.downArrow) { window.suggestions.move(1); return .handled }
                     .accessibilityIdentifier("aether.center-search")
             }
-            .padding(.horizontal, 22)
-            .frame(height: 66)
+            .padding(.horizontal, 17)
+            .frame(height: 44)
             if canSubmit {
                 suggestionRows
-                HStack(spacing: 12) {
-                    Button("Search Google") { searchGoogle() }
-                        .font(AetherType.body(12))
-                        .foregroundStyle(theme.muted)
-                        .buttonStyle(.plain)
-                        .aetherPointingCursor()
-                    Spacer()
-                    Button(action: submitAsk) {
-                        HStack(spacing: 8) {
-                            Text("Search with Jev")
-                            Image(systemName: "return")
-                        }
-                        .font(AetherType.emphasis(12))
-                        .foregroundStyle(theme.heading)
-                        .padding(.horizontal, 15)
-                        .frame(height: 32)
-                        .background(theme.selected, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .aetherPointingCursor()
-                }
-                .padding(.horizontal, 22)
-                .padding(.bottom, 18)
+                    .transition(.opacity)
             }
         }
-        .background(theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .animation(AetherMotion.focus(reduced), value: askFocused)
+        .background {
+            let shape = RoundedRectangle(cornerRadius: 17, style: .continuous)
+            ZStack {
+                shape.fill(theme.dark
+                    ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
+                    : Color.white.opacity(0.55))
+                shape.fill(.clear)
+                    .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
+                                 in: shape)
+                    .glassEffectTransition(.materialize)
+            }
+        }
+        .animation(AetherMotion.morph(reduced), value: canSubmit)
     }
 
     private var suggestionRows: some View {
         VStack(spacing: 2) {
             ForEach(Array(window.suggestions.rows.prefix(7).enumerated()), id: \.element.id) { index, row in
                 Button { choose(row) } label: {
-                    HStack(spacing: 13) {
+                    HStack(spacing: 11) {
                         suggestionIcon(row)
                             .frame(width: 19, height: 19)
                         Text(row.title)
@@ -130,8 +119,8 @@ public struct NewTabView: View {
                                 .foregroundStyle(theme.muted)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .frame(height: 46)
+                    .padding(.horizontal, 13)
+                    .frame(height: 40)
                     .background(index == window.suggestions.selected ? theme.selected : .clear,
                                 in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .contentShape(Rectangle())
@@ -141,8 +130,8 @@ public struct NewTabView: View {
                 .accessibilityIdentifier("aether.center-suggestion.\(row.kind.rawValue)")
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 7)
+        .padding(.bottom, 7)
     }
 
     private func submitAsk() {
@@ -175,16 +164,6 @@ public struct NewTabView: View {
         } else {
             window.navigateSelected(row.completion ?? query, intelligence: true)
         }
-    }
-
-    private func searchGoogle() {
-        let query = ask.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = SearchProvider.google.searchURL(for: query,
-            locality: window.workspace.preferences.searchLocality,
-            localityTerms: window.workspace.preferences.localityQueryTerms) else { return }
-        ask = ""
-        window.suggestions.dismiss()
-        window.navigateSelected(url.absoluteString)
     }
 
     @ViewBuilder private func suggestionIcon(_ row: OmniboxSuggestion) -> some View {
@@ -222,7 +201,7 @@ public struct NewTabView: View {
                     .font(AetherType.symbol(14))
                     .foregroundStyle(theme.textStrong)
                     .frame(width: 23, height: 23)
-                    .background { AetherInteractionSurface(active: shortcutMenuID == item.id, radius: 6) }
+                    .background { AetherInteractionSurface(active: shortcutMenuID == item.id, radius: 8) }
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -266,7 +245,7 @@ public struct NewTabView: View {
             shortcutMenuID = nil
             action()
         } label: {
-            AetherMenuRow(radius: 6) {
+            AetherMenuRow(radius: 8) {
                 HStack(spacing: 10) {
                     BrowserIconView(icon: icon, tint: theme.muted).iconSize(14)
                     Text(title).font(AetherType.body(12)).foregroundStyle(theme.ink)

@@ -1,11 +1,17 @@
 import SwiftUI
 
 public struct SettingsWindowView: View {
-    @Environment(\.aetherTheme) private var theme
+    @Environment(\.colorScheme) private var systemScheme
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var selection: SettingsSection = .general
     let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) { self.workspace = workspace }
+
+    private var settingsScheme: ColorScheme {
+        workspace.preferences.appearance.colorScheme ?? systemScheme
+    }
+
+    private var theme: AetherTheme { AetherTheme(settingsScheme) }
 
     public var body: some View {
         HStack(spacing: 0) {
@@ -50,6 +56,8 @@ public struct SettingsWindowView: View {
         .toggleStyle(.switch)
         .controlSize(.regular)
         .aetherTypography()
+        .environment(\.colorScheme, settingsScheme)
+        .environment(\.aetherTheme, theme)
         .preferredColorScheme(workspace.preferences.appearance.colorScheme)
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
     }

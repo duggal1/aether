@@ -1,0 +1,216 @@
+{
+  "summary": {
+    "aether/cold": {
+      "completed": "2/2",
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 524.6,
+        "p95Ms": 814.8,
+        "worstMs": 814.8
+      },
+      "fcpMs": {
+        "count": 2,
+        "medianMs": 114.0,
+        "p95Ms": 138,
+        "worstMs": 138
+      }
+    },
+    "aether/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "chrome/cold": {
+      "completed": "2/2",
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 201.8,
+        "p95Ms": 279.7,
+        "worstMs": 279.7
+      },
+      "fcpMs": {
+        "count": 2,
+        "medianMs": 108.0,
+        "p95Ms": 184,
+        "worstMs": 184
+      }
+    },
+    "chrome/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia/cold": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "steps": [
+    {
+      "browser": "aether",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 695.2,
+      "toReadyMs": 814.8,
+      "finalURL": "https://example.com/",
+      "title": "Example Domain",
+      "navigationStartDelayMs": 602.5,
+      "fcpMs": 90,
+      "lcpMs": null,
+      "requestStartMs": 7,
+      "responseStartMs": 55,
+      "responseEndMs": 57,
+      "redirectCount": 0,
+      "transferSize": 636,
+      "domContentLoadedMs": 81,
+      "loadEventEndMs": 87,
+      "screenshot": "aether_cold_example_home.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 221.7,
+      "toReadyMs": 234.5,
+      "finalURL": "https://example.com/",
+      "title": "Example Domain",
+      "navigationStartDelayMs": 80.4,
+      "fcpMs": 138,
+      "lcpMs": null,
+      "requestStartMs": 80,
+      "responseStartMs": 128,
+      "responseEndMs": 128,
+      "redirectCount": 0,
+      "transferSize": 636,
+      "domContentLoadedMs": 136,
+      "loadEventEndMs": 138,
+      "screenshot": "aether_cold_example_route.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 148.2,
+      "toReadyMs": 279.7,
+      "finalURL": "https://example.com/",
+      "title": "Example Domain",
+      "navigationStartDelayMs": 2.4,
+      "fcpMs": 184,
+      "lcpMs": null,
+      "requestStartMs": 94.89999997615814,
+      "responseStartMs": 144.79999995231628,
+      "responseEndMs": 145,
+      "redirectCount": 0,
+      "transferSize": 618,
+      "domContentLoadedMs": 153.5,
+      "loadEventEndMs": 153.79999995231628,
+      "screenshot": "chrome_cold_example_home.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 10.3,
+      "toReadyMs": 124.0,
+      "finalURL": "https://example.com/",
+      "title": "Example Domain",
+      "navigationStartDelayMs": 2.3,
+      "fcpMs": 32,
+      "lcpMs": null,
+      "requestStartMs": 1.100000023841858,
+      "responseStartMs": 1.300000011920929,
+      "responseEndMs": 1.5,
+      "redirectCount": 0,
+      "transferSize": 0,
+      "domContentLoadedMs": 10.899999976158142,
+      "loadEventEndMs": 11.100000023841858,
+      "screenshot": "chrome_cold_example_route.png"
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 152.5,
+      "error": "no FCP; last={\"href\": \"https://example.com/\", \"title\": \"Example Domain\", \"readyState\": \"complete\", \"timeOrigin\": 1790235346555.5, \"fcpMs\": null, \"lcpMs\": null, \"requestStartMs\": 99.10000002384186, \"responseStartMs",
+      "elapsedMs": 45225.4
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 37.4,
+      "error": "no FCP; last={\"href\": \"https://example.com/\", \"title\": \"Example Domain\", \"readyState\": \"complete\", \"timeOrigin\": 1790235391803.4, \"fcpMs\": null, \"lcpMs\": null, \"requestStartMs\": 13, \"responseStartMs\": 13.5, \"respo",
+      "elapsedMs": 45063.8
+    }
+  ]
+}

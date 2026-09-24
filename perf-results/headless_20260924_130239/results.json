@@ -1,0 +1,189 @@
+{
+  "summary": {
+    "aether/cold": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "aether/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "chrome/cold": {
+      "completed": "2/2",
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 198.1,
+        "p95Ms": 276.0,
+        "worstMs": 276.0
+      },
+      "fcpMs": {
+        "count": 2,
+        "medianMs": 104.0,
+        "p95Ms": 176,
+        "worstMs": 176
+      }
+    },
+    "chrome/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia/cold": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia/warm": {
+      "completed": "0/0",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "steps": [
+    {
+      "browser": "aether",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "daemon-fcp",
+      "error": "Extra data: line 2 column 1 (char 202)",
+      "elapsedMs": 802.3
+    },
+    {
+      "browser": "aether",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "daemon-fcp",
+      "error": "Extra data: line 2 column 1 (char 202)",
+      "elapsedMs": 333.4
+    },
+    {
+      "browser": "chrome",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 146.8,
+      "toReadyMs": 276.0,
+      "finalURL": "https://example.com/",
+      "title": "Example Domain",
+      "navigationStartDelayMs": 2.8,
+      "fcpMs": 176,
+      "lcpMs": null,
+      "requestStartMs": 97.60000002384186,
+      "responseStartMs": 142.5,
+      "responseEndMs": 143.19999998807907,
+      "redirectCount": 0,
+      "transferSize": 618,
+      "domContentLoadedMs": 154.39999997615814,
+      "loadEventEndMs": 154.69999998807907,
+      "screenshot": "chrome_cold_example_home.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 6.8,
+      "toReadyMs": 120.1,
+      "finalURL": "https://example.com/",
+      "title": "Example Domain",
+      "navigationStartDelayMs": 1.4,
+      "fcpMs": 32,
+      "lcpMs": null,
+      "requestStartMs": 0.6000000238418579,
+      "responseStartMs": 0.800000011920929,
+      "responseEndMs": 1,
+      "redirectCount": 0,
+      "transferSize": 0,
+      "domContentLoadedMs": 8.199999988079071,
+      "loadEventEndMs": 8.600000023841858,
+      "screenshot": "chrome_cold_example_route.png"
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 151.7,
+      "error": "Connection to remote host was lost.",
+      "elapsedMs": 32208.2
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.2
+    }
+  ]
+}

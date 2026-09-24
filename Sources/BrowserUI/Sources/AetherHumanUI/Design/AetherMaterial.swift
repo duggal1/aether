@@ -135,7 +135,7 @@ public struct AetherChromeBackground: View {
                         Color(.sRGB, red: 0x17 / 255, green: 0x17 / 255, blue: 0x17 / 255, opacity: 1)
                     }
                     AetherSidebarMaterialView(fullscreen: fullscreen)
-                    Color.black.opacity(0.52)
+                    Color.black.opacity(0.28)
                 }
             } else {
                 (appearance?.toolbarBG ?? theme.chrome)
@@ -150,16 +150,17 @@ public struct AetherChromeBackground: View {
 public struct AetherPopoverBackground: View {
     @Environment(\.aetherTheme) private var theme
     @Environment(\.aetherChromeAppearance) private var appearance
-    public init() {}
+    private let radius: CGFloat
+    public init(radius: CGFloat = AetherMetrics.menuRadius) { self.radius = radius }
     public var body: some View {
         let dark = appearance?.isDark ?? theme.dark
-        let shape = RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         ZStack {
-            (dark
-             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
-             : Color.white.opacity(0.72))
+            shape.fill(dark
+             ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
+             : Color.white.opacity(0.55))
             shape.fill(.clear)
-                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.30)),
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
                              in: shape)
                 .glassEffectTransition(.materialize)
         }
@@ -177,10 +178,10 @@ public struct AetherSettingsCardBackground: View {
         let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
         ZStack {
             (dark
-             ? Color(.sRGB, red: 0x1C / 255, green: 0x1C / 255, blue: 0x1C / 255, opacity: 0.58)
-             : Color.white.opacity(0.62))
+             ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.30)
+             : Color.white.opacity(0.55))
             shape.fill(.clear)
-                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.32)),
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
                              in: shape)
                 .glassEffectTransition(.materialize)
         }
@@ -197,10 +198,10 @@ public struct JevQueryBarBackground: View {
         let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
         ZStack {
             (theme.dark
-             ? Color(.sRGB, red: 0x1F / 255, green: 0x1F / 255, blue: 0x1F / 255, opacity: 0.72)
-             : Color.white.opacity(0.72))
+             ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
+             : Color.white.opacity(0.55))
             shape.fill(.clear)
-                .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.28) : Color.white.opacity(0.30)),
+                .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
                              in: shape)
                 .glassEffectTransition(.materialize)
         }
@@ -219,10 +220,10 @@ public struct AetherSuggestionBackground: View {
         let shape = RoundedRectangle(cornerRadius: AetherMetrics.menuRadius, style: .continuous)
         ZStack {
             (dark
-             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
-             : Color.white.opacity(0.72))
+             ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
+             : Color.white.opacity(0.55))
             shape.fill(.clear)
-                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.30)),
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
                              in: shape)
                 .glassEffectTransition(.materialize)
         }
@@ -250,10 +251,10 @@ public struct AetherSheetBackground: View {
         let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
         ZStack {
             (dark
-             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
-             : Color.white.opacity(0.72))
+             ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
+             : Color.white.opacity(0.55))
             shape.fill(.clear)
-                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.30)),
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
                              in: shape)
                 .glassEffectTransition(.materialize)
         }
@@ -272,10 +273,10 @@ public struct AetherOverlayPanelBackground: View {
         let shape = RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous)
         ZStack {
             (dark
-             ? Color(.sRGB, red: 0x14 / 255, green: 0x14 / 255, blue: 0x14 / 255, opacity: 0.68)
-             : Color.white.opacity(0.72))
+             ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
+             : Color.white.opacity(0.55))
             shape.fill(.clear)
-                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.32) : Color.white.opacity(0.30)), in: shape)
+                .glassEffect(.regular.tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
                 .glassEffectTransition(.materialize)
         }
         .environment(\.colorScheme, dark ? .dark : .light)

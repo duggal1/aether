@@ -11,12 +11,13 @@ import sys
 import time
 from urllib.parse import urlsplit
 
-from aether_perf_stress import ROOT, SITES
+from aether_perf_stress import ROOT, SITES, url_steps
 
 
 BROWSERS = {
     "chrome": {
         "application": "Google Chrome",
+        "process": "Google Chrome",
         "bundle": "com.google.Chrome",
         "create": "make new window",
         "tab": "active tab of front window",
@@ -24,6 +25,7 @@ BROWSERS = {
     },
     "dia": {
         "application": "Dia",
+        "process": "Dia",
         "bundle": "company.thebrowser.dia",
         "create": "make new window",
         "tab": "active tab of front window",
@@ -31,6 +33,7 @@ BROWSERS = {
     },
     "safari": {
         "application": "Safari",
+        "process": "Safari",
         "bundle": "com.apple.Safari",
         "create": "make new document",
         "tab": "current tab of front window",
@@ -50,7 +53,11 @@ PROBE = """JSON.stringify((() => {
     timeOrigin: performance.timeOrigin,
     fcpMs: fcp ? fcp.startTime : null,
     lcpMs: largest.length ? largest[largest.length - 1].startTime : null,
+    requestStartMs: navigation ? navigation.requestStart : null,
     responseStartMs: navigation ? navigation.responseStart : null,
+    responseEndMs: navigation ? navigation.responseEnd : null,
+    redirectCount: navigation ? navigation.redirectCount : null,
+    transferSize: navigation ? navigation.transferSize : null,
     domContentLoadedMs: navigation ? navigation.domContentLoadedEventEnd : null,
     loadEventEndMs: navigation && navigation.loadEventEnd ? navigation.loadEventEnd : null
   };
@@ -73,7 +80,14 @@ on run argv
   tell application "{name}"
     activate
     {config["create"]}
-    return id of front window as text
+    repeat 50 times
+      try
+        return id of front window as text
+      on error
+        delay 0.1
+      end try
+    end repeat
+    error "Benchmark window did not open"
   end tell
 end run
 """
@@ -100,12 +114,22 @@ def navigate(browser, window_id, url):
                          f"set URL of ({tab}) to item 1 of argv", returns=False), url)
 
 
+def decode_metrics(value):
+    """Chromium returns the script's string result already JSON-encoded."""
+    data = json.loads(value)
+    if isinstance(data, str):
+        data = json.loads(data)
+    if not isinstance(data, dict):
+        raise ValueError(f"unexpected JavaScript result: {value[:120]}")
+    return data
+
+
 def metrics(browser, window_id):
     action = BROWSERS[browser]["evaluate"]
     value = apple(guarded_script(browser, window_id, action), PROBE)
     if not value or value == "missing value":
         raise RuntimeError("No JavaScript result; enable JavaScript from Apple Events in the browser")
-    return json.loads(value)
+    return decode_metrics(value)
 
 
 def close_window(browser, window_id):
@@ -121,9 +145,118 @@ end run
 
 
 def same_site(requested, actual):
-    wanted = (urlsplit(requested).hostname or "").removeprefix("www.")
-    found = (urlsplit(actual).hostname or "").removeprefix("www.")
-    return wanted == found
+    wanted = urlsplit(requested)
+    found = urlsplit(actual)
+    return ((wanted.hostname or "").removeprefix("www.")
+            == (found.hostname or "").removeprefix("www.")
+            and wanted.path.rstrip("/") == found.path.rstrip("/")
+            and wanted.query == found.query)
+
+
+LAUNCH_FLAGS = {
+    "chrome": ("--enable-applescript-javascript",),
+    "dia": ("--enable-applescript-javascript",),
+    "safari": (),
+}
+AUTOMATION_PREF = {
+    "chrome": ("com.google.Chrome", "AllowJavaScriptAppleEvents"),
+    "dia": ("company.thebrowser.dia", "AllowJavaScriptAppleEvents"),
+}
+EXECUTABLES = {
+    "chrome": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "dia": "/Applications/Dia.app/Contents/MacOS/Dia",
+    "safari": "/Applications/Safari.app/Contents/MacOS/Safari",
+}
+PROCESS_NAMES = {
+    "chrome": "Google Chrome",
+    "dia": "Dia",
+    "safari": "Safari",
+}
+READY_PROBE = "JSON.stringify({automation:true})"
+
+
+def browser_running(browser):
+    if subprocess.run(["pgrep", "-x", PROCESS_NAMES[browser]],
+                      capture_output=True, text=True).returncode == 0:
+        return True
+    return subprocess.run(["pgrep", "-f", EXECUTABLES[browser]],
+                          capture_output=True, text=True).returncode == 0
+
+
+def quit_browser(browser):
+    name = BROWSERS[browser]["application"]
+    try:
+        apple(f'''
+on run argv
+  tell application "{name}" to quit
+end run''')
+    except (RuntimeError, subprocess.TimeoutExpired):
+        pass
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        if not browser_running(browser):
+            return
+        time.sleep(0.25)
+    subprocess.run(["pkill", "-f", EXECUTABLES[browser]], capture_output=True, text=True, timeout=30)
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        if not browser_running(browser):
+            return
+        time.sleep(0.25)
+    raise RuntimeError(f"{browser} did not quit")
+
+
+def launch_browser(browser):
+    arguments = ["open", "-a", BROWSERS[browser]["application"]]
+    flags = LAUNCH_FLAGS[browser]
+    if flags:
+        arguments.append("--args")
+        arguments.extend(flags)
+    subprocess.run(arguments, capture_output=True, text=True, timeout=60)
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        if browser_running(browser):
+            time.sleep(1.0)
+            return
+        time.sleep(0.25)
+    raise RuntimeError(f"{browser} did not launch")
+
+
+def automation_available(browser):
+    window_id = create_window(browser)
+    try:
+        value = apple(guarded_script(browser, window_id, BROWSERS[browser]["evaluate"]), READY_PROBE)
+        return bool(value) and value != "missing value"
+    except (RuntimeError, subprocess.TimeoutExpired):
+        return False
+    finally:
+        close_window(browser, window_id)
+
+
+def prepare_browser(browser):
+    """Make `execute javascript` available, relaunching with the vendor flag.
+
+    Chromium browsers expose Apple Events JavaScript only through the developer
+    toggle or the `--enable-applescript-javascript` launch flag; Safari exposes
+    it through Developer > Allow JavaScript from Apple Events. A browser that
+    cannot report its own paint timing is a setup failure, never a number.
+    """
+    if browser_running(browser) and automation_available(browser):
+        return
+    if browser in AUTOMATION_PREF:
+        domain, key = AUTOMATION_PREF[browser]
+        subprocess.run(["defaults", "write", domain, key, "-bool", "true"],
+                       capture_output=True, text=True, timeout=30)
+    if browser_running(browser):
+        quit_browser(browser)
+    launch_browser(browser)
+    if automation_available(browser):
+        return
+    raise RuntimeError(
+        f"{browser}: JavaScript from Apple Events is unavailable; enable it in the browser "
+        f"(Chromium: View > Developer > Allow JavaScript from Apple Events, or launch with "
+        f"{' '.join(LAUNCH_FLAGS[browser]) or 'Developer > Allow JavaScript from Apple Events'})")
+
 
 
 def wait_fcp(browser, window_id, requested, started_wall_ms, timeout):
@@ -171,11 +304,11 @@ def capture(path, helper, browser):
     return None if result.returncode == 0 else result.stderr.strip() or "screencapture failed"
 
 
-def step(browser, window_id, index, site, kind, url, timeout, folder, helper):
-    name = f"{browser}_{index:02d}_{site}_{kind}"
+def step(browser, window_id, pass_number, index, site, kind, url, timeout, folder, helper):
+    name = f"{browser}_pass{pass_number}_{index:02d}_{site}_{kind}"
     started = time.perf_counter()
     started_wall_ms = time.time() * 1000
-    row = {"browser": browser, "site": site, "kind": kind, "requestedURL": url,
+    row = {"browser": browser, "pass": pass_number, "site": site, "kind": kind, "requestedURL": url,
            "status": "failed"}
     try:
         navigate(browser, window_id, url)
@@ -187,7 +320,11 @@ def step(browser, window_id, index, site, kind, url, timeout, folder, helper):
             "redirected": page["href"].rstrip("/") != url.rstrip("/"),
             "navigationStartDelayMs": round(page["timeOrigin"] - started_wall_ms, 1),
             "fcpMs": page["fcpMs"], "lcpMs": page.get("lcpMs"),
+            "requestStartMs": page.get("requestStartMs"),
             "responseStartMs": page.get("responseStartMs"),
+            "responseEndMs": page.get("responseEndMs"),
+            "redirectCount": page.get("redirectCount"),
+            "transferSize": page.get("transferSize"),
             "domContentLoadedMs": page.get("domContentLoadedMs"),
             "loadEventEndMs": page.get("loadEventEndMs"),
         })
@@ -217,11 +354,12 @@ def distribution(rows, key):
             "p95Ms": values[rank], "worstMs": values[-1]}
 
 
-def save(folder, rows, setup_errors):
-    keys = ("dispatchMs", "toReadyMs", "navigationStartDelayMs", "responseStartMs",
+def save(folder, rows, setup_errors, repeats, paired, site_filter):
+    keys = ("dispatchMs", "toReadyMs", "navigationStartDelayMs", "requestStartMs",
+            "responseStartMs", "responseEndMs",
             "fcpMs", "lcpMs", "domContentLoadedMs", "loadEventEndMs")
     summary = {
-        browser: {"planned": len(SITES) * 2,
+        browser: {"planned": (1 if site_filter else len(SITES)) * 2 * repeats,
                   "attempted": sum(row["browser"] == browser for row in rows),
                   "successful": sum(row["browser"] == browser and row["status"] == "ok" for row in rows),
                   "metrics": {key: distribution([row for row in rows if row["browser"] == browser], key)
@@ -230,8 +368,9 @@ def save(folder, rows, setup_errors):
     }
     with open(os.path.join(folder, "results.json"), "w", encoding="utf-8") as output:
         json.dump({"summary": summary, "setupErrors": setup_errors, "steps": rows}, output, indent=2)
-    lines = ["# Browser comparison: one visit per URL", "",
-             "Twenty URLs per browser, in homepage batch then route batch. One benchmark window "
+    lines = ["# Browser comparison", "",
+             f"{repeats} pass(es) of {(1 if site_filter else len(SITES)) * 2} URLs per browser; "
+             f"{'each homepage immediately before its route' if paired else 'homepage batch then route batch'}. One benchmark window "
              "and tab per browser; browsers run sequentially. Timing starts before AppleScript "
              "navigation and ends when the current document reports FCP.", "",
              "| Browser | Completed | Median observed FCP ms | p95 observed FCP ms | Worst ms |",
@@ -258,10 +397,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--browser", choices=(*BROWSERS, "all"), default="all")
     parser.add_argument("--timeout", type=float, default=45)
+    parser.add_argument("--repeats", type=int, default=1)
+    parser.add_argument("--paired", action="store_true")
+    parser.add_argument("--site", choices=tuple(site for site, _, _ in SITES))
     parser.add_argument("--no-screenshots", action="store_true")
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    if args.repeats <= 0:
+        parser.error("--repeats must be positive")
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     folder = os.path.join(ROOT, "perf-results", f"browser_comparison_{stamp}")
     os.makedirs(folder, exist_ok=True)
@@ -270,25 +414,21 @@ def main():
     helper = None if args.no_screenshots else build_window_helper(folder)
     selected = BROWSERS if args.browser == "all" else (args.browser,)
     for browser in selected:
-        print(f"== {browser}: ten homepages, then ten routes ==", flush=True)
+        print(f"== {browser}: {args.repeats} pass(es), {'paired' if args.paired else 'homepage batch then route batch'} ==", flush=True)
         window_id = None
         try:
+            prepare_browser(browser)
             window_id = create_window(browser)
-            for kind, position in (("home", 1), ("route", 2)):
-                for index, site in enumerate(SITES, 1):
-                    name, home, route = site
-                    url = home if position == 1 else route
-                    row = step(browser, window_id, index, name, kind, url,
-                               args.timeout, folder, helper)
-                    rows.append(row)
-                    error = row.get("error", "").lower()
-                    if any(reason in error for reason in
-                           ("javascript from apple events", "not authorized", "turned off",
-                            "not permitted", "benchmark window changed", "script error",
-                            "syntax error")):
-                        setup_errors[browser] = row["error"]
-                        break
-                if browser in setup_errors:
+            for pass_number, index, site, kind, url in url_steps(args.repeats, args.paired, args.site):
+                row = step(browser, window_id, pass_number, index, site, kind, url,
+                           args.timeout, folder, helper)
+                rows.append(row)
+                error = row.get("error", "").lower()
+                if any(reason in error for reason in
+                       ("javascript from apple events", "not authorized", "turned off",
+                        "not permitted", "benchmark window changed", "script error",
+                        "syntax error", "enable-applescript-javascript")):
+                    setup_errors[browser] = row["error"]
                     break
         except (RuntimeError, OSError, subprocess.TimeoutExpired) as error:
             setup_errors[browser] = str(error)
@@ -299,8 +439,10 @@ def main():
                     close_window(browser, window_id)
                 except (RuntimeError, OSError, subprocess.TimeoutExpired) as error:
                     setup_errors[f"{browser}Cleanup"] = str(error)
-            save(folder, rows, setup_errors)
+            save(folder, rows, setup_errors, args.repeats, args.paired, args.site)
     print(f"SAVED: {os.path.relpath(folder, ROOT)}", flush=True)
+    if setup_errors:
+        raise RuntimeError(f"Browser automation failed: {', '.join(setup_errors)}; see {folder}/results.json")
 
 
 if __name__ == "__main__":

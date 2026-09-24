@@ -1,0 +1,38 @@
+{
+  "summary": {
+    "safari": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "binarySHA256": null,
+  "steps": [
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "visual-paint",
+      "dispatchMs": 150.1,
+      "error": "no visual change in 45s over 3 frames",
+      "elapsedMs": 45228.5
+    },
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "visual-paint",
+      "dispatchMs": 169.6,
+      "error": "no visual change in 45s over 3 frames",
+      "elapsedMs": 45286.3
+    }
+  ]
+}

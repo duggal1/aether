@@ -1,0 +1,1255 @@
+{
+  "summary": {
+    "binarySHA256": "d2ea7d7bca8ec33dbbc6cd09fccd58d8dc484870a7770e98f08678d8ce6af047",
+    "appLaunchMs": 1448.9,
+    "attempted": 10,
+    "successful": 3,
+    "failed": 7,
+    "all": {
+      "count": 3,
+      "medianMs": 27071.1,
+      "p95Ms": 28408.1,
+      "worstMs": 28408.1,
+      "metrics": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 24.6,
+          "p95Ms": 37.5,
+          "worstMs": 37.5
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 27071.1,
+          "p95Ms": 28408.1,
+          "worstMs": 28408.1
+        },
+        "navigationStartDelayMs": {
+          "count": 3,
+          "medianMs": 62.3,
+          "p95Ms": 127.4,
+          "worstMs": 127.4
+        },
+        "requestStartMs": {
+          "count": 3,
+          "medianMs": 4,
+          "p95Ms": 7,
+          "worstMs": 7
+        },
+        "responseStartMs": {
+          "count": 3,
+          "medianMs": 31,
+          "p95Ms": 31,
+          "worstMs": 31
+        },
+        "responseEndMs": {
+          "count": 3,
+          "medianMs": 26537,
+          "p95Ms": 27996,
+          "worstMs": 27996
+        },
+        "fcpMs": {
+          "count": 3,
+          "medianMs": 26823,
+          "p95Ms": 28189,
+          "worstMs": 28189
+        },
+        "lcpMs": {
+          "count": 0,
+          "medianMs": null,
+          "p95Ms": null,
+          "worstMs": null
+        },
+        "domContentLoadedMs": {
+          "count": 3,
+          "medianMs": 27008,
+          "p95Ms": 28196,
+          "worstMs": 28196
+        },
+        "loadEventEndMs": {
+          "count": 2,
+          "medianMs": 26062.0,
+          "p95Ms": 26974,
+          "worstMs": 26974
+        }
+      }
+    },
+    "byPass": {
+      "1": {
+        "count": 1,
+        "medianMs": 28408.1,
+        "p95Ms": 28408.1,
+        "worstMs": 28408.1,
+        "metrics": {
+          "dispatchMs": {
+            "count": 1,
+            "medianMs": 37.5,
+            "p95Ms": 37.5,
+            "worstMs": 37.5
+          },
+          "toReadyMs": {
+            "count": 1,
+            "medianMs": 28408.1,
+            "p95Ms": 28408.1,
+            "worstMs": 28408.1
+          },
+          "navigationStartDelayMs": {
+            "count": 1,
+            "medianMs": 127.4,
+            "p95Ms": 127.4,
+            "worstMs": 127.4
+          },
+          "requestStartMs": {
+            "count": 1,
+            "medianMs": 3,
+            "p95Ms": 3,
+            "worstMs": 3
+          },
+          "responseStartMs": {
+            "count": 1,
+            "medianMs": 31,
+            "p95Ms": 31,
+            "worstMs": 31
+          },
+          "responseEndMs": {
+            "count": 1,
+            "medianMs": 27996,
+            "p95Ms": 27996,
+            "worstMs": 27996
+          },
+          "fcpMs": {
+            "count": 1,
+            "medianMs": 28189,
+            "p95Ms": 28189,
+            "worstMs": 28189
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 1,
+            "medianMs": 28196,
+            "p95Ms": 28196,
+            "worstMs": 28196
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "2": {
+        "count": 2,
+        "medianMs": 26170.1,
+        "p95Ms": 27071.1,
+        "worstMs": 27071.1,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 20.0,
+            "p95Ms": 24.6,
+            "worstMs": 24.6
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 26170.1,
+            "p95Ms": 27071.1,
+            "worstMs": 27071.1
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 59.9,
+            "p95Ms": 62.3,
+            "worstMs": 62.3
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 5.5,
+            "p95Ms": 7,
+            "worstMs": 7
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 26.0,
+            "p95Ms": 31,
+            "worstMs": 31
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 25639.5,
+            "p95Ms": 26537,
+            "worstMs": 26537
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 25913.5,
+            "p95Ms": 26823,
+            "worstMs": 26823
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 26078.5,
+            "p95Ms": 27008,
+            "worstMs": 27008
+          },
+          "loadEventEndMs": {
+            "count": 2,
+            "medianMs": 26062.0,
+            "p95Ms": 26974,
+            "worstMs": 26974
+          }
+        }
+      },
+      "3": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "4": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "5": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      }
+    },
+    "bySite": {
+      "clay": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "apollo": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "awwwards": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "land-book": {
+        "count": 3,
+        "medianMs": 27071.1,
+        "p95Ms": 28408.1,
+        "worstMs": 28408.1,
+        "metrics": {
+          "dispatchMs": {
+            "count": 3,
+            "medianMs": 24.6,
+            "p95Ms": 37.5,
+            "worstMs": 37.5
+          },
+          "toReadyMs": {
+            "count": 3,
+            "medianMs": 27071.1,
+            "p95Ms": 28408.1,
+            "worstMs": 28408.1
+          },
+          "navigationStartDelayMs": {
+            "count": 3,
+            "medianMs": 62.3,
+            "p95Ms": 127.4,
+            "worstMs": 127.4
+          },
+          "requestStartMs": {
+            "count": 3,
+            "medianMs": 4,
+            "p95Ms": 7,
+            "worstMs": 7
+          },
+          "responseStartMs": {
+            "count": 3,
+            "medianMs": 31,
+            "p95Ms": 31,
+            "worstMs": 31
+          },
+          "responseEndMs": {
+            "count": 3,
+            "medianMs": 26537,
+            "p95Ms": 27996,
+            "worstMs": 27996
+          },
+          "fcpMs": {
+            "count": 3,
+            "medianMs": 26823,
+            "p95Ms": 28189,
+            "worstMs": 28189
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 3,
+            "medianMs": 27008,
+            "p95Ms": 28196,
+            "worstMs": 28196
+          },
+          "loadEventEndMs": {
+            "count": 2,
+            "medianMs": 26062.0,
+            "p95Ms": 26974,
+            "worstMs": 26974
+          }
+        }
+      },
+      "calendly": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "wisprflow": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "jack-and-jill": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "privy": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "airtable": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "intercom": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null,
+        "metrics": {
+          "dispatchMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "toReadyMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "navigationStartDelayMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "requestStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseStartMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "responseEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "fcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": "pass1_01_land-book_home",
+      "pass": 1,
+      "site": "land-book",
+      "kind": "home",
+      "requestedURL": "https://land-book.com/",
+      "status": "failed",
+      "tabID": "8646C022-7FE9-4057-802A-53F48F452E3F",
+      "dispatchMs": 75.2,
+      "error": "no current document with FCP within 45s; tab={\"progress\": 0.1, \"contentReady\": false, \"pendingURL\": null, \"error\": null, \"page\": 61, \"id\": \"8646C022-7FE9-4057-802A-53F48F452E3F\", \"title\": \"https://land-book.com/\", \"state\": \"loading\", \"loading\": true, \"paintReady\": false, \"canGoBack\": false, \"url\": \"https://land-book.com/\", \"canGoForward\": false} metrics=null",
+      "elapsedMs": 45130.6
+    },
+    {
+      "step": "pass1_01_land-book_route",
+      "pass": 1,
+      "site": "land-book",
+      "kind": "route",
+      "requestedURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "status": "ok",
+      "tabID": "8646C022-7FE9-4057-802A-53F48F452E3F",
+      "dispatchMs": 37.5,
+      "navigationKind": "document",
+      "toReadyMs": 28408.1,
+      "finalURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "redirected": false,
+      "title": "Jack & Jill \u2014 where remarkable people meet ambitious companies on Landbook - get inspired by landing design and more",
+      "fcpMs": 28189,
+      "lcpMs": null,
+      "requestStartMs": 3,
+      "responseStartMs": 31,
+      "responseEndMs": 27996,
+      "redirectCount": 0,
+      "transferSize": 17499,
+      "domContentLoadedMs": 28196,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 127.4,
+      "uiProgress": 0.30000000000000004
+    },
+    {
+      "step": "pass2_01_land-book_home",
+      "pass": 2,
+      "site": "land-book",
+      "kind": "home",
+      "requestedURL": "https://land-book.com/",
+      "status": "ok",
+      "tabID": "8646C022-7FE9-4057-802A-53F48F452E3F",
+      "dispatchMs": 15.3,
+      "navigationKind": "document",
+      "toReadyMs": 27071.1,
+      "finalURL": "https://land-book.com/",
+      "redirected": false,
+      "title": "Landbook - website design inspiration gallery",
+      "fcpMs": 26823,
+      "lcpMs": null,
+      "requestStartMs": 4,
+      "responseStartMs": 31,
+      "responseEndMs": 26537,
+      "redirectCount": 0,
+      "transferSize": 23424,
+      "domContentLoadedMs": 27008,
+      "loadEventEndMs": 26974,
+      "navigationStartDelayMs": 57.5,
+      "uiProgress": 0.4193559282944753
+    },
+    {
+      "step": "pass2_01_land-book_route",
+      "pass": 2,
+      "site": "land-book",
+      "kind": "route",
+      "requestedURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "status": "ok",
+      "tabID": "8646C022-7FE9-4057-802A-53F48F452E3F",
+      "dispatchMs": 24.6,
+      "navigationKind": "document",
+      "toReadyMs": 25269.1,
+      "finalURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "redirected": false,
+      "title": "Jack & Jill \u2014 where remarkable people meet ambitious companies on Landbook - get inspired by landing design and more",
+      "fcpMs": 25004,
+      "lcpMs": null,
+      "requestStartMs": 7,
+      "responseStartMs": 21,
+      "responseEndMs": 24742,
+      "redirectCount": 0,
+      "transferSize": 17623,
+      "domContentLoadedMs": 25149,
+      "loadEventEndMs": 25150,
+      "navigationStartDelayMs": 62.3,
+      "uiProgress": 0.9
+    },
+    {
+      "step": "pass3_01_land-book_home",
+      "pass": 3,
+      "site": "land-book",
+      "kind": "home",
+      "requestedURL": "https://land-book.com/",
+      "status": "failed",
+      "tabID": "8646C022-7FE9-4057-802A-53F48F452E3F",
+      "dispatchMs": 19.8,
+      "error": "browserctl app-tabs: connect() failed for /Users/harshitduggal/Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock\n\nbrowserctl --app app-status\nbrowserctl --app app-tabs\nbrowserctl --app app-open <url>\nbrowserctl --app app-navigate <tab-uuid> <url>\nbrowserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>\nUse --app in place of --socket <path> for any command against the running app. No token required.\nOptional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]\nbrowserctl inspect <url>\nbrowserctl render <url> <output.ppm|output.png> [width] [height]\nbrowserctl eval <url> <javascript>\nbrowserctl shell <url>\nbrowserctl capture <url> <output-dir> [capture-flags]\nbrowserctl --socket <path> ping\nbrowserctl --socket <path> context-create <name>\nbrowserctl --socket <path> context-list\nbrowserctl --socket <path> page-open <context> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate <page> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]\nbrowserctl --socket <path> page-inspect <page>\nbrowserctl --socket <path> page-snapshot <page> [limit]\nbrowserctl --socket <path> page-query <page> <selector>\nbrowserctl --socket <path> page-query-all <page> <selector>\nbrowserctl --socket <path> page-find <page> <text>\nbrowserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]\nbrowserctl --socket <path> page-back <page> [--commit|--complete]\nbrowserctl --socket <path> page-forward <page> [--commit|--complete]\nbrowserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]\nbrowserctl --socket <path> page-resize <page> <width> <height>\nbrowserctl --socket <path> page-mutations <page> [since-version]\nbrowserctl --socket <path> page-click <page> <node-index> <generation>\nbrowserctl --socket <path> page-type <page> <node-index> <generation> <text>\nbrowserctl --socket <path> page-set-value <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-eval <page> <javascript>\nbrowserctl --socket <path> page-render <page> <path>\nbrowserctl --socket <path> page-metrics <page>\nbrowserctl --socket <path> context-destroy <context>\nbrowserctl --socket <path> page-create <context> [width height]\nbrowserctl --socket <path> page-close <page>\nbrowserctl --socket <path> page-list <context>\nbrowserctl --socket <path> page-load-html <page> <url> <html>\nbrowserctl --socket <path> page-lifecycle <page>\nbrowserctl --socket <path> page-set-lifecycle <page> <active|background|suspended|frozen|discarded>\nbrowserctl --socket <path> page-restore <page>\nbrowserctl --socket <path> page-hover <page> <node-index> <generation>\nbrowserctl --socket <path> page-focus <page> <node-index> <generation>\nbrowserctl --socket <path> page-blur <page>\nbrowserctl --socket <path> page-focused <page>\nbrowserctl --socket <path> page-hovered <page>\nbrowserctl --socket <path> page-scroll <page> <x> <y>\nbrowserctl --socket <path> page-scroll-offset <page>\nbrowserctl --socket <path> page-scroll-into-view <page> <node-index> <generation>\nbrowserctl --socket <path> page-node-at-point <page> <x> <y>\nbrowserctl --socket <path> page-press-key <page> <key>\nbrowserctl --socket <path> page-select-option <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-fill <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-submit <page> <node-index> <generation>\nbrowserctl --socket <path> page-history <page>\nbrowserctl --socket <path> page-console <page>\nbrowserctl --socket <path> page-network-log <page>\nbrowserctl --socket <path> page-frame <page>\nbrowserctl --socket <path> page-workers <page>\nbrowserctl --socket <path> page-dialogs <page>\nbrowserctl --socket <path> page-media <page>\nbrowserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]\nbrowserctl --socket <path> dialog-resolve <dialog> [--accept]\nbrowserctl --socket <path> context-cookies <context>\nbrowserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]\nbrowserctl --socket <path> context-remove-cookie <context> <name> <domain> [path]\nbrowserctl --socket <path> context-clear-cookies <context>\nbrowserctl --socket <path> context-storage-origins <context>\nbrowserctl --socket <path> context-storage-values <context> <origin>\nbrowserctl --socket <path> context-storage-set <context> <origin> <key> <value>\nbrowserctl --socket <path> context-storage-clear <context> <origin>\nbrowserctl --socket <path> context-permission <context> <permission> <origin>\nbrowserctl --socket <path> context-set-permission <context> <permission> <origin> <allow|deny|prompt>\nbrowserctl --socket <path> context-permissions <context>\nbrowserctl --socket <path> context-download <context> <url> [path]\nbrowserctl --socket <path> context-downloads <context>\nbrowserctl --socket <path> context-clear-downloads <context>\nbrowserctl --socket <path> context-open-profile <context> <directory>\nbrowserctl --socket <path> context-checkpoint <context>\nbrowserctl --socket <path> context-blocking <context> <on|off> [rules...]\nbrowserctl --socket <path> context-profile-usage <context>\nbrowserctl --socket <path> context-bookmark-add <context> <url> [title]\nbrowserctl --socket <path> context-bookmarks <context>\nbrowserctl --socket <path> context-bookmark-remove <context> <url>\nbrowserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]\nbrowserctl --socket <path> context-search-provider <context>\nbrowserctl --socket <path> context-set-search-provider <context> <endpoint>\nbrowserctl --socket <path> session-create <name>\nbrowserctl --socket <path> session-list\nbrowserctl --socket <path> session-destroy <session>\nbrowserctl --socket <path> session-pages <session>\nbrowserctl --socket <path> fleet-stats\nbrowserctl --socket <path> fleet-pages\nbrowserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]\nbrowserctl --socket <path> page-capture <url> <output-dir> [capture-flags]\ncapture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]\n  [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]",
+      "elapsedMs": 4212.7
+    },
+    {
+      "step": "pass3_01_land-book_route",
+      "pass": 3,
+      "site": "land-book",
+      "kind": "route",
+      "requestedURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "status": "failed",
+      "error": "browserctl app-navigate 8646C022-7FE9-4057-802A-53F48F452E3F https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies: connect() failed for /Users/harshitduggal/Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock\n\nbrowserctl --app app-status\nbrowserctl --app app-tabs\nbrowserctl --app app-open <url>\nbrowserctl --app app-navigate <tab-uuid> <url>\nbrowserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>\nUse --app in place of --socket <path> for any command against the running app. No token required.\nOptional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]\nbrowserctl inspect <url>\nbrowserctl render <url> <output.ppm|output.png> [width] [height]\nbrowserctl eval <url> <javascript>\nbrowserctl shell <url>\nbrowserctl capture <url> <output-dir> [capture-flags]\nbrowserctl --socket <path> ping\nbrowserctl --socket <path> context-create <name>\nbrowserctl --socket <path> context-list\nbrowserctl --socket <path> page-open <context> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate <page> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]\nbrowserctl --socket <path> page-inspect <page>\nbrowserctl --socket <path> page-snapshot <page> [limit]\nbrowserctl --socket <path> page-query <page> <selector>\nbrowserctl --socket <path> page-query-all <page> <selector>\nbrowserctl --socket <path> page-find <page> <text>\nbrowserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]\nbrowserctl --socket <path> page-back <page> [--commit|--complete]\nbrowserctl --socket <path> page-forward <page> [--commit|--complete]\nbrowserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]\nbrowserctl --socket <path> page-resize <page> <width> <height>\nbrowserctl --socket <path> page-mutations <page> [since-version]\nbrowserctl --socket <path> page-click <page> <node-index> <generation>\nbrowserctl --socket <path> page-type <page> <node-index> <generation> <text>\nbrowserctl --socket <path> page-set-value <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-eval <page> <javascript>\nbrowserctl --socket <path> page-render <page> <path>\nbrowserctl --socket <path> page-metrics <page>\nbrowserctl --socket <path> context-destroy <context>\nbrowserctl --socket <path> page-create <context> [width height]\nbrowserctl --socket <path> page-close <page>\nbrowserctl --socket <path> page-list <context>\nbrowserctl --socket <path> page-load-html <page> <url> <html>\nbrowserctl --socket <path> page-lifecycle <page>\nbrowserctl --socket <path> page-set-lifecycle <page> <active|background|suspended|frozen|discarded>\nbrowserctl --socket <path> page-restore <page>\nbrowserctl --socket <path> page-hover <page> <node-index> <generation>\nbrowserctl --socket <path> page-focus <page> <node-index> <generation>\nbrowserctl --socket <path> page-blur <page>\nbrowserctl --socket <path> page-focused <page>\nbrowserctl --socket <path> page-hovered <page>\nbrowserctl --socket <path> page-scroll <page> <x> <y>\nbrowserctl --socket <path> page-scroll-offset <page>\nbrowserctl --socket <path> page-scroll-into-view <page> <node-index> <generation>\nbrowserctl --socket <path> page-node-at-point <page> <x> <y>\nbrowserctl --socket <path> page-press-key <page> <key>\nbrowserctl --socket <path> page-select-option <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-fill <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-submit <page> <node-index> <generation>\nbrowserctl --socket <path> page-history <page>\nbrowserctl --socket <path> page-console <page>\nbrowserctl --socket <path> page-network-log <page>\nbrowserctl --socket <path> page-frame <page>\nbrowserctl --socket <path> page-workers <page>\nbrowserctl --socket <path> page-dialogs <page>\nbrowserctl --socket <path> page-media <page>\nbrowserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]\nbrowserctl --socket <path> dialog-resolve <dialog> [--accept]\nbrowserctl --socket <path> context-cookies <context>\nbrowserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]\nbrowserctl --socket <path> context-remove-cookie <context> <name> <domain> [path]\nbrowserctl --socket <path> context-clear-cookies <context>\nbrowserctl --socket <path> context-storage-origins <context>\nbrowserctl --socket <path> context-storage-values <context> <origin>\nbrowserctl --socket <path> context-storage-set <context> <origin> <key> <value>\nbrowserctl --socket <path> context-storage-clear <context> <origin>\nbrowserctl --socket <path> context-permission <context> <permission> <origin>\nbrowserctl --socket <path> context-set-permission <context> <permission> <origin> <allow|deny|prompt>\nbrowserctl --socket <path> context-permissions <context>\nbrowserctl --socket <path> context-download <context> <url> [path]\nbrowserctl --socket <path> context-downloads <context>\nbrowserctl --socket <path> context-clear-downloads <context>\nbrowserctl --socket <path> context-open-profile <context> <directory>\nbrowserctl --socket <path> context-checkpoint <context>\nbrowserctl --socket <path> context-blocking <context> <on|off> [rules...]\nbrowserctl --socket <path> context-profile-usage <context>\nbrowserctl --socket <path> context-bookmark-add <context> <url> [title]\nbrowserctl --socket <path> context-bookmarks <context>\nbrowserctl --socket <path> context-bookmark-remove <context> <url>\nbrowserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]\nbrowserctl --socket <path> context-search-provider <context>\nbrowserctl --socket <path> context-set-search-provider <context> <endpoint>\nbrowserctl --socket <path> session-create <name>\nbrowserctl --socket <path> session-list\nbrowserctl --socket <path> session-destroy <session>\nbrowserctl --socket <path> session-pages <session>\nbrowserctl --socket <path> fleet-stats\nbrowserctl --socket <path> fleet-pages\nbrowserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]\nbrowserctl --socket <path> page-capture <url> <output-dir> [capture-flags]\ncapture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]\n  [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]",
+      "elapsedMs": 23.1
+    },
+    {
+      "step": "pass4_01_land-book_home",
+      "pass": 4,
+      "site": "land-book",
+      "kind": "home",
+      "requestedURL": "https://land-book.com/",
+      "status": "failed",
+      "error": "browserctl app-navigate 8646C022-7FE9-4057-802A-53F48F452E3F https://land-book.com/: connect() failed for /Users/harshitduggal/Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock\n\nbrowserctl --app app-status\nbrowserctl --app app-tabs\nbrowserctl --app app-open <url>\nbrowserctl --app app-navigate <tab-uuid> <url>\nbrowserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>\nUse --app in place of --socket <path> for any command against the running app. No token required.\nOptional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]\nbrowserctl inspect <url>\nbrowserctl render <url> <output.ppm|output.png> [width] [height]\nbrowserctl eval <url> <javascript>\nbrowserctl shell <url>\nbrowserctl capture <url> <output-dir> [capture-flags]\nbrowserctl --socket <path> ping\nbrowserctl --socket <path> context-create <name>\nbrowserctl --socket <path> context-list\nbrowserctl --socket <path> page-open <context> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate <page> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]\nbrowserctl --socket <path> page-inspect <page>\nbrowserctl --socket <path> page-snapshot <page> [limit]\nbrowserctl --socket <path> page-query <page> <selector>\nbrowserctl --socket <path> page-query-all <page> <selector>\nbrowserctl --socket <path> page-find <page> <text>\nbrowserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]\nbrowserctl --socket <path> page-back <page> [--commit|--complete]\nbrowserctl --socket <path> page-forward <page> [--commit|--complete]\nbrowserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]\nbrowserctl --socket <path> page-resize <page> <width> <height>\nbrowserctl --socket <path> page-mutations <page> [since-version]\nbrowserctl --socket <path> page-click <page> <node-index> <generation>\nbrowserctl --socket <path> page-type <page> <node-index> <generation> <text>\nbrowserctl --socket <path> page-set-value <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-eval <page> <javascript>\nbrowserctl --socket <path> page-render <page> <path>\nbrowserctl --socket <path> page-metrics <page>\nbrowserctl --socket <path> context-destroy <context>\nbrowserctl --socket <path> page-create <context> [width height]\nbrowserctl --socket <path> page-close <page>\nbrowserctl --socket <path> page-list <context>\nbrowserctl --socket <path> page-load-html <page> <url> <html>\nbrowserctl --socket <path> page-lifecycle <page>\nbrowserctl --socket <path> page-set-lifecycle <page> <active|background|suspended|frozen|discarded>\nbrowserctl --socket <path> page-restore <page>\nbrowserctl --socket <path> page-hover <page> <node-index> <generation>\nbrowserctl --socket <path> page-focus <page> <node-index> <generation>\nbrowserctl --socket <path> page-blur <page>\nbrowserctl --socket <path> page-focused <page>\nbrowserctl --socket <path> page-hovered <page>\nbrowserctl --socket <path> page-scroll <page> <x> <y>\nbrowserctl --socket <path> page-scroll-offset <page>\nbrowserctl --socket <path> page-scroll-into-view <page> <node-index> <generation>\nbrowserctl --socket <path> page-node-at-point <page> <x> <y>\nbrowserctl --socket <path> page-press-key <page> <key>\nbrowserctl --socket <path> page-select-option <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-fill <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-submit <page> <node-index> <generation>\nbrowserctl --socket <path> page-history <page>\nbrowserctl --socket <path> page-console <page>\nbrowserctl --socket <path> page-network-log <page>\nbrowserctl --socket <path> page-frame <page>\nbrowserctl --socket <path> page-workers <page>\nbrowserctl --socket <path> page-dialogs <page>\nbrowserctl --socket <path> page-media <page>\nbrowserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]\nbrowserctl --socket <path> dialog-resolve <dialog> [--accept]\nbrowserctl --socket <path> context-cookies <context>\nbrowserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]\nbrowserctl --socket <path> context-remove-cookie <context> <name> <domain> [path]\nbrowserctl --socket <path> context-clear-cookies <context>\nbrowserctl --socket <path> context-storage-origins <context>\nbrowserctl --socket <path> context-storage-values <context> <origin>\nbrowserctl --socket <path> context-storage-set <context> <origin> <key> <value>\nbrowserctl --socket <path> context-storage-clear <context> <origin>\nbrowserctl --socket <path> context-permission <context> <permission> <origin>\nbrowserctl --socket <path> context-set-permission <context> <permission> <origin> <allow|deny|prompt>\nbrowserctl --socket <path> context-permissions <context>\nbrowserctl --socket <path> context-download <context> <url> [path]\nbrowserctl --socket <path> context-downloads <context>\nbrowserctl --socket <path> context-clear-downloads <context>\nbrowserctl --socket <path> context-open-profile <context> <directory>\nbrowserctl --socket <path> context-checkpoint <context>\nbrowserctl --socket <path> context-blocking <context> <on|off> [rules...]\nbrowserctl --socket <path> context-profile-usage <context>\nbrowserctl --socket <path> context-bookmark-add <context> <url> [title]\nbrowserctl --socket <path> context-bookmarks <context>\nbrowserctl --socket <path> context-bookmark-remove <context> <url>\nbrowserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]\nbrowserctl --socket <path> context-search-provider <context>\nbrowserctl --socket <path> context-set-search-provider <context> <endpoint>\nbrowserctl --socket <path> session-create <name>\nbrowserctl --socket <path> session-list\nbrowserctl --socket <path> session-destroy <session>\nbrowserctl --socket <path> session-pages <session>\nbrowserctl --socket <path> fleet-stats\nbrowserctl --socket <path> fleet-pages\nbrowserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]\nbrowserctl --socket <path> page-capture <url> <output-dir> [capture-flags]\ncapture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]\n  [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]",
+      "elapsedMs": 17.0
+    },
+    {
+      "step": "pass4_01_land-book_route",
+      "pass": 4,
+      "site": "land-book",
+      "kind": "route",
+      "requestedURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "status": "failed",
+      "error": "browserctl app-navigate 8646C022-7FE9-4057-802A-53F48F452E3F https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies: connect() failed for /Users/harshitduggal/Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock\n\nbrowserctl --app app-status\nbrowserctl --app app-tabs\nbrowserctl --app app-open <url>\nbrowserctl --app app-navigate <tab-uuid> <url>\nbrowserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>\nUse --app in place of --socket <path> for any command against the running app. No token required.\nOptional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]\nbrowserctl inspect <url>\nbrowserctl render <url> <output.ppm|output.png> [width] [height]\nbrowserctl eval <url> <javascript>\nbrowserctl shell <url>\nbrowserctl capture <url> <output-dir> [capture-flags]\nbrowserctl --socket <path> ping\nbrowserctl --socket <path> context-create <name>\nbrowserctl --socket <path> context-list\nbrowserctl --socket <path> page-open <context> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate <page> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]\nbrowserctl --socket <path> page-inspect <page>\nbrowserctl --socket <path> page-snapshot <page> [limit]\nbrowserctl --socket <path> page-query <page> <selector>\nbrowserctl --socket <path> page-query-all <page> <selector>\nbrowserctl --socket <path> page-find <page> <text>\nbrowserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]\nbrowserctl --socket <path> page-back <page> [--commit|--complete]\nbrowserctl --socket <path> page-forward <page> [--commit|--complete]\nbrowserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]\nbrowserctl --socket <path> page-resize <page> <width> <height>\nbrowserctl --socket <path> page-mutations <page> [since-version]\nbrowserctl --socket <path> page-click <page> <node-index> <generation>\nbrowserctl --socket <path> page-type <page> <node-index> <generation> <text>\nbrowserctl --socket <path> page-set-value <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-eval <page> <javascript>\nbrowserctl --socket <path> page-render <page> <path>\nbrowserctl --socket <path> page-metrics <page>\nbrowserctl --socket <path> context-destroy <context>\nbrowserctl --socket <path> page-create <context> [width height]\nbrowserctl --socket <path> page-close <page>\nbrowserctl --socket <path> page-list <context>\nbrowserctl --socket <path> page-load-html <page> <url> <html>\nbrowserctl --socket <path> page-lifecycle <page>\nbrowserctl --socket <path> page-set-lifecycle <page> <active|background|suspended|frozen|discarded>\nbrowserctl --socket <path> page-restore <page>\nbrowserctl --socket <path> page-hover <page> <node-index> <generation>\nbrowserctl --socket <path> page-focus <page> <node-index> <generation>\nbrowserctl --socket <path> page-blur <page>\nbrowserctl --socket <path> page-focused <page>\nbrowserctl --socket <path> page-hovered <page>\nbrowserctl --socket <path> page-scroll <page> <x> <y>\nbrowserctl --socket <path> page-scroll-offset <page>\nbrowserctl --socket <path> page-scroll-into-view <page> <node-index> <generation>\nbrowserctl --socket <path> page-node-at-point <page> <x> <y>\nbrowserctl --socket <path> page-press-key <page> <key>\nbrowserctl --socket <path> page-select-option <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-fill <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-submit <page> <node-index> <generation>\nbrowserctl --socket <path> page-history <page>\nbrowserctl --socket <path> page-console <page>\nbrowserctl --socket <path> page-network-log <page>\nbrowserctl --socket <path> page-frame <page>\nbrowserctl --socket <path> page-workers <page>\nbrowserctl --socket <path> page-dialogs <page>\nbrowserctl --socket <path> page-media <page>\nbrowserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]\nbrowserctl --socket <path> dialog-resolve <dialog> [--accept]\nbrowserctl --socket <path> context-cookies <context>\nbrowserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]\nbrowserctl --socket <path> context-remove-cookie <context> <name> <domain> [path]\nbrowserctl --socket <path> context-clear-cookies <context>\nbrowserctl --socket <path> context-storage-origins <context>\nbrowserctl --socket <path> context-storage-values <context> <origin>\nbrowserctl --socket <path> context-storage-set <context> <origin> <key> <value>\nbrowserctl --socket <path> context-storage-clear <context> <origin>\nbrowserctl --socket <path> context-permission <context> <permission> <origin>\nbrowserctl --socket <path> context-set-permission <context> <permission> <origin> <allow|deny|prompt>\nbrowserctl --socket <path> context-permissions <context>\nbrowserctl --socket <path> context-download <context> <url> [path]\nbrowserctl --socket <path> context-downloads <context>\nbrowserctl --socket <path> context-clear-downloads <context>\nbrowserctl --socket <path> context-open-profile <context> <directory>\nbrowserctl --socket <path> context-checkpoint <context>\nbrowserctl --socket <path> context-blocking <context> <on|off> [rules...]\nbrowserctl --socket <path> context-profile-usage <context>\nbrowserctl --socket <path> context-bookmark-add <context> <url> [title]\nbrowserctl --socket <path> context-bookmarks <context>\nbrowserctl --socket <path> context-bookmark-remove <context> <url>\nbrowserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]\nbrowserctl --socket <path> context-search-provider <context>\nbrowserctl --socket <path> context-set-search-provider <context> <endpoint>\nbrowserctl --socket <path> session-create <name>\nbrowserctl --socket <path> session-list\nbrowserctl --socket <path> session-destroy <session>\nbrowserctl --socket <path> session-pages <session>\nbrowserctl --socket <path> fleet-stats\nbrowserctl --socket <path> fleet-pages\nbrowserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]\nbrowserctl --socket <path> page-capture <url> <output-dir> [capture-flags]\ncapture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]\n  [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]",
+      "elapsedMs": 49.8
+    },
+    {
+      "step": "pass5_01_land-book_home",
+      "pass": 5,
+      "site": "land-book",
+      "kind": "home",
+      "requestedURL": "https://land-book.com/",
+      "status": "failed",
+      "error": "browserctl app-navigate 8646C022-7FE9-4057-802A-53F48F452E3F https://land-book.com/: connect() failed for /Users/harshitduggal/Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock\n\nbrowserctl --app app-status\nbrowserctl --app app-tabs\nbrowserctl --app app-open <url>\nbrowserctl --app app-navigate <tab-uuid> <url>\nbrowserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>\nUse --app in place of --socket <path> for any command against the running app. No token required.\nOptional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]\nbrowserctl inspect <url>\nbrowserctl render <url> <output.ppm|output.png> [width] [height]\nbrowserctl eval <url> <javascript>\nbrowserctl shell <url>\nbrowserctl capture <url> <output-dir> [capture-flags]\nbrowserctl --socket <path> ping\nbrowserctl --socket <path> context-create <name>\nbrowserctl --socket <path> context-list\nbrowserctl --socket <path> page-open <context> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate <page> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]\nbrowserctl --socket <path> page-inspect <page>\nbrowserctl --socket <path> page-snapshot <page> [limit]\nbrowserctl --socket <path> page-query <page> <selector>\nbrowserctl --socket <path> page-query-all <page> <selector>\nbrowserctl --socket <path> page-find <page> <text>\nbrowserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]\nbrowserctl --socket <path> page-back <page> [--commit|--complete]\nbrowserctl --socket <path> page-forward <page> [--commit|--complete]\nbrowserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]\nbrowserctl --socket <path> page-resize <page> <width> <height>\nbrowserctl --socket <path> page-mutations <page> [since-version]\nbrowserctl --socket <path> page-click <page> <node-index> <generation>\nbrowserctl --socket <path> page-type <page> <node-index> <generation> <text>\nbrowserctl --socket <path> page-set-value <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-eval <page> <javascript>\nbrowserctl --socket <path> page-render <page> <path>\nbrowserctl --socket <path> page-metrics <page>\nbrowserctl --socket <path> context-destroy <context>\nbrowserctl --socket <path> page-create <context> [width height]\nbrowserctl --socket <path> page-close <page>\nbrowserctl --socket <path> page-list <context>\nbrowserctl --socket <path> page-load-html <page> <url> <html>\nbrowserctl --socket <path> page-lifecycle <page>\nbrowserctl --socket <path> page-set-lifecycle <page> <active|background|suspended|frozen|discarded>\nbrowserctl --socket <path> page-restore <page>\nbrowserctl --socket <path> page-hover <page> <node-index> <generation>\nbrowserctl --socket <path> page-focus <page> <node-index> <generation>\nbrowserctl --socket <path> page-blur <page>\nbrowserctl --socket <path> page-focused <page>\nbrowserctl --socket <path> page-hovered <page>\nbrowserctl --socket <path> page-scroll <page> <x> <y>\nbrowserctl --socket <path> page-scroll-offset <page>\nbrowserctl --socket <path> page-scroll-into-view <page> <node-index> <generation>\nbrowserctl --socket <path> page-node-at-point <page> <x> <y>\nbrowserctl --socket <path> page-press-key <page> <key>\nbrowserctl --socket <path> page-select-option <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-fill <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-submit <page> <node-index> <generation>\nbrowserctl --socket <path> page-history <page>\nbrowserctl --socket <path> page-console <page>\nbrowserctl --socket <path> page-network-log <page>\nbrowserctl --socket <path> page-frame <page>\nbrowserctl --socket <path> page-workers <page>\nbrowserctl --socket <path> page-dialogs <page>\nbrowserctl --socket <path> page-media <page>\nbrowserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]\nbrowserctl --socket <path> dialog-resolve <dialog> [--accept]\nbrowserctl --socket <path> context-cookies <context>\nbrowserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]\nbrowserctl --socket <path> context-remove-cookie <context> <name> <domain> [path]\nbrowserctl --socket <path> context-clear-cookies <context>\nbrowserctl --socket <path> context-storage-origins <context>\nbrowserctl --socket <path> context-storage-values <context> <origin>\nbrowserctl --socket <path> context-storage-set <context> <origin> <key> <value>\nbrowserctl --socket <path> context-storage-clear <context> <origin>\nbrowserctl --socket <path> context-permission <context> <permission> <origin>\nbrowserctl --socket <path> context-set-permission <context> <permission> <origin> <allow|deny|prompt>\nbrowserctl --socket <path> context-permissions <context>\nbrowserctl --socket <path> context-download <context> <url> [path]\nbrowserctl --socket <path> context-downloads <context>\nbrowserctl --socket <path> context-clear-downloads <context>\nbrowserctl --socket <path> context-open-profile <context> <directory>\nbrowserctl --socket <path> context-checkpoint <context>\nbrowserctl --socket <path> context-blocking <context> <on|off> [rules...]\nbrowserctl --socket <path> context-profile-usage <context>\nbrowserctl --socket <path> context-bookmark-add <context> <url> [title]\nbrowserctl --socket <path> context-bookmarks <context>\nbrowserctl --socket <path> context-bookmark-remove <context> <url>\nbrowserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]\nbrowserctl --socket <path> context-search-provider <context>\nbrowserctl --socket <path> context-set-search-provider <context> <endpoint>\nbrowserctl --socket <path> session-create <name>\nbrowserctl --socket <path> session-list\nbrowserctl --socket <path> session-destroy <session>\nbrowserctl --socket <path> session-pages <session>\nbrowserctl --socket <path> fleet-stats\nbrowserctl --socket <path> fleet-pages\nbrowserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]\nbrowserctl --socket <path> page-capture <url> <output-dir> [capture-flags]\ncapture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]\n  [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]",
+      "elapsedMs": 23.2
+    },
+    {
+      "step": "pass5_01_land-book_route",
+      "pass": 5,
+      "site": "land-book",
+      "kind": "route",
+      "requestedURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "status": "failed",
+      "error": "browserctl app-navigate 8646C022-7FE9-4057-802A-53F48F452E3F https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies: connect() failed for /Users/harshitduggal/Library/Containers/dev.aether.browser/Data/tmp/aether-agent/browser.sock\n\nbrowserctl --app app-status\nbrowserctl --app app-tabs\nbrowserctl --app app-open <url>\nbrowserctl --app app-navigate <tab-uuid> <url>\nbrowserctl --app app-select|app-close|app-back|app-forward|app-reload|app-metrics <tab-uuid>\nUse --app in place of --socket <path> for any command against the running app. No token required.\nOptional authenticated daemon connections: browserctl --socket <path> --token-file <path> <command> [arguments]\nbrowserctl inspect <url>\nbrowserctl render <url> <output.ppm|output.png> [width] [height]\nbrowserctl eval <url> <javascript>\nbrowserctl shell <url>\nbrowserctl capture <url> <output-dir> [capture-flags]\nbrowserctl --socket <path> ping\nbrowserctl --socket <path> context-create <name>\nbrowserctl --socket <path> context-list\nbrowserctl --socket <path> page-open <context> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate <page> <url> [commit|complete]\nbrowserctl --socket <path> page-navigate-input <page> <url-or-search-terms> [--commit|--complete]\nbrowserctl --socket <path> page-inspect <page>\nbrowserctl --socket <path> page-snapshot <page> [limit]\nbrowserctl --socket <path> page-query <page> <selector>\nbrowserctl --socket <path> page-query-all <page> <selector>\nbrowserctl --socket <path> page-find <page> <text>\nbrowserctl --socket <path> page-wait <page> <selector> [attached|visible|hidden|detached] [timeout-ms]\nbrowserctl --socket <path> page-back <page> [--commit|--complete]\nbrowserctl --socket <path> page-forward <page> [--commit|--complete]\nbrowserctl --socket <path> page-reload <page> [--bypass-cache] [--commit|--complete]\nbrowserctl --socket <path> page-resize <page> <width> <height>\nbrowserctl --socket <path> page-mutations <page> [since-version]\nbrowserctl --socket <path> page-click <page> <node-index> <generation>\nbrowserctl --socket <path> page-type <page> <node-index> <generation> <text>\nbrowserctl --socket <path> page-set-value <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-eval <page> <javascript>\nbrowserctl --socket <path> page-render <page> <path>\nbrowserctl --socket <path> page-metrics <page>\nbrowserctl --socket <path> context-destroy <context>\nbrowserctl --socket <path> page-create <context> [width height]\nbrowserctl --socket <path> page-close <page>\nbrowserctl --socket <path> page-list <context>\nbrowserctl --socket <path> page-load-html <page> <url> <html>\nbrowserctl --socket <path> page-lifecycle <page>\nbrowserctl --socket <path> page-set-lifecycle <page> <active|background|suspended|frozen|discarded>\nbrowserctl --socket <path> page-restore <page>\nbrowserctl --socket <path> page-hover <page> <node-index> <generation>\nbrowserctl --socket <path> page-focus <page> <node-index> <generation>\nbrowserctl --socket <path> page-blur <page>\nbrowserctl --socket <path> page-focused <page>\nbrowserctl --socket <path> page-hovered <page>\nbrowserctl --socket <path> page-scroll <page> <x> <y>\nbrowserctl --socket <path> page-scroll-offset <page>\nbrowserctl --socket <path> page-scroll-into-view <page> <node-index> <generation>\nbrowserctl --socket <path> page-node-at-point <page> <x> <y>\nbrowserctl --socket <path> page-press-key <page> <key>\nbrowserctl --socket <path> page-select-option <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-fill <page> <node-index> <generation> <value>\nbrowserctl --socket <path> page-submit <page> <node-index> <generation>\nbrowserctl --socket <path> page-history <page>\nbrowserctl --socket <path> page-console <page>\nbrowserctl --socket <path> page-network-log <page>\nbrowserctl --socket <path> page-frame <page>\nbrowserctl --socket <path> page-workers <page>\nbrowserctl --socket <path> page-dialogs <page>\nbrowserctl --socket <path> page-media <page>\nbrowserctl --socket <path> page-media-control <page> <nodeIndex> <nodeGeneration> <play|pause|seek|setVolume|setMuted|setRate|load> [number] [--muted]\nbrowserctl --socket <path> dialog-resolve <dialog> [--accept]\nbrowserctl --socket <path> context-cookies <context>\nbrowserctl --socket <path> context-set-cookie <context> <name> <value> <domain> [path]\nbrowserctl --socket <path> context-remove-cookie <context> <name> <domain> [path]\nbrowserctl --socket <path> context-clear-cookies <context>\nbrowserctl --socket <path> context-storage-origins <context>\nbrowserctl --socket <path> context-storage-values <context> <origin>\nbrowserctl --socket <path> context-storage-set <context> <origin> <key> <value>\nbrowserctl --socket <path> context-storage-clear <context> <origin>\nbrowserctl --socket <path> context-permission <context> <permission> <origin>\nbrowserctl --socket <path> context-set-permission <context> <permission> <origin> <allow|deny|prompt>\nbrowserctl --socket <path> context-permissions <context>\nbrowserctl --socket <path> context-download <context> <url> [path]\nbrowserctl --socket <path> context-downloads <context>\nbrowserctl --socket <path> context-clear-downloads <context>\nbrowserctl --socket <path> context-open-profile <context> <directory>\nbrowserctl --socket <path> context-checkpoint <context>\nbrowserctl --socket <path> context-blocking <context> <on|off> [rules...]\nbrowserctl --socket <path> context-profile-usage <context>\nbrowserctl --socket <path> context-bookmark-add <context> <url> [title]\nbrowserctl --socket <path> context-bookmarks <context>\nbrowserctl --socket <path> context-bookmark-remove <context> <url>\nbrowserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]\nbrowserctl --socket <path> context-search-provider <context>\nbrowserctl --socket <path> context-set-search-provider <context> <endpoint>\nbrowserctl --socket <path> session-create <name>\nbrowserctl --socket <path> session-list\nbrowserctl --socket <path> session-destroy <session>\nbrowserctl --socket <path> session-pages <session>\nbrowserctl --socket <path> fleet-stats\nbrowserctl --socket <path> fleet-pages\nbrowserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]\nbrowserctl --socket <path> page-capture <url> <output-dir> [capture-flags]\ncapture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]\n  [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]",
+      "elapsedMs": 27.9
+    }
+  ]
+}

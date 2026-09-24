@@ -183,9 +183,7 @@ struct SidebarRowStyle: ButtonStyle {
             .focusEffectDisabled()
             .pointerStyle(.link)
             .background {
-                shape.fill(.clear)
-                    .glassEffect(.regular.tint(Color.black.opacity(active ? 0.24 : 0.14)), in: shape)
-                    .glassEffectTransition(.materialize)
+                shape.fill(chrome?.sidebarHover ?? (theme.dark ? Color.white.opacity(0.07) : Color.black.opacity(0.05)))
                     .opacity(active ? 1 : 0)
             }
             .onHover { hovering = $0 }
@@ -197,6 +195,7 @@ struct SidebarRowStyle: ButtonStyle {
 
 struct SidebarTileStyle: ButtonStyle {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherChromeAppearance) private var chrome
     @State private var hovering = false
     let reduced: Bool
     func makeBody(configuration: Configuration) -> some View {
@@ -207,9 +206,7 @@ struct SidebarTileStyle: ButtonStyle {
             .focusEffectDisabled()
             .pointerStyle(.link)
             .background {
-                shape.fill(.clear)
-                    .glassEffect(.regular.tint(Color.black.opacity(active ? 0.24 : 0.14)), in: shape)
-                    .glassEffectTransition(.materialize)
+                shape.fill(chrome?.sidebarHover ?? (theme.dark ? Color.white.opacity(0.07) : Color.black.opacity(0.05)))
                     .opacity(active ? 1 : 0)
             }
             .onHover { hovering = $0 }

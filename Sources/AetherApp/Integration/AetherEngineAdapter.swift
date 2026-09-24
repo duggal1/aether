@@ -75,11 +75,13 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   }
 
   func createPage(profileID: UUID) async throws -> String {
+    AetherLatencyProbe.mark("adapter.createPage.start")
     let context = try await context(for: profileID)
     let page = try await engine.createPage(contextID: context)
     let id = page.id.description
     pages[id] = page.id
     surfaces[id] = try await engine.runtime.webSurface(pageID: page.id)
+    AetherLatencyProbe.mark("adapter.createPage.end")
     return id
   }
 
@@ -97,7 +99,9 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
   }
 
   func navigate(pageID: String, url: URL) async throws {
+    AetherLatencyProbe.mark("adapter.navigate.start")
     _ = try await engine.navigate(pageID: page(pageID), url: url, settle: .commit)
+    AetherLatencyProbe.mark("adapter.navigate.commit")
     try await persist(pageID)
   }
   func goBack(pageID: String) async throws {

@@ -10,6 +10,8 @@ public struct OmniboxView: View {
     @BrowserState private var resignNonce = 0
     @BrowserState private var progressP = 0.0
     @BrowserState private var progressOpacity = 0.0
+    @State private var bookmarkEditorPresented = false
+    @State private var bookmarkWasAdded = false
     @Namespace private var glassNS
     let window: BrowserWindowModel
 
@@ -21,6 +23,11 @@ public struct OmniboxView: View {
 
     private var appearance: AetherChromeAppearance {
         chrome ?? (theme.dark ? .dark : .light)
+    }
+
+    private var selectedBookmark: BrowserBookmark? {
+        guard let url = window.selected?.url else { return nil }
+        return window.workspace.bookmarks(for: window.activeProfileID).first { $0.url == url }
     }
 
     public var body: some View {
@@ -96,18 +103,36 @@ public struct OmniboxView: View {
                     let rawTitle = window.selected?.title ?? url
                     let title = (rawTitle.isEmpty || rawTitle == "New Tab")
                         ? (URL(string: url)?.host ?? url) : rawTitle
-                    window.workspace.toggleBookmark(profileID: window.activeProfileID, title: title, url: url)
+                    bookmarkWasAdded = selectedBookmark == nil
+                    if bookmarkWasAdded {
+                        window.workspace.toggleBookmark(profileID: window.activeProfileID, title: title, url: url)
+                    }
+                    bookmarkEditorPresented = true
                 }
             } label: {
                 BrowserIconView(icon: window.workspace.isBookmarked(window.selected?.url, profileID: window.activeProfileID) ? .doubleBookmark : .bookmark,
                                 tint: appearance.icon)
                     .iconSize(13)
+                    .frame(width: 26, height: 26)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .aetherPointingCursor()
             .aetherFocusTreatment(radius: 6)
             .focusEffectDisabled()
             .help("Bookmark this page")
+            .disabled(window.selected?.url == nil || window.workspace.isIncognito(window.activeProfileID))
+            .popover(isPresented: $bookmarkEditorPresented, arrowEdge: .bottom) {
+                if let bookmark = selectedBookmark {
+                    BookmarkEditorView(bookmark: bookmark, isNew: bookmarkWasAdded, workspace: window.workspace) {
+                        bookmarkEditorPresented = false
+                    }
+                    .environment(\.aetherChromeAppearance, appearance)
+                    .preferredColorScheme(appearance.isDark ? .dark : .light)
+                    .presentationBackground(.clear)
+                }
+            }
+            .onChange(of: window.selectedID) { _, _ in bookmarkEditorPresented = false }
         }
         .padding(.leading, 12).padding(.trailing, 6)
         .frame(height: 30)

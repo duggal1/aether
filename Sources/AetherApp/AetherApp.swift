@@ -11,6 +11,7 @@ struct AetherApp: App {
   private let workspace: BrowserWorkspace
 
   init() {
+    AetherLatencyProbe.mark("app.init.start")
     AetherFontRegistry.install()
     let silent = CommandLine.arguments.contains("--silent-verification")
     let profileDirectory = silent
@@ -23,6 +24,7 @@ struct AetherApp: App {
     AetherApplicationDelegate.adapter = adapter
     AetherApplicationDelegate.workspace = workspace
     adapter.startAutomation(workspace: workspace)
+    AetherLatencyProbe.mark("app.init.end")
     Task { [adapter] in await adapter.engine.runtime.warmWebProcess() }
     Task { [adapter, workspace] in try? await adapter.warmDefaultProfile(workspace.defaultProfileID) }
   }
@@ -63,6 +65,7 @@ final class AetherApplicationDelegate: NSObject, NSApplicationDelegate {
   static var adapter: AetherEngineAdapter?
   static var workspace: BrowserWorkspace?
   func applicationDidFinishLaunching(_ notification: Notification) {
+    AetherLatencyProbe.mark("app.delegate.launched")
     NSApp.setActivationPolicy(.regular)
     if !CommandLine.arguments.contains("--silent-verification") {
       NSApp.activate(ignoringOtherApps: true)

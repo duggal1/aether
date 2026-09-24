@@ -25,6 +25,7 @@ struct BrowserDaemon {
     let unauthenticated = !arguments.contains("--token-file") || arguments.contains("--no-auth")
 
     let engine = NativeBrowserEngine()
+    await engine.runtime.warmWebProcess()
     let dispatcher = AgentCommandDispatcher(engine: engine)
     let server = AgentSocketServer(path: path)
 

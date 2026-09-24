@@ -7,7 +7,6 @@ public struct BrowserWindowRoot: View {
     @State private var nativeWindow: NSWindow?
     @State private var isFullscreen = false
     @State private var trafficLeading: CGFloat = 72
-    @State private var chromeTick = 0
     @State private var trackingRefresh: Task<Void, Never>?
     private let workspace: BrowserWorkspace
     public init(workspace: BrowserWorkspace) {
@@ -16,7 +15,7 @@ public struct BrowserWindowRoot: View {
     public var body: some View {
         AetherThemeScope {
             if let window {
-            BrowserWindowView(window: window, isFullscreen: isFullscreen, refreshTick: chromeTick)
+            BrowserWindowView(window: window, isFullscreen: isFullscreen)
                 .aetherTypography()
                 .background {
                     AetherWindowTransparencyView { value in
@@ -65,9 +64,6 @@ public struct BrowserWindowRoot: View {
         if let maxX { trafficLeading = maxX + 8 }
     }
 
-    // The animated Space jump can leave AppKit hover/cursor tracking stale
-    // while rendering stays correct. Re-register cursor rects and rebuild the
-    // chrome (never the page) once frames settle after the transition.
     private func refreshHoverTracking() {
         trackingRefresh?.cancel()
         trackingRefresh = Task { @MainActor in
@@ -76,7 +72,6 @@ public struct BrowserWindowRoot: View {
             if let contentView = nativeWindow?.contentView {
                 nativeWindow?.invalidateCursorRects(for: contentView)
             }
-            chromeTick += 1
         }
     }
 }

@@ -113,9 +113,7 @@ struct NavigationStateTests {
             contentReady: false, progress: 0.4))
         #expect(await awaitTab(tab) { !$0.contentReady && $0.isLoading })
         #expect(tab.loadState == .loading)
-        // Commit is visual readiness: the document is on screen, so the tab
-        // reports ready even while subresources (ads, analytics) still load.
-        // isLoading stays true so the stop control keeps working.
+        tab.paintReady = true
         engine.emit(settledState(pageID, "https://apple.com", loading: true,
             contentReady: true, progress: 0.8))
         #expect(await awaitTab(tab) { $0.contentReady && $0.isLoading })
@@ -127,6 +125,45 @@ struct NavigationStateTests {
             contentReady: true, progress: 1))
         #expect(await awaitTab(tab) { !$0.isLoading })
         #expect(tab.loadState == .ready)
+        #expect(tab.pendingURL == nil)
+    }
+
+    @Test func redirectedDocumentCompletesProgressAtPaint() async throws {
+        let engine = StubPageEngine()
+        let window = BrowserWindowModel(workspace: BrowserWorkspace(engine: engine))
+        guard let tab = window.selected else { throw TestFailure.missingTab }
+        window.navigate(tab, text: "https://example.com/start")
+        #expect(await awaitTab(tab) { $0.enginePageID != nil })
+        guard let pageID = tab.enginePageID else { throw TestFailure.missingTab }
+        engine.emit(settledState(pageID, "https://www.example.com/final", loading: true,
+            contentReady: true, progress: 0.5))
+        #expect(await awaitTab(tab) { $0.contentReady })
+        #expect(tab.loadState == .loading)
+        tab.paintReady = true
+        engine.emit(settledState(pageID, "https://www.example.com/final", loading: true,
+            contentReady: true, progress: 0.6))
+        #expect(await awaitTab(tab) { $0.loadState == .ready })
+        #expect(tab.url == "https://www.example.com/final")
+        #expect(tab.pendingURL == nil)
+        #expect(tab.isLoading)
+    }
+
+    @Test func committedDocumentWithoutPaintStopsLoadingWhenTheLoadEnds() async throws {
+        let engine = StubPageEngine()
+        let window = BrowserWindowModel(workspace: BrowserWorkspace(engine: engine))
+        guard let tab = window.selected else { throw TestFailure.missingTab }
+        window.navigate(tab, text: "apple.com")
+        #expect(await awaitTab(tab) { $0.enginePageID != nil })
+        guard let pageID = tab.enginePageID else { throw TestFailure.missingTab }
+        engine.emit(settledState(pageID, "https://apple.com", loading: true,
+            contentReady: true, progress: 0.5))
+        #expect(await awaitTab(tab) { $0.contentReady })
+        #expect(tab.loadState == .loading)
+        #expect(!tab.paintReady)
+        engine.emit(settledState(pageID, "https://apple.com", loading: false,
+            contentReady: true, progress: 1))
+        #expect(await awaitTab(tab) { $0.loadState == .ready })
+        #expect(!tab.isLoading)
         #expect(tab.pendingURL == nil)
     }
 
@@ -149,6 +186,7 @@ struct NavigationStateTests {
         window.navigate(tab, text: "apple.com")
         #expect(await awaitTab(tab) { $0.enginePageID != nil })
         guard let pageID = tab.enginePageID else { throw TestFailure.missingTab }
+        tab.paintReady = true
         engine.emit(settledState(pageID, "https://apple.com", loading: false, contentReady: true))
         #expect(await awaitTab(tab) { $0.loadState == .ready })
         engine.reloadDelay = .milliseconds(200)

@@ -14,7 +14,7 @@ public struct IncognitoToggleView: View {
             BrowserIconView(icon: .incognito, tint: chrome?.icon ?? theme.muted)
                 .iconSize(16)
                 .frame(width: 26, height: 30)
-                .background { AetherInteractionSurface(active: hovering || showing || window.isIncognito, radius: 6, selected: window.isIncognito) }
+                .background { AetherInteractionSurface(active: hovering || showing || window.isIncognito, radius: 8, selected: window.isIncognito) }
                 .contentShape(Rectangle())
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))

@@ -1,0 +1,137 @@
+{
+  "summary": {
+    "aether": {
+      "completed": "2/2",
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 479.2,
+        "p95Ms": 767.6,
+        "worstMs": 767.6
+      }
+    },
+    "chrome": {
+      "completed": "0/1",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia": {
+      "completed": "0/1",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "safari": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "binarySHA256": "352a711be8deef595776845f0bc21aef6b0d41c6ecef6e3c858061d68255b353",
+  "steps": [
+    {
+      "step": "pass1_01_example_home",
+      "pass": 1,
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "tabID": "7D8FF386-F348-44F2-9487-846DF68EAE7B",
+      "dispatchMs": 57.6,
+      "navigationKind": "document",
+      "toReadyMs": 767.6,
+      "finalURL": "https://example.com/",
+      "redirected": false,
+      "title": "Example Domain",
+      "fcpMs": 99,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 84,
+      "redirectCount": 0,
+      "transferSize": 300,
+      "domContentLoadedMs": 88,
+      "loadEventEndMs": 95,
+      "navigationStartDelayMs": 575.3,
+      "uiProgress": 1,
+      "screenshot": "pass1_01_example_home.png",
+      "browser": "aether"
+    },
+    {
+      "step": "pass1_01_example_route",
+      "pass": 1,
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "tabID": "7D8FF386-F348-44F2-9487-846DF68EAE7B",
+      "dispatchMs": 12.8,
+      "navigationKind": "document",
+      "toReadyMs": 190.8,
+      "finalURL": "https://example.com/",
+      "redirected": false,
+      "title": "Example Domain",
+      "fcpMs": 77,
+      "lcpMs": null,
+      "requestStartMs": 2,
+      "responseStartMs": 67,
+      "responseEndMs": 67,
+      "redirectCount": 0,
+      "transferSize": 636,
+      "domContentLoadedMs": 77,
+      "loadEventEndMs": 77,
+      "navigationStartDelayMs": 32.6,
+      "uiProgress": 1,
+      "screenshot": "pass1_01_example_route.png",
+      "browser": "aether"
+    },
+    {
+      "browser": "chrome",
+      "site": "example",
+      "kind": "setup",
+      "requestedURL": "",
+      "status": "failed",
+      "error": "setup: Google Chrome CDP endpoint never came up"
+    },
+    {
+      "browser": "dia",
+      "site": "example",
+      "kind": "setup",
+      "requestedURL": "",
+      "status": "failed",
+      "error": "setup: Connection to remote host was lost."
+    },
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "visual-paint",
+      "dispatchMs": 270.5,
+      "error": "bytearray index out of range",
+      "elapsedMs": 1511.5
+    },
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "visual-paint",
+      "dispatchMs": 404.3,
+      "error": "bytearray index out of range",
+      "elapsedMs": 2204.9
+    }
+  ]
+}

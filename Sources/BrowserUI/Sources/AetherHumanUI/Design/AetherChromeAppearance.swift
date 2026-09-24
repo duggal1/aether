@@ -33,15 +33,15 @@ public enum AetherChromeAppearance: Sendable {
 
     public var hover: Color {
         switch self {
-        case .light: Color(.sRGB, red: 0xF5 / 255, green: 0xF5 / 255, blue: 0xF4 / 255, opacity: 0.80)
-        case .dark: Color(.sRGB, red: 0x40 / 255, green: 0x40 / 255, blue: 0x40 / 255, opacity: 0.35)
+        case .light: Color.black.opacity(0.05)
+        case .dark: Color.white.opacity(0.07)
         }
     }
 
     public var selected: Color {
         switch self {
-        case .light: Color(.sRGB, red: 0xE8 / 255, green: 0xE8 / 255, blue: 0xE7 / 255, opacity: 1)
-        case .dark: Color(.sRGB, red: 0x2D / 255, green: 0x2D / 255, blue: 0x2D / 255, opacity: 1)
+        case .light: Color.black.opacity(0.07)
+        case .dark: Color.white.opacity(0.12)
         }
     }
 
@@ -75,15 +75,15 @@ public enum AetherChromeAppearance: Sendable {
 
     public var suggestionSelected: Color {
         switch self {
-        case .light: Color(.sRGB, red: 0xEC / 255, green: 0xEC / 255, blue: 0xEB / 255, opacity: 1)
-        case .dark: Color(.sRGB, red: 0x2D / 255, green: 0x2D / 255, blue: 0x2D / 255, opacity: 1)
+        case .light: Color.black.opacity(0.07)
+        case .dark: Color.white.opacity(0.12)
         }
     }
 
     public var selectedActive: Color {
         switch self {
-        case .light: Color(.sRGB, red: 0xD9 / 255, green: 0xD9 / 255, blue: 0xD8 / 255, opacity: 1)
-        case .dark: Color(.sRGB, red: 0x2B / 255, green: 0x2B / 255, blue: 0x2B / 255, opacity: 1)
+        case .light: Color.black.opacity(0.09)
+        case .dark: Color.white.opacity(0.14)
         }
     }
 

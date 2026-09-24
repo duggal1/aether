@@ -54,7 +54,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
             }
             .padding(.horizontal, 10)
             .frame(minWidth: 160, minHeight: 30)
-            .background(theme.settingsRaised, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background(theme.settingsRaised, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
@@ -92,7 +92,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
             .padding(.horizontal, 9)
             .frame(height: 30, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(rowFill(option), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background(rowFill(option), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

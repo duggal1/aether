@@ -7,7 +7,7 @@ struct AetherMenuRow<Content: View>: View {
     @State private var hovering = false
     let radius: CGFloat
     let content: Content
-    init(radius: CGFloat = 6, @ViewBuilder content: () -> Content) {
+    init(radius: CGFloat = 8, @ViewBuilder content: () -> Content) {
         self.radius = radius
         self.content = content()
     }

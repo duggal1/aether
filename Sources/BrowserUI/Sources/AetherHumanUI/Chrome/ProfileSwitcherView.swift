@@ -41,8 +41,8 @@ public struct ProfileSwitcherView: View {
         let dark = appearance.isDark
         shape.fill(.clear)
             .glassEffect(hovering || window.showsProfileMenu
-                         ? .regular.interactive().tint(dark ? Color.black.opacity(0.30) : Color.white.opacity(0.32))
-                         : .regular.tint(dark ? Color.black.opacity(0.24) : Color.white.opacity(0.26)),
+                         ? .regular.interactive().tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20))
+                         : .regular.tint(dark ? Color.black.opacity(0.14) : Color.white.opacity(0.16)),
                          in: shape)
             .glassEffectTransition(.materialize)
             .environment(\.colorScheme, dark ? .dark : .light)
@@ -81,7 +81,7 @@ public struct ProfileMenuPanel: View {
                 window.showsRenameProfile = true
                 window.showsProfileMenu = false
             } label: {
-                AetherMenuRow(radius: 6) {
+                AetherMenuRow(radius: 8) {
                     Text("Rename Profile")
                         .font(AetherType.body(12))
                         .foregroundStyle(labelColor)
@@ -108,7 +108,7 @@ public struct ProfileMenuPanel: View {
     }
 
     private func profileRow(_ profile: BrowserProfile, index: Int) -> some View {
-        AetherMenuRow(radius: 6) {
+        AetherMenuRow(radius: 8) {
             HStack(spacing: 8) {
                 if profile.id == window.activeProfileID {
                     BrowserIconView(icon: .checkmark, tint: iconColor).iconSize(10)
@@ -145,7 +145,7 @@ public struct ProfileMenuPanel: View {
     private func actionRow(_ icon: BrowserIcon, _ title: String, enabled: Bool = true,
                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            AetherMenuRow(radius: 6) {
+            AetherMenuRow(radius: 8) {
                 HStack(spacing: 10) {
                     BrowserIconView(icon: icon, tint: iconColor).iconSize(12)
                     Text(title).font(AetherType.body(12))

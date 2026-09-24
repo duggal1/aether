@@ -49,6 +49,7 @@ public final class BrowserWindowModel: Identifiable {
         tabsByProfile[activeProfileID] = [first]
         selectionByProfile[activeProfileID] = first.id
         workspace.addWindow(self)
+        AetherLatencyProbe.mark("model.created")
         if let observing = workspace.engine as? any BrowserPageObserving {
             let updates = observing.pageUpdates()
             observation = Task { [weak self] in
@@ -236,6 +237,7 @@ public final class BrowserWindowModel: Identifiable {
         navigate(selected, text: text, intelligence: intelligence)
     }
     public func navigate(_ tab: BrowserTab, text: String, intelligence: Bool = false) {
+        AetherLatencyProbe.mark("ui.navigate.enter")
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let direct = AddressResolver.directURL(trimmed)
@@ -252,6 +254,7 @@ public final class BrowserWindowModel: Identifiable {
             locality: workspace.preferences.searchLocality,
             localityTerms: workspace.preferences.localityQueryTerms) else { return }
         if tab.loadState == .loading, tab.pendingURL == destination.absoluteString { return }
+        AetherLatencyProbe.mark("ui.resolve.end")
         tab.url = destination.absoluteString
         tab.pendingURL = destination.absoluteString
         tab.contentReady = false
@@ -276,7 +279,9 @@ public final class BrowserWindowModel: Identifiable {
                     tab.enginePageID = page
                 }
                 guard self.isCurrent(epoch, tab: tab) else { return }
+                AetherLatencyProbe.mark("ui.page.created")
                 try await workspace.engine.navigate(pageID: page, url: destination)
+                AetherLatencyProbe.mark("ui.navigate.dispatched")
                 guard self.isCurrent(epoch, tab: tab) else { return }
                 await self.probePaint(tab, pageID: page, epoch: epoch)
                 guard self.isCurrent(epoch, tab: tab) else { return }
@@ -310,17 +315,6 @@ public final class BrowserWindowModel: Identifiable {
         return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 
-    static func sameNavigationURL(_ pending: String, _ current: String?) -> Bool {
-        guard let current, let a = URL(string: pending), let b = URL(string: current) else {
-            return pending == current
-        }
-        guard (a.scheme?.lowercased() ?? "") == (b.scheme?.lowercased() ?? ""),
-              (a.host?.lowercased() ?? "") == (b.host?.lowercased() ?? "") else { return false }
-        let empty: Set<String> = ["", "/"]
-        let pathMatch = a.path == b.path || (empty.contains(a.path) && empty.contains(b.path))
-        return pathMatch && (a.query ?? "") == (b.query ?? "")
-    }
-
     private static let paintProbeJS =
         "performance.getEntriesByType('paint').some(entry => entry.name === 'first-contentful-paint')"
 
@@ -334,6 +328,12 @@ public final class BrowserWindowModel: Identifiable {
                 tab.paintReady = true
                 return
             }
+            // A document that finished loading without reporting paint never
+            // will (blank documents, back/forward restores). Stop probing there
+            // instead of holding a per-navigation poll for the rest of the
+            // session.
+            let documentSettled = tab.loadState == .ready || (tab.contentReady && !tab.isLoading)
+            guard !documentSettled else { return }
             try? await Task.sleep(for: .milliseconds(120))
         }
     }
@@ -438,23 +438,15 @@ public final class BrowserWindowModel: Identifiable {
             if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
             return
         }
-        // The commit is the visual-readiness signal: the document is on screen
-        // and further loading is subresources (ads, analytics) that must never
-        // hold the progress indicator hostage.
-        if let pending = tab.pendingURL, !Self.sameNavigationURL(pending, state.url) {
-            if state.isLoading {
-                tab.loadState = .loading
-                if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
-                return
-            }
-        }
         tab.pendingURL = nil
         if tab.url != state.url { tab.siteSurface = nil; tab.sitePrefersDark = nil }
         tab.url = state.url
-        // Commit alone is not visual readiness: the document can still be
-        // blank (scripts hydrating). Ready requires first paint, observed
-        // directly from the page, never an artificial delay.
-        if !tab.paintReady {
+        // Two signals end the progress indicator, both from the page itself:
+        // the first paint (content is on screen while subresources continue)
+        // and WebKit's own end of loading. A document that never reports paint
+        // therefore stops loading when its load ends instead of hanging.
+        let contentVisible = tab.paintReady || !state.isLoading
+        guard contentVisible else {
             tab.loadState = .loading
             if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
             return

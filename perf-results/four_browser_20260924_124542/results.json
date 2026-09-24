@@ -1,0 +1,135 @@
+{
+  "summary": {
+    "aether": {
+      "completed": "2/2",
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 464.3,
+        "p95Ms": 743.3,
+        "worstMs": 743.3
+      }
+    },
+    "chrome": {
+      "completed": "0/1",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia": {
+      "completed": "0/1",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "safari": {
+      "completed": "0/2",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "binarySHA256": "352a711be8deef595776845f0bc21aef6b0d41c6ecef6e3c858061d68255b353",
+  "steps": [
+    {
+      "step": "pass1_01_example_home",
+      "pass": 1,
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "tabID": "42895423-BE49-474E-B5D3-25216A8DD9B5",
+      "dispatchMs": 62.6,
+      "navigationKind": "document",
+      "toReadyMs": 743.3,
+      "finalURL": "https://example.com/",
+      "redirected": false,
+      "title": "Example Domain",
+      "fcpMs": 109,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 95,
+      "redirectCount": 0,
+      "transferSize": 300,
+      "domContentLoadedMs": 99,
+      "loadEventEndMs": 104,
+      "navigationStartDelayMs": 545.1,
+      "uiProgress": 1,
+      "screenshot": "pass1_01_example_home.png",
+      "browser": "aether"
+    },
+    {
+      "step": "pass1_01_example_route",
+      "pass": 1,
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "ok",
+      "tabID": "42895423-BE49-474E-B5D3-25216A8DD9B5",
+      "dispatchMs": 12.4,
+      "navigationKind": "document",
+      "toReadyMs": 185.4,
+      "finalURL": "https://example.com/",
+      "redirected": false,
+      "title": "Example Domain",
+      "fcpMs": 74,
+      "lcpMs": null,
+      "requestStartMs": 2,
+      "responseStartMs": 63,
+      "responseEndMs": 63,
+      "redirectCount": 0,
+      "transferSize": 636,
+      "domContentLoadedMs": 74,
+      "loadEventEndMs": 74,
+      "navigationStartDelayMs": 35.7,
+      "uiProgress": 1,
+      "screenshot": "pass1_01_example_route.png",
+      "browser": "aether"
+    },
+    {
+      "browser": "chrome",
+      "site": "example",
+      "kind": "setup",
+      "requestedURL": "",
+      "status": "failed",
+      "error": "setup: Google Chrome CDP endpoint never came up"
+    },
+    {
+      "browser": "dia",
+      "site": "example",
+      "kind": "setup",
+      "requestedURL": "",
+      "status": "failed",
+      "error": "setup: HTTP Error 405: Method Not Allowed"
+    },
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "home",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "visual-paint",
+      "error": "82:86: execution error: The variable argv is not defined. (-2753)",
+      "elapsedMs": 87.8
+    },
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "route",
+      "requestedURL": "https://example.com/",
+      "status": "failed",
+      "method": "visual-paint",
+      "error": "82:86: execution error: The variable argv is not defined. (-2753)",
+      "elapsedMs": 73.2
+    }
+  ]
+}

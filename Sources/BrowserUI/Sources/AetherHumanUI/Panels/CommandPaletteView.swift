@@ -195,7 +195,7 @@ private struct AetherPaletteRowStyle: ButtonStyle {
     let reduced: Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background { AetherFocusedFill(radius: 7) }
+            .background { AetherFocusedFill(radius: 8) }
             .focusEffectDisabled()
             .pointerStyle(.link)
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)

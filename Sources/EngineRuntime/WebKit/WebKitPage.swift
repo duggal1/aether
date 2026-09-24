@@ -95,7 +95,7 @@ enum WebKitNavigationProbe {
 
   static func log(_ message: @autoclosure () -> String) {
     guard enabled else { return }
-    let line = "[webkit-nav] \(message())\n"
+    let line = String(format: "[webkit-nav] epoch=%.0f %@\n", Date().timeIntervalSince1970 * 1000, message())
     FileHandle.standardError.write(Data(line.utf8))
   }
 }
@@ -104,16 +104,19 @@ enum WebKitNavigationProbe {
 @MainActor
 final class WebKitContext {
   let store: WKWebsiteDataStore
+  let pool: WKProcessPool
   let isEphemeral: Bool
   var rules: WKContentRuleList?
 
   init(identifier: UUID) {
     store = WebKitStoreCache.shared.store(for: identifier)
+    pool = WKProcessPool()
     isEphemeral = false
   }
 
   init(ephemeralStore: WKWebsiteDataStore) {
     store = ephemeralStore
+    pool = WKProcessPool()
     isEphemeral = true
   }
 
@@ -168,6 +171,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
     let viewStart = WebKitNavigationProbe.enabled ? Date() : nil
     let configuration = WKWebViewConfiguration()
     configuration.websiteDataStore = context.store
+    configuration.processPool = context.pool
     configuration.preferences.inactiveSchedulingPolicy = .suspend
     WebKitAppearance.install(in: configuration)
     if let rules = context.rules { configuration.userContentController.add(rules) }
@@ -319,7 +323,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate {
   }
 
   private func begin(_ start: () -> WKNavigation?) -> WKNavigation? {
-    stop()
+    if current != nil || !waiters.isEmpty || view.isLoading { stop() }
     guard let navigation = start() else {
       probe("begin no-navigation-object")
       publish()

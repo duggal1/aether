@@ -163,6 +163,8 @@ struct OmniboxCommitTests {
         }
         #expect(AddressResolver.rememberedSite("clay tutorial", visits: visits, bookmarks: []) == nil)
         #expect(AddressResolver.rememberedSite("clay.com", visits: visits, bookmarks: []) == nil)
+        #expect(AddressResolver.rememberedSite("cl", visits: visits, bookmarks: [])?.host == "clay.com")
+        #expect(AddressResolver.rememberedSite("cly", visits: visits, bookmarks: [])?.host == "clay.com")
     }
 
     @Test func rememberedSitesSurviveArchiveReload() throws {

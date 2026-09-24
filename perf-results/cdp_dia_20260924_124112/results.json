@@ -1,0 +1,114 @@
+{
+  "browser": "Dia",
+  "summary": {
+    "jack-and-jill_home": {
+      "count": 0
+    },
+    "jack-and-jill_route": {
+      "count": 0
+    }
+  },
+  "steps": [
+    {
+      "step": "pass1_01_jack-and-jill_home",
+      "pass": 1,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "failed",
+      "dispatchMs": 276.6,
+      "error": "Connection to remote host was lost.",
+      "elapsedMs": 20274.3
+    },
+    {
+      "step": "pass1_01_jack-and-jill_route",
+      "pass": 1,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.1
+    },
+    {
+      "step": "pass2_01_jack-and-jill_home",
+      "pass": 2,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass2_01_jack-and-jill_route",
+      "pass": 2,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass3_01_jack-and-jill_home",
+      "pass": 3,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass3_01_jack-and-jill_route",
+      "pass": 3,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass4_01_jack-and-jill_home",
+      "pass": 4,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass4_01_jack-and-jill_route",
+      "pass": 4,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass5_01_jack-and-jill_home",
+      "pass": 5,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    },
+    {
+      "step": "pass5_01_jack-and-jill_route",
+      "pass": 5,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "failed",
+      "error": "socket is already closed.",
+      "elapsedMs": 0.0
+    }
+  ]
+}

@@ -86,7 +86,7 @@ public struct TabItemView: View {
                     if replacesFavicon {
                         Button { window.close(tab.id) } label: {
                             BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
-                                .frame(width: 19, height: 19)
+                                .frame(width: 24, height: 24)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -108,10 +108,10 @@ public struct TabItemView: View {
                     BrowserIconView(icon: .pin, tint: theme.soft).iconSize(10)
                         .frame(width: 16, alignment: .center)
                 }
-                if !compact && topFused {
+                if !compact {
                     Button { window.close(tab.id) } label: {
                         BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
-                            .frame(width: 19, height: 19)
+                            .frame(width: 24, height: 24)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -187,7 +187,7 @@ public struct TabItemView: View {
     }
 
     private var replacesFavicon: Bool {
-        !tab.isPinned && tab.loadState != .loading && (compact || !topFused)
+        compact && topFused && !tab.isPinned && tab.loadState != .loading
     }
 
     @ViewBuilder private var selectionBackground: some View {
@@ -201,16 +201,11 @@ public struct TabItemView: View {
         } else if selected {
             let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
             shape.fill(.clear)
-                .glassEffect(hovering
-                             ? .regular.interactive().tint(Color.black.opacity(0.30))
-                             : .regular.tint(Color.black.opacity(0.30)),
-                             in: shape)
+                .glassEffect(.regular.tint(Color.black.opacity(0.18)), in: shape)
                 .glassEffectTransition(.materialize)
         } else if hovering {
             let hoverShape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-            hoverShape.fill(.clear)
-                .glassEffect(.regular.tint(Color.black.opacity(0.16)), in: hoverShape)
-                .glassEffectTransition(.materialize)
+            hoverShape.fill(chrome?.sidebarHover ?? (theme.dark ? Color.white.opacity(0.07) : Color.black.opacity(0.05)))
         }
     }
 

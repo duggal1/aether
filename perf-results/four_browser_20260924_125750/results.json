@@ -1,0 +1,24 @@
+{
+  "summary": {
+    "safari": {
+      "completed": "0/1",
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    }
+  },
+  "binarySHA256": null,
+  "steps": [
+    {
+      "browser": "safari",
+      "site": "example",
+      "kind": "setup",
+      "requestedURL": "",
+      "status": "failed",
+      "error": "setup: Safari is not the frontmost visible window"
+    }
+  ]
+}

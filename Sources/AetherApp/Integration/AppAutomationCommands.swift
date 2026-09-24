@@ -11,6 +11,7 @@ final class AppAutomationCommands {
   init(workspace: BrowserWorkspace) { self.workspace = workspace }
 
   func handle(_ request: AgentRequest) async -> AgentResponse {
+    AetherLatencyProbe.mark("cmd.received \(request.method)")
     do {
       guard let workspace else { throw CommandError("Browser is shutting down") }
       if request.method == "app.status" {
@@ -86,7 +87,11 @@ final class AppAutomationCommands {
               timeOrigin: performance.timeOrigin,
               fcpMs: fcp ? fcp.startTime : null,
               lcpMs: largest.length ? largest[largest.length - 1].startTime : null,
+              requestStartMs: navigation ? navigation.requestStart : null,
               responseStartMs: navigation ? navigation.responseStart : null,
+              responseEndMs: navigation ? navigation.responseEnd : null,
+              redirectCount: navigation ? navigation.redirectCount : null,
+              transferSize: navigation ? navigation.transferSize : null,
               domContentLoadedMs: navigation ? navigation.domContentLoadedEventEnd : null,
               loadEventEndMs: navigation && navigation.loadEventEnd ? navigation.loadEventEnd : null
             };

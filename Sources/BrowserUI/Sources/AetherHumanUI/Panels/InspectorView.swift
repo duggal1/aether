@@ -59,10 +59,10 @@ public struct InspectorView: View {
                                         .padding(.leading, CGFloat(min(node.depth, 12)) * 14 + 10)
                                         .frame(height: 25)
                                         .background(selected == node.id ? theme.hover : .clear,
-                                                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
-                                .aetherFocusTreatment(radius: 6)
+                                .aetherFocusTreatment(radius: 8)
                                 .aetherPointingCursor()
                                 .contextMenu { Button("Copy Element HTML") { copy(node.html) } }
                             }

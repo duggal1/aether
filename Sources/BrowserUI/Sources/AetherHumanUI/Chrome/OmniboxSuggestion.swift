@@ -123,7 +123,7 @@ enum OmniboxSuggestionBuilder {
             return OmniboxSuggestion(kind: .open, title: "Open \(host)", url: rememberedSite.absoluteString,
                                      matched: prefix.count, score: .infinity)
         }
-        return OmniboxSuggestion(kind: .open, title: "Search \(provider.searchName) for “\(prefix)”",
+        return OmniboxSuggestion(kind: .open, title: "Search for “\(prefix)”",
                                  completion: prefix, matched: prefix.count, score: .infinity)
     }
 

@@ -36,7 +36,7 @@ public struct JevSearchResultsView: View {
                     .padding(.top, 6)
                 }
             }
-            .frame(maxWidth: 850, alignment: .leading)
+            .frame(maxWidth: 700, alignment: .leading)
             .padding(.horizontal, 34)
             .padding(.top, 34)
             .padding(.bottom, 48)

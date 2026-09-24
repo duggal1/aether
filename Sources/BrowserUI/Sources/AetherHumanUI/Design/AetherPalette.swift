@@ -51,10 +51,10 @@ public enum AetherPalette {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
     }
     public static func hover(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.hover, lightHex: AetherNeutral.lightHover)
+        dark ? Color.white.opacity(0.07) : Color.black.opacity(0.05)
     }
     public static func selected(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
+        dark ? Color.white.opacity(0.12) : Color.black.opacity(0.07)
     }
     public static func text(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.text, lightHex: AetherNeutral.lightText)
@@ -168,7 +168,7 @@ public enum AetherPalette {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
     }
     public static func settingsRaised(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
+        dark ? Color.white.opacity(0.10) : Color.black.opacity(0.06)
     }
     public static func inset(_ dark: Bool) -> Color {
         input(dark)

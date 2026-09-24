@@ -57,7 +57,7 @@ public struct BookmarksView: View {
                         .font(AetherType.symbol(11))
                         .foregroundStyle(theme.muted)
                         .frame(width: 28, height: 28)
-                        .background { AetherInteractionSurface(active: closeHovering, radius: 6) }
+                        .background { AetherInteractionSurface(active: closeHovering, radius: 8) }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -210,7 +210,7 @@ private struct BookmarkEntry: View {
         .padding(.horizontal, 12)
         .frame(height: 52)
         .background(hovering ? theme.hover : Color.clear,
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .animation(AetherMotion.hover(reduced), value: hovering)
         .onHover { hovering = $0 }
     }

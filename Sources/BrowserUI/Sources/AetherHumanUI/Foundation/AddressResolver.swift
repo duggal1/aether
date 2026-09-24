@@ -79,8 +79,7 @@ public enum AddressResolver {
               directURL(query) == nil else { return nil }
         let genericNames: Set<String> = ["co", "com", "net", "org", "gov", "ac", "edu"]
 
-        func siteURL(_ rawURL: String) -> URL? {
-            guard rawURL.lowercased().contains(query) else { return nil }
+        func siteURL(_ rawURL: String) -> (url: URL, score: Int)? {
             guard let url = URL(string: rawURL),
                   let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
                   let host = url.host?.lowercased(), url.user == nil else { return nil }
@@ -88,23 +87,58 @@ public enum AddressResolver {
             let siteLabels = labels.first == "www" ? Array(labels.dropFirst()) : labels
             guard siteLabels.count >= 2 else { return nil }
             let rootName = siteLabels[siteLabels.count - 2]
-            guard siteLabels[0] == query || (rootName == query && !genericNames.contains(query))
+            let names = [siteLabels[0], rootName].filter { !genericNames.contains($0) }
+            let score: Int
+            if names.contains(query) { score = 3 }
+            else if names.contains(where: { $0.hasPrefix(query) }) { score = 2 }
+            else if query.count >= 3 && names.contains(where: { oneEditApart(query, $0) }) { score = 1 }
             else { return nil }
             var site = URLComponents()
             site.scheme = scheme
             site.host = host
             site.port = url.port
             site.path = "/"
-            return site.url
+            guard let siteURL = site.url else { return nil }
+            return (siteURL, score)
         }
 
+        var best: (url: URL, score: Int)?
         for visit in visits {
-            if let site = siteURL(visit.url) { return site }
+            guard let candidate = siteURL(visit.url) else { continue }
+            if candidate.score == 3 { return candidate.url }
+            if let current = best {
+                if candidate.score > current.score { best = candidate }
+            } else { best = candidate }
         }
         for bookmark in bookmarks {
-            if let site = siteURL(bookmark.url) { return site }
+            guard let candidate = siteURL(bookmark.url) else { continue }
+            if candidate.score == 3 { return candidate.url }
+            if let current = best {
+                if candidate.score > current.score { best = candidate }
+            } else { best = candidate }
         }
-        return nil
+        return best?.url
+    }
+
+    private static func oneEditApart(_ typed: String, _ name: String) -> Bool {
+        guard abs(typed.count - name.count) <= 1 else { return false }
+        let lhs = Array(typed)
+        let rhs = Array(name)
+        var left = 0
+        var right = 0
+        var edits = 0
+        while left < lhs.count && right < rhs.count {
+            if lhs[left] == rhs[right] {
+                left += 1
+                right += 1
+            } else {
+                edits += 1
+                guard edits <= 1 else { return false }
+                if lhs.count >= rhs.count { left += 1 }
+                if lhs.count <= rhs.count { right += 1 }
+            }
+        }
+        return edits + (lhs.count - left) + (rhs.count - right) == 1
     }
 
     public static func directURL(_ raw: String) -> URL? {

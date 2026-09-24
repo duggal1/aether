@@ -9,11 +9,9 @@ public struct BrowserWindowView: View {
     @Environment(\.openWindow) private var openWindow
     let window: BrowserWindowModel
     let isFullscreen: Bool
-    let refreshTick: Int
-    public init(window: BrowserWindowModel, isFullscreen: Bool = false, refreshTick: Int = 0) {
+    public init(window: BrowserWindowModel, isFullscreen: Bool = false) {
         self.window = window
         self.isFullscreen = isFullscreen
-        self.refreshTick = refreshTick
     }
 
     private var appearanceRequestKey: String {
@@ -88,7 +86,6 @@ public struct BrowserWindowView: View {
             HStack(spacing: 0) {
                 if window.arrangement == .sidebar {
                     SidebarTabListView(window: window)
-                        .id("aether.sidebar.\(isFullscreen).\(refreshTick)")
                         .frame(width: showsSidebar ? nil : 0)
                         .clipped()
                         .overlay(alignment: .trailing) {
@@ -106,7 +103,6 @@ public struct BrowserWindowView: View {
                         AetherThemeScope {
                             TopTabStripView(window: window)
                         }
-                        .id("aether.topstrip.\(isFullscreen).\(refreshTick)")
                         .zIndex(2)
                         .environment(\.colorScheme, chromeAppearance.isDark ? .dark : .light)
                         .environment(\.aetherChromeAppearance, chromeAppearance)
@@ -168,8 +164,6 @@ public struct BrowserWindowView: View {
                 .environment(\.aetherChromeAppearance, chromeAppearance)
                 .zIndex(22)
             }
-            // Window-owned menu panels: exact shapes with no popover container,
-            // so corner radius and glass are pixel-true and never ring hollow.
             if window.showsProfileMenu {
                 AetherThemeScope {
                     ProfileMenuPanel(window: window)

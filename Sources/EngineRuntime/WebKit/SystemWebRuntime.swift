@@ -44,6 +44,7 @@ extension BrowserRuntime {
     let record = try requirePage(id)
     if let page = webPages[id] { return page }
     if let task = webPageTasks[id] { return await task.value }
+    WebKitNavigationProbe.log("webPage.miss id=\(id)")
     let identifier = webProfileIdentifiers[record.contextID]
     let wantEphemeral = webEphemeral.contains(record.contextID)
     let context: WebKitContext
@@ -80,6 +81,7 @@ extension BrowserRuntime {
     }
     webPageTasks[id] = task
     let page = await task.value
+    WebKitNavigationProbe.log("webPage.ready id=\(id)")
     webPageTasks[id] = nil
     guard contextID(containing: id) != nil else {
       await page.close()

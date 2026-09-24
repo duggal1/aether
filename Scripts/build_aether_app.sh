@@ -65,6 +65,7 @@ if [[ "$sum_release" != "$sum_app" ]]; then
   print -u2 "MISMATCH: .app binary differs from release binary before signing. Aborting."
   exit 1
 fi
+strip -x "$app_dir/Contents/MacOS/AetherApp"
 xattr -cr "$app_dir"
 codesign --force --sign "${AETHER_SIGNING_IDENTITY:--}" --options runtime \
   --entitlements Sources/AetherShare/AetherShare.entitlements \

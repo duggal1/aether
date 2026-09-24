@@ -1,0 +1,1371 @@
+{
+  "summary": {
+    "binarySHA256": "c70baa19e419c5d766709046aa9d19f17e792f234674e222fdb208a2ad28f783",
+    "appLaunchMs": 1004.2,
+    "attempted": 20,
+    "successful": 20,
+    "failed": 0,
+    "all": {
+      "count": 20,
+      "medianMs": 1264.4,
+      "p95Ms": 4158.9,
+      "worstMs": 6052.0,
+      "metrics": {
+        "dispatchMs": {
+          "count": 20,
+          "medianMs": 38.2,
+          "p95Ms": 66.3,
+          "worstMs": 78.0
+        },
+        "toReadyMs": {
+          "count": 20,
+          "medianMs": 1264.4,
+          "p95Ms": 4158.9,
+          "worstMs": 6052.0
+        },
+        "navigationStartDelayMs": {
+          "count": 20,
+          "medianMs": 199.7,
+          "p95Ms": 786.5,
+          "worstMs": 973.7
+        },
+        "requestStartMs": {
+          "count": 20,
+          "medianMs": 14.5,
+          "p95Ms": 151,
+          "worstMs": 1195
+        },
+        "responseStartMs": {
+          "count": 20,
+          "medianMs": 69.0,
+          "p95Ms": 1070,
+          "worstMs": 1592
+        },
+        "responseEndMs": {
+          "count": 20,
+          "medianMs": 134.0,
+          "p95Ms": 3213,
+          "worstMs": 5117
+        },
+        "fcpMs": {
+          "count": 20,
+          "medianMs": 774.5,
+          "p95Ms": 3409,
+          "worstMs": 5514
+        },
+        "lcpMs": {
+          "count": 0,
+          "medianMs": null,
+          "p95Ms": null,
+          "worstMs": null
+        },
+        "domContentLoadedMs": {
+          "count": 20,
+          "medianMs": 412.5,
+          "p95Ms": 2043,
+          "worstMs": 5627
+        },
+        "loadEventEndMs": {
+          "count": 4,
+          "medianMs": 841.0,
+          "p95Ms": 5685,
+          "worstMs": 5685
+        }
+      }
+    },
+    "byPass": {
+      "1": {
+        "count": 20,
+        "medianMs": 1264.4,
+        "p95Ms": 4158.9,
+        "worstMs": 6052.0,
+        "metrics": {
+          "dispatchMs": {
+            "count": 20,
+            "medianMs": 38.2,
+            "p95Ms": 66.3,
+            "worstMs": 78.0
+          },
+          "toReadyMs": {
+            "count": 20,
+            "medianMs": 1264.4,
+            "p95Ms": 4158.9,
+            "worstMs": 6052.0
+          },
+          "navigationStartDelayMs": {
+            "count": 20,
+            "medianMs": 199.7,
+            "p95Ms": 786.5,
+            "worstMs": 973.7
+          },
+          "requestStartMs": {
+            "count": 20,
+            "medianMs": 14.5,
+            "p95Ms": 151,
+            "worstMs": 1195
+          },
+          "responseStartMs": {
+            "count": 20,
+            "medianMs": 69.0,
+            "p95Ms": 1070,
+            "worstMs": 1592
+          },
+          "responseEndMs": {
+            "count": 20,
+            "medianMs": 134.0,
+            "p95Ms": 3213,
+            "worstMs": 5117
+          },
+          "fcpMs": {
+            "count": 20,
+            "medianMs": 774.5,
+            "p95Ms": 3409,
+            "worstMs": 5514
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 20,
+            "medianMs": 412.5,
+            "p95Ms": 2043,
+            "worstMs": 5627
+          },
+          "loadEventEndMs": {
+            "count": 4,
+            "medianMs": 841.0,
+            "p95Ms": 5685,
+            "worstMs": 5685
+          }
+        }
+      }
+    },
+    "bySite": {
+      "clay": {
+        "count": 2,
+        "medianMs": 1653.6,
+        "p95Ms": 1750.4,
+        "worstMs": 1750.4,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 58.1,
+            "p95Ms": 78.0,
+            "worstMs": 78.0
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 1653.6,
+            "p95Ms": 1750.4,
+            "worstMs": 1750.4
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 353.4,
+            "p95Ms": 499.0,
+            "worstMs": 499.0
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 7.0,
+            "p95Ms": 14,
+            "worstMs": 14
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 22.5,
+            "p95Ms": 45,
+            "worstMs": 45
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 64.5,
+            "p95Ms": 73,
+            "worstMs": 73
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 1082.5,
+            "p95Ms": 1099,
+            "worstMs": 1099
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 693.5,
+            "p95Ms": 701,
+            "worstMs": 701
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "apollo": {
+        "count": 2,
+        "medianMs": 1022.2,
+        "p95Ms": 1269.7,
+        "worstMs": 1269.7,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 38.0,
+            "p95Ms": 59.6,
+            "worstMs": 59.6
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 1022.2,
+            "p95Ms": 1269.7,
+            "worstMs": 1269.7
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 151.1,
+            "p95Ms": 191.4,
+            "worstMs": 191.4
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 83.5,
+            "p95Ms": 151,
+            "worstMs": 151
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 268.0,
+            "p95Ms": 400,
+            "worstMs": 400
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 437.5,
+            "p95Ms": 731,
+            "worstMs": 731
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 530.5,
+            "p95Ms": 786,
+            "worstMs": 786
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 621.5,
+            "p95Ms": 938,
+            "worstMs": 938
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "awwwards": {
+        "count": 2,
+        "medianMs": 2211.4,
+        "p95Ms": 2511.6,
+        "worstMs": 2511.6,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 33.9,
+            "p95Ms": 37.4,
+            "worstMs": 37.4
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 2211.4,
+            "p95Ms": 2511.6,
+            "worstMs": 2511.6
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 121.8,
+            "p95Ms": 159.8,
+            "worstMs": 159.8
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 602.5,
+            "p95Ms": 1195,
+            "worstMs": 1195
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 1331.0,
+            "p95Ms": 1592,
+            "worstMs": 1592
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 1622.5,
+            "p95Ms": 1795,
+            "worstMs": 1795
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 1719.5,
+            "p95Ms": 2121,
+            "worstMs": 2121
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 1885.5,
+            "p95Ms": 2043,
+            "worstMs": 2043
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "land-book": {
+        "count": 2,
+        "medianMs": 5105.4,
+        "p95Ms": 6052.0,
+        "worstMs": 6052.0,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 63.9,
+            "p95Ms": 66.3,
+            "worstMs": 66.3
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 5105.4,
+            "p95Ms": 6052.0,
+            "worstMs": 6052.0
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 304.7,
+            "p95Ms": 335.5,
+            "worstMs": 335.5
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 20.0,
+            "p95Ms": 23,
+            "worstMs": 23
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 41.0,
+            "p95Ms": 45,
+            "worstMs": 45
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 4165.0,
+            "p95Ms": 5117,
+            "worstMs": 5117
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 4461.5,
+            "p95Ms": 5514,
+            "worstMs": 5514
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 2813.5,
+            "p95Ms": 5627,
+            "worstMs": 5627
+          },
+          "loadEventEndMs": {
+            "count": 1,
+            "medianMs": 5685,
+            "p95Ms": 5685,
+            "worstMs": 5685
+          }
+        }
+      },
+      "calendly": {
+        "count": 2,
+        "medianMs": 1282.2,
+        "p95Ms": 1412.5,
+        "worstMs": 1412.5,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 39.6,
+            "p95Ms": 49.1,
+            "worstMs": 49.1
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 1282.2,
+            "p95Ms": 1412.5,
+            "worstMs": 1412.5
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 880.1,
+            "p95Ms": 973.7,
+            "worstMs": 973.7
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 0.0,
+            "p95Ms": 0,
+            "worstMs": 0
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 0.0,
+            "p95Ms": 0,
+            "worstMs": 0
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 31.5,
+            "p95Ms": 63,
+            "worstMs": 63
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 162.5,
+            "p95Ms": 179,
+            "worstMs": 179
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 0.0,
+            "p95Ms": 0,
+            "worstMs": 0
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "wisprflow": {
+        "count": 2,
+        "medianMs": 779.8,
+        "p95Ms": 809.6,
+        "worstMs": 809.6,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 53.5,
+            "p95Ms": 65.6,
+            "worstMs": 65.6
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 779.8,
+            "p95Ms": 809.6,
+            "worstMs": 809.6
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 297.8,
+            "p95Ms": 359.0,
+            "worstMs": 359.0
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 14.0,
+            "p95Ms": 15,
+            "worstMs": 15
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 52.0,
+            "p95Ms": 53,
+            "worstMs": 53
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 100.0,
+            "p95Ms": 115,
+            "worstMs": 115
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 331.5,
+            "p95Ms": 380,
+            "worstMs": 380
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 193.0,
+            "p95Ms": 386,
+            "worstMs": 386
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "jack-and-jill": {
+        "count": 2,
+        "medianMs": 1231.2,
+        "p95Ms": 1264.5,
+        "worstMs": 1264.5,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 35.0,
+            "p95Ms": 38.1,
+            "worstMs": 38.1
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 1231.2,
+            "p95Ms": 1264.5,
+            "worstMs": 1264.5
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 281.6,
+            "p95Ms": 401.4,
+            "worstMs": 401.4
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 31.5,
+            "p95Ms": 56,
+            "worstMs": 56
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 60.0,
+            "p95Ms": 85,
+            "worstMs": 85
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 467.0,
+            "p95Ms": 810,
+            "worstMs": 810
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 696.5,
+            "p95Ms": 911,
+            "worstMs": 911
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 670.5,
+            "p95Ms": 853,
+            "worstMs": 853
+          },
+          "loadEventEndMs": {
+            "count": 2,
+            "medianMs": 841.0,
+            "p95Ms": 900,
+            "worstMs": 900
+          }
+        }
+      },
+      "privy": {
+        "count": 2,
+        "medianMs": 763.6,
+        "p95Ms": 1192.9,
+        "worstMs": 1192.9,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 35.9,
+            "p95Ms": 46.5,
+            "worstMs": 46.5
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 763.6,
+            "p95Ms": 1192.9,
+            "worstMs": 1192.9
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 97.7,
+            "p95Ms": 126.6,
+            "worstMs": 126.6
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 36.0,
+            "p95Ms": 61,
+            "worstMs": 61
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 161.0,
+            "p95Ms": 211,
+            "worstMs": 211
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 170.0,
+            "p95Ms": 224,
+            "worstMs": 224
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 272.5,
+            "p95Ms": 372,
+            "worstMs": 372
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 287.5,
+            "p95Ms": 439,
+            "worstMs": 439
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "airtable": {
+        "count": 2,
+        "medianMs": 1200.3,
+        "p95Ms": 1264.3,
+        "worstMs": 1264.3,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 50.3,
+            "p95Ms": 62.4,
+            "worstMs": 62.4
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 1200.3,
+            "p95Ms": 1264.3,
+            "worstMs": 1264.3
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 251.0,
+            "p95Ms": 332.6,
+            "worstMs": 332.6
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 10.5,
+            "p95Ms": 17,
+            "worstMs": 17
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 392.0,
+            "p95Ms": 452,
+            "worstMs": 452
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 351.0,
+            "p95Ms": 702,
+            "worstMs": 702
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 814.0,
+            "p95Ms": 865,
+            "worstMs": 865
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 396.0,
+            "p95Ms": 792,
+            "worstMs": 792
+          },
+          "loadEventEndMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          }
+        }
+      },
+      "intercom": {
+        "count": 2,
+        "medianMs": 1230.8,
+        "p95Ms": 1732.3,
+        "worstMs": 1732.3,
+        "metrics": {
+          "dispatchMs": {
+            "count": 2,
+            "medianMs": 34.5,
+            "p95Ms": 34.9,
+            "worstMs": 34.9
+          },
+          "toReadyMs": {
+            "count": 2,
+            "medianMs": 1230.8,
+            "p95Ms": 1732.3,
+            "worstMs": 1732.3
+          },
+          "navigationStartDelayMs": {
+            "count": 2,
+            "medianMs": 134.6,
+            "p95Ms": 179.8,
+            "worstMs": 179.8
+          },
+          "requestStartMs": {
+            "count": 2,
+            "medianMs": 42.0,
+            "p95Ms": 84,
+            "worstMs": 84
+          },
+          "responseStartMs": {
+            "count": 2,
+            "medianMs": 388.0,
+            "p95Ms": 776,
+            "worstMs": 776
+          },
+          "responseEndMs": {
+            "count": 2,
+            "medianMs": 109.5,
+            "p95Ms": 219,
+            "worstMs": 219
+          },
+          "fcpMs": {
+            "count": 2,
+            "medianMs": 982.0,
+            "p95Ms": 1446,
+            "worstMs": 1446
+          },
+          "lcpMs": {
+            "count": 0,
+            "medianMs": null,
+            "p95Ms": null,
+            "worstMs": null
+          },
+          "domContentLoadedMs": {
+            "count": 2,
+            "medianMs": 121.5,
+            "p95Ms": 243,
+            "worstMs": 243
+          },
+          "loadEventEndMs": {
+            "count": 1,
+            "medianMs": 525,
+            "p95Ms": 525,
+            "worstMs": 525
+          }
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "step": "pass1_01_clay_home",
+      "pass": 1,
+      "site": "clay",
+      "kind": "home",
+      "requestedURL": "https://www.clay.com/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 78.0,
+      "navigationKind": "document",
+      "toReadyMs": 1750.4,
+      "finalURL": "https://www.clay.com/",
+      "redirected": false,
+      "title": "Clay | Build systems to grow revenue",
+      "fcpMs": 1066,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 73,
+      "redirectCount": 0,
+      "transferSize": 300,
+      "domContentLoadedMs": 701,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 499.0,
+      "uiProgress": 0.7347653641622265,
+      "screenshot": "pass1_01_clay_home.png"
+    },
+    {
+      "step": "pass1_02_apollo_home",
+      "pass": 1,
+      "site": "apollo",
+      "kind": "home",
+      "requestedURL": "https://www.apollo.io/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 16.4,
+      "navigationKind": "document",
+      "toReadyMs": 1269.7,
+      "finalURL": "https://www.apollo.io/",
+      "redirected": false,
+      "title": "The AI GTM System for Go-to-Market Teams | Apollo",
+      "fcpMs": 786,
+      "lcpMs": null,
+      "requestStartMs": 151,
+      "responseStartMs": 400,
+      "responseEndMs": 731,
+      "redirectCount": 0,
+      "transferSize": 146836,
+      "domContentLoadedMs": 938,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 110.8,
+      "uiProgress": 0.6851545981537845,
+      "screenshot": "pass1_02_apollo_home.png"
+    },
+    {
+      "step": "pass1_03_awwwards_home",
+      "pass": 1,
+      "site": "awwwards",
+      "kind": "home",
+      "requestedURL": "https://www.awwwards.com/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 37.4,
+      "navigationKind": "document",
+      "toReadyMs": 2511.6,
+      "finalURL": "https://www.awwwards.com/",
+      "redirected": false,
+      "title": "Awwwards - Website Awards - Best Web Design Trends",
+      "fcpMs": 2121,
+      "lcpMs": null,
+      "requestStartMs": 1195,
+      "responseStartMs": 1592,
+      "responseEndMs": 1795,
+      "redirectCount": 0,
+      "transferSize": 40314,
+      "domContentLoadedMs": 2043,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 159.8,
+      "uiProgress": 0.4991622634186262,
+      "screenshot": "pass1_03_awwwards_home.png"
+    },
+    {
+      "step": "pass1_04_land-book_home",
+      "pass": 1,
+      "site": "land-book",
+      "kind": "home",
+      "requestedURL": "https://land-book.com/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 61.5,
+      "navigationKind": "document",
+      "toReadyMs": 6052.0,
+      "finalURL": "https://land-book.com/",
+      "redirected": false,
+      "title": "Landbook - website design inspiration gallery",
+      "fcpMs": 5514,
+      "lcpMs": null,
+      "requestStartMs": 23,
+      "responseStartMs": 45,
+      "responseEndMs": 5117,
+      "redirectCount": 0,
+      "transferSize": 23394,
+      "domContentLoadedMs": 5627,
+      "loadEventEndMs": 5685,
+      "navigationStartDelayMs": 335.5,
+      "uiProgress": 0.4937499025546617,
+      "screenshot": "pass1_04_land-book_home.png"
+    },
+    {
+      "step": "pass1_05_calendly_home",
+      "pass": 1,
+      "site": "calendly",
+      "kind": "home",
+      "requestedURL": "https://calendly.com/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 49.1,
+      "navigationKind": "document",
+      "toReadyMs": 1412.5,
+      "finalURL": "https://calendly.com/",
+      "redirected": false,
+      "title": "Meeting Scheduling Software and AI Meeting Tools | Calendly",
+      "fcpMs": 146,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 0,
+      "redirectCount": 0,
+      "transferSize": 57881,
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 973.7,
+      "uiProgress": 0.30000000000000004,
+      "screenshot": "pass1_05_calendly_home.png"
+    },
+    {
+      "step": "pass1_06_wisprflow_home",
+      "pass": 1,
+      "site": "wisprflow",
+      "kind": "home",
+      "requestedURL": "https://wisprflow.ai/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 65.6,
+      "navigationKind": "document",
+      "toReadyMs": 809.6,
+      "finalURL": "https://wisprflow.ai/",
+      "redirected": false,
+      "title": "Wispr Flow | Voice to Text Dictation & AI Notetaker",
+      "fcpMs": 380,
+      "lcpMs": null,
+      "requestStartMs": 13,
+      "responseStartMs": 51,
+      "responseEndMs": 115,
+      "redirectCount": 0,
+      "transferSize": 93045,
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 359.0,
+      "uiProgress": 0.4998759644503297,
+      "screenshot": "pass1_06_wisprflow_home.png"
+    },
+    {
+      "step": "pass1_07_jack-and-jill_home",
+      "pass": 1,
+      "site": "jack-and-jill",
+      "kind": "home",
+      "requestedURL": "https://www.jackandjill.ai/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 38.1,
+      "navigationKind": "document",
+      "toReadyMs": 1264.5,
+      "finalURL": "https://www.jackandjill.ai/",
+      "redirected": false,
+      "title": "Jack & Jill \u2014 where remarkable people meet ambitious companies",
+      "fcpMs": 482,
+      "lcpMs": null,
+      "requestStartMs": 56,
+      "responseStartMs": 85,
+      "responseEndMs": 124,
+      "redirectCount": 0,
+      "transferSize": 23750,
+      "domContentLoadedMs": 488,
+      "loadEventEndMs": 782,
+      "navigationStartDelayMs": 401.4,
+      "uiProgress": 0.5856704659367175,
+      "screenshot": "pass1_07_jack-and-jill_home.png"
+    },
+    {
+      "step": "pass1_08_privy_home",
+      "pass": 1,
+      "site": "privy",
+      "kind": "home",
+      "requestedURL": "https://www.privy.io/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 46.5,
+      "navigationKind": "document",
+      "toReadyMs": 1192.9,
+      "finalURL": "https://www.privy.io/",
+      "redirected": false,
+      "title": "Privy \u2013 Digital asset infrastructure for global financial products",
+      "fcpMs": 372,
+      "lcpMs": null,
+      "requestStartMs": 61,
+      "responseStartMs": 211,
+      "responseEndMs": 224,
+      "redirectCount": 0,
+      "transferSize": 78913,
+      "domContentLoadedMs": 439,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 126.6,
+      "uiProgress": 0.7862019193384173,
+      "screenshot": "pass1_08_privy_home.png"
+    },
+    {
+      "step": "pass1_09_airtable_home",
+      "pass": 1,
+      "site": "airtable",
+      "kind": "home",
+      "requestedURL": "https://www.airtable.com/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 62.4,
+      "navigationKind": "document",
+      "toReadyMs": 1264.3,
+      "finalURL": "https://www.airtable.com/",
+      "redirected": false,
+      "title": "https://www.airtable.com/",
+      "fcpMs": 763,
+      "lcpMs": null,
+      "requestStartMs": 17,
+      "responseStartMs": 452,
+      "responseEndMs": 0,
+      "redirectCount": 0,
+      "transferSize": 0,
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 332.6,
+      "uiProgress": 0.4972095756102857,
+      "screenshot": "pass1_09_airtable_home.png"
+    },
+    {
+      "step": "pass1_10_intercom_home",
+      "pass": 1,
+      "site": "intercom",
+      "kind": "home",
+      "requestedURL": "https://www.intercom.com/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 34.2,
+      "navigationKind": "document",
+      "toReadyMs": 1732.3,
+      "finalURL": "https://www.intercom.com/",
+      "redirected": false,
+      "title": "Intercom | A complete system for human and AI customer service",
+      "fcpMs": 1446,
+      "lcpMs": null,
+      "requestStartMs": 84,
+      "responseStartMs": 776,
+      "responseEndMs": 0,
+      "redirectCount": 0,
+      "transferSize": 0,
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 179.8,
+      "uiProgress": 0.4967640020340443,
+      "screenshot": "pass1_10_intercom_home.png"
+    },
+    {
+      "step": "pass1_01_clay_route",
+      "pass": 1,
+      "site": "clay",
+      "kind": "route",
+      "requestedURL": "https://www.clay.com/pricing",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 38.2,
+      "navigationKind": "document",
+      "toReadyMs": 1556.8,
+      "finalURL": "https://www.clay.com/pricing",
+      "redirected": false,
+      "title": "Compare plans, features & costs | Clay.com",
+      "fcpMs": 1099,
+      "lcpMs": null,
+      "requestStartMs": 14,
+      "responseStartMs": 45,
+      "responseEndMs": 56,
+      "redirectCount": 0,
+      "transferSize": 70621,
+      "domContentLoadedMs": 686,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 207.9,
+      "uiProgress": 0.5442504866686176,
+      "screenshot": "pass1_01_clay_route.png"
+    },
+    {
+      "step": "pass1_02_apollo_route",
+      "pass": 1,
+      "site": "apollo",
+      "kind": "route",
+      "requestedURL": "https://www.apollo.io/pricing",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 59.6,
+      "navigationKind": "document",
+      "toReadyMs": 774.7,
+      "finalURL": "https://www.apollo.io/pricing",
+      "redirected": false,
+      "title": "Apollo.io Pricing Plans | Sales Intelligence Platform Pricing",
+      "fcpMs": 275,
+      "lcpMs": null,
+      "requestStartMs": 16,
+      "responseStartMs": 136,
+      "responseEndMs": 144,
+      "redirectCount": 0,
+      "transferSize": 75192,
+      "domContentLoadedMs": 305,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 191.4,
+      "uiProgress": 0.8844705737440225,
+      "screenshot": "pass1_02_apollo_route.png"
+    },
+    {
+      "step": "pass1_03_awwwards_route",
+      "pass": 1,
+      "site": "awwwards",
+      "kind": "route",
+      "requestedURL": "https://www.awwwards.com/websites/art/",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 30.3,
+      "navigationKind": "document",
+      "toReadyMs": 1911.3,
+      "finalURL": "https://www.awwwards.com/websites/art/",
+      "redirected": false,
+      "title": "Awwwards Nominees",
+      "fcpMs": 1318,
+      "lcpMs": null,
+      "requestStartMs": 10,
+      "responseStartMs": 1070,
+      "responseEndMs": 1450,
+      "redirectCount": 0,
+      "transferSize": 58833,
+      "domContentLoadedMs": 1728,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 83.7,
+      "uiProgress": 0.48970525081803745,
+      "screenshot": "pass1_03_awwwards_route.png"
+    },
+    {
+      "step": "pass1_04_land-book_route",
+      "pass": 1,
+      "site": "land-book",
+      "kind": "route",
+      "requestedURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 66.3,
+      "navigationKind": "document",
+      "toReadyMs": 4158.9,
+      "finalURL": "https://land-book.com/websites/100215-jack-and-jill-where-remarkable-people-meet-ambitious-companies",
+      "redirected": false,
+      "title": "Jack & Jill \u2014 where remarkable people meet ambitious companies on Landbook - get inspired by landing design and more",
+      "fcpMs": 3409,
+      "lcpMs": null,
+      "requestStartMs": 17,
+      "responseStartMs": 37,
+      "responseEndMs": 3213,
+      "redirectCount": 0,
+      "transferSize": 17613,
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 273.9,
+      "uiProgress": 0.6079452126127864,
+      "screenshot": "pass1_04_land-book_route.png"
+    },
+    {
+      "step": "pass1_05_calendly_route",
+      "pass": 1,
+      "site": "calendly",
+      "kind": "route",
+      "requestedURL": "https://calendly.com/pricing",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 30.2,
+      "navigationKind": "document",
+      "toReadyMs": 1151.8,
+      "finalURL": "https://calendly.com/pricing",
+      "redirected": false,
+      "title": "Pricing | Calendly",
+      "fcpMs": 179,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 63,
+      "redirectCount": 0,
+      "transferSize": 57948,
+      "domContentLoadedMs": 0,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 786.5,
+      "uiProgress": 0.30000000000000004,
+      "screenshot": "pass1_05_calendly_route.png"
+    },
+    {
+      "step": "pass1_06_wisprflow_route",
+      "pass": 1,
+      "site": "wisprflow",
+      "kind": "route",
+      "requestedURL": "https://wisprflow.ai/pricing",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 41.4,
+      "navigationKind": "document",
+      "toReadyMs": 750.0,
+      "finalURL": "https://wisprflow.ai/pricing",
+      "redirected": false,
+      "title": "Pricing | Wispr Flow",
+      "fcpMs": 283,
+      "lcpMs": null,
+      "requestStartMs": 15,
+      "responseStartMs": 53,
+      "responseEndMs": 85,
+      "redirectCount": 0,
+      "transferSize": 41558,
+      "domContentLoadedMs": 386,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 236.5,
+      "uiProgress": 0.7244935308225625,
+      "screenshot": "pass1_06_wisprflow_route.png"
+    },
+    {
+      "step": "pass1_07_jack-and-jill_route",
+      "pass": 1,
+      "site": "jack-and-jill",
+      "kind": "route",
+      "requestedURL": "https://www.jackandjill.ai/pricing",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 31.8,
+      "navigationKind": "document",
+      "toReadyMs": 1197.9,
+      "finalURL": "https://www.jackandjill.ai/pricing",
+      "redirected": false,
+      "title": "Simple, Transparent Pricing | Jack & Jill",
+      "fcpMs": 911,
+      "lcpMs": null,
+      "requestStartMs": 7,
+      "responseStartMs": 35,
+      "responseEndMs": 810,
+      "redirectCount": 0,
+      "transferSize": 17067,
+      "domContentLoadedMs": 853,
+      "loadEventEndMs": 900,
+      "navigationStartDelayMs": 161.9,
+      "uiProgress": 1,
+      "screenshot": "pass1_07_jack-and-jill_route.png"
+    },
+    {
+      "step": "pass1_08_privy_route",
+      "pass": 1,
+      "site": "privy",
+      "kind": "route",
+      "requestedURL": "https://www.privy.io/careers-old",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 25.2,
+      "navigationKind": "document",
+      "toReadyMs": 334.2,
+      "finalURL": "https://www.privy.io/careers-old",
+      "redirected": false,
+      "title": "Privy \u2013 Careers",
+      "fcpMs": 173,
+      "lcpMs": null,
+      "requestStartMs": 11,
+      "responseStartMs": 111,
+      "responseEndMs": 116,
+      "redirectCount": 0,
+      "transferSize": 79620,
+      "domContentLoadedMs": 136,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 68.8,
+      "uiProgress": 0.30000000000000004,
+      "screenshot": "pass1_08_privy_route.png"
+    },
+    {
+      "step": "pass1_09_airtable_route",
+      "pass": 1,
+      "site": "airtable",
+      "kind": "route",
+      "requestedURL": "https://www.airtable.com/solutions/enterprise",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 38.3,
+      "navigationKind": "document",
+      "toReadyMs": 1136.3,
+      "finalURL": "https://www.airtable.com/solutions/enterprise",
+      "redirected": false,
+      "title": "Airtable for Enterprise Organizations - Digital Operations | Airtable",
+      "fcpMs": 865,
+      "lcpMs": null,
+      "requestStartMs": 4,
+      "responseStartMs": 332,
+      "responseEndMs": 702,
+      "redirectCount": 0,
+      "transferSize": 56319,
+      "domContentLoadedMs": 792,
+      "loadEventEndMs": null,
+      "navigationStartDelayMs": 169.3,
+      "uiProgress": 0.4999991690749155,
+      "screenshot": "pass1_09_airtable_route.png"
+    },
+    {
+      "step": "pass1_10_intercom_route",
+      "pass": 1,
+      "site": "intercom",
+      "kind": "route",
+      "requestedURL": "https://www.intercom.com/customers",
+      "status": "ok",
+      "tabID": "80002D3E-57E0-4AA7-8C56-24079DDB3348",
+      "dispatchMs": 34.9,
+      "navigationKind": "document",
+      "toReadyMs": 729.3,
+      "finalURL": "https://www.intercom.com/customers",
+      "redirected": false,
+      "title": "Intercom Customers | See who trusts Intercom",
+      "fcpMs": 518,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 219,
+      "redirectCount": 0,
+      "transferSize": 300,
+      "domContentLoadedMs": 243,
+      "loadEventEndMs": 525,
+      "navigationStartDelayMs": 89.3,
+      "uiProgress": 1,
+      "screenshot": "pass1_10_intercom_route.png"
+    }
+  ]
+}
