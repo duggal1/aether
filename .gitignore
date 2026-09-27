@@ -6,3 +6,5 @@ DerivedData/
 .env
 .env.*
 !.env.example
+perf-results/
+ll_home.png
