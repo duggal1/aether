@@ -621,6 +621,33 @@ struct BrowserControl {
         params["context"] = .uint(context)
       }
       request = AgentRequest(method: .workspaceLeaseList, params: params)
+    case "page-stop-loading":
+      guard args.count == 2, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .pageStopLoading, params: ["page": .number(page)])
+    case "page-zoom":
+      guard args.count == 2, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .pageZoom, params: ["page": .number(page)])
+    case "page-set-zoom":
+      guard args.count == 3, let page = Double(args[1]), let factor = Double(args[2])
+      else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pageSetZoom, params: ["page": .number(page), "factor": .number(factor)])
+    case "page-print":
+      guard args.count == 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pagePrint, params: ["page": .number(page), "path": .string(args[2])])
+    case "page-clipboard-read":
+      request = AgentRequest(method: .pageClipboardRead)
+    case "page-clipboard-write":
+      guard args.count == 2 else { throw CLIError.usage }
+      request = AgentRequest(method: .pageClipboardWrite, params: ["text": .string(args[1])])
+    case "page-upload-file":
+      guard args.count == 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .pageUploadFile, params: ["page": .number(page), "path": .string(args[2])])
+    case "extension-list":
+      guard args.count == 2, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(method: .extensionList, params: ["page": .number(page)])
     case "page-capture":
       guard args.count >= 3 else { throw CLIError.usage }
       let options = try captureOptions(from: Array(args.dropFirst(3)))
@@ -1084,6 +1111,14 @@ struct BrowserControl {
     browserctl --socket <path> workspace-lease-cancel <context> <lease-id>
     browserctl --socket <path> workspace-lease-list [context]
     browserctl --socket <path> page-capture <url> <output-dir> [capture-flags]
+    browserctl --socket <path> page-stop-loading <page>
+    browserctl --socket <path> page-zoom <page>
+    browserctl --socket <path> page-set-zoom <page> <factor>
+    browserctl --socket <path> page-print <page> <output.pdf>
+    browserctl --socket <path> page-clipboard-read
+    browserctl --socket <path> page-clipboard-write <text>
+    browserctl --socket <path> page-upload-file <page> <path>
+    browserctl --socket <path> extension-list <page>
     browserctl --socket <path> exec <program.json> [--timeout-ms N]
     browserctl --socket <path> handoff-request <page> <category> <reason...>
     browserctl --socket <path> handoff-list [--context N] [--page N] [--state S] [--kind K] [--id ID]

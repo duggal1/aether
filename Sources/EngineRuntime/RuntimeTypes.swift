@@ -126,10 +126,15 @@ public struct PageSnapshot: Hashable, Sendable, Codable {
   public var truncated: Bool
   /// Number of elements omitted when `truncated` is true.
   public var omittedNodes: Int
+  /// True when the caller asked for a snapshot since a generation and nothing changed, so
+  /// no nodes were re-serialized (directive §4.1.3). A stable page does not cost a full
+  /// re-read every step.
+  public var unchanged: Bool
 
   public init(
     page: BrowserPageInfo, documentID: DocumentID, mutationVersion: UInt64,
-    nodes: [PageNodeSnapshot], truncated: Bool = false, omittedNodes: Int = 0
+    nodes: [PageNodeSnapshot], truncated: Bool = false, omittedNodes: Int = 0,
+    unchanged: Bool = false
   ) {
     self.page = page
     self.documentID = documentID
@@ -137,6 +142,7 @@ public struct PageSnapshot: Hashable, Sendable, Codable {
     self.nodes = nodes
     self.truncated = truncated
     self.omittedNodes = omittedNodes
+    self.unchanged = unchanged
   }
 }
 
@@ -187,6 +193,9 @@ public enum BrowserRuntimeError: Error, Sendable, CustomStringConvertible {
   case downloadBlocked(String)
   case sessionNotFound(SessionID)
   case invalidState(String)
+  /// A real capability the platform does not expose a public API for. Reported as a typed
+  /// limitation rather than a silent no-op (directive §6.7, §12.1.14).
+  case unsupported(String)
 
   public var description: String {
     switch self {
@@ -207,6 +216,7 @@ public enum BrowserRuntimeError: Error, Sendable, CustomStringConvertible {
     case .downloadBlocked(let value): return value
     case .sessionNotFound(let id): return "Session not found: \(id)"
     case .invalidState(let value): return value
+    case .unsupported(let value): return value
     }
   }
 }

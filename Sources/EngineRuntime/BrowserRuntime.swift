@@ -809,8 +809,11 @@ public actor BrowserRuntime {
     return PageInspection(page: try pageInfo(pageID), nodes: nodes)
   }
 
-  public func snapshot(pageID: PageID, limit: Int = 20000) async throws -> PageSnapshot {
-    return try await webPage(pageID).snapshot(info: pageInfo(pageID), limit: limit)
+  public func snapshot(pageID: PageID, limit: Int = 20000, since: UInt64? = nil) async throws
+    -> PageSnapshot
+  {
+    return try await webPage(pageID).snapshot(
+      info: pageInfo(pageID), limit: limit, since: since)
   }
 
   public func query(pageID: PageID, selector: String) async throws -> InspectedNode? {

@@ -156,7 +156,10 @@ public enum ExecStep: Hashable, Sendable, Codable {
   case type(
     page: ExecValue, index: ExecValue, generation: ExecValue, text: ExecValue, append: Bool?)
   case evaluate(page: ExecValue, source: ExecValue, into: String?)
-  case snapshot(page: ExecValue, limit: Int?, into: String?)
+  /// Tier 1 structured read. `since` is a previous `mutationVersion`; when it still
+  /// matches, the outcome is an `unchanged: true` snapshot with no nodes, so a stable page
+  /// is not re-serialized every step (directive §4.1.3).
+  case snapshot(page: ExecValue, limit: Int?, since: ExecValue?, into: String?)
   case inspect(page: ExecValue, into: String?)
   case wait(page: ExecValue, selector: ExecValue, condition: String?, timeoutMs: UInt64?)
   /// Runs a verification plan against real, external state without leaving the program
@@ -206,7 +209,7 @@ public enum ExecStep: Hashable, Sendable, Codable {
 
   public func validate() throws {
     switch self {
-    case .snapshot(_, let limit, _):
+    case .snapshot(_, let limit, _, _):
       if let limit {
         guard limit >= 1 && limit <= ExecLimits.maxSnapshotLimit else {
           throw AgentProcedureError(code: "badParameter", message: "snapshot.limit")
@@ -274,7 +277,7 @@ public enum ExecStep: Hashable, Sendable, Codable {
   private enum CodingKeys: String, CodingKey {
     case op, name, context, page, url, html, selector, index, generation, text, append,
       source, into, limit, condition, timeoutMs, value, message, items, item, steps,
-      then, otherwise, width, height, settle, left, right, method, params, plan
+      then, otherwise, width, height, settle, left, right, method, params, plan, since
   }
 
   public init(from decoder: Decoder) throws {
@@ -332,6 +335,7 @@ public enum ExecStep: Hashable, Sendable, Codable {
       self = .snapshot(
         page: try container.decode(ExecValue.self, forKey: .page),
         limit: try container.decodeIfPresent(Int.self, forKey: .limit),
+        since: try container.decodeIfPresent(ExecValue.self, forKey: .since),
         into: try container.decodeIfPresent(String.self, forKey: .into))
     case "inspect":
       self = .inspect(
@@ -426,9 +430,10 @@ public enum ExecStep: Hashable, Sendable, Codable {
       try container.encode(page, forKey: .page)
       try container.encode(source, forKey: .source)
       try container.encodeIfPresent(into, forKey: .into)
-    case .snapshot(let page, let limit, let into):
+    case .snapshot(let page, let limit, let since, let into):
       try container.encode(page, forKey: .page)
       try container.encodeIfPresent(limit, forKey: .limit)
+      try container.encodeIfPresent(since, forKey: .since)
       try container.encodeIfPresent(into, forKey: .into)
     case .inspect(let page, let into):
       try container.encode(page, forKey: .page)

@@ -383,7 +383,7 @@ public struct AgentExecRuntime: Sendable {
           "value": .string(outcome.value),
           "console": .array(outcome.console.map(JSONValue.string)),
         ]), state: state, path: path)
-    case .snapshot(let pageValue, let limit, _):
+    case .snapshot(let pageValue, let limit, let sinceValue, _):
       let page = try await requirePage(
         pageValue, vars: vars, path: path, op: step.op, allowedContexts: allowedContexts, revocation: revocation)
       if let limit, !(1...ExecLimits.maxSnapshotLimit).contains(limit) {
@@ -391,8 +391,10 @@ public struct AgentExecRuntime: Sendable {
           failure: ExecFailure(
             stepPath: path, op: step.op, code: "badParameter", message: "snapshot.limit"))
       }
+      let since = try sinceValue.map { try $0.uint64Value(vars, what: "since", path: path, op: step.op) }
       let snapshot = try await browser(path: path, op: step.op) {
-        try await self.engine.runtime.snapshot(pageID: page, limit: limit ?? 20_000)
+        try await self.engine.runtime.snapshot(
+          pageID: page, limit: limit ?? 20_000, since: since)
       }
       await state.noteOperation()
       await state.noteSnapshot()
@@ -653,6 +655,11 @@ public struct AgentExecRuntime: Sendable {
           stepPath: path, op: op, code: error.code, message: error.description))
     }
     if let error = error as? BrowserRuntimeError {
+      if case .unsupported(let message) = error {
+        return ExecStepError(
+          failure: ExecFailure(
+            stepPath: path, op: op, code: "unsupported", message: message))
+      }
       if case .timeout = error {
         return ExecStepError(
           failure: ExecFailure(
@@ -851,7 +858,7 @@ extension ExecStep {
     case .queryAll(_, _, let into): return into
     case .evaluate(_, _, let into): return into
     case .restore(_, let into): return into
-    case .snapshot(_, _, let into): return into
+    case .snapshot(_, _, _, let into): return into
     case .inspect(_, let into): return into
     case .verify(_, let into): return into
     case .call(_, _, let into): return into

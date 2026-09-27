@@ -156,6 +156,89 @@ private func scaffold() -> [ExecStep] {
   #expect(outcome.counters.operations >= 4)
 }
 
+private func makeCapabilityPage(_ engine: NativeBrowserEngine) async throws -> (ContextID, PageID) {
+  let context = await engine.runtime.createContext(name: "capabilities")
+  let page = try await engine.runtime.createPage(
+    contextID: context.id, viewport: Size(width: 800, height: 600))
+  _ = try await engine.runtime.loadHTML(
+    pageID: page.id, html: "<html><body><p>capabilities</p></body></html>",
+    url: URL(string: "https://example.test/capabilities")!)
+  return (context.id, page.id)
+}
+
+@Test func agentCanQueryAndSetPageZoom() async throws {
+  let engine = NativeBrowserEngine()
+  let (_, page) = try await makeCapabilityPage(engine)
+  let initial = try await engine.runtime.zoom(pageID: page)
+  #expect(abs(initial - 1.0) < 0.001)
+  let set = try await engine.runtime.setZoom(pageID: page, factor: 2.5)
+  #expect(abs(set - 2.5) < 0.001, "zoom factor must round-trip")
+  let clamped = try await engine.runtime.setZoom(pageID: page, factor: 99)
+  #expect(abs(clamped - 5.0) < 0.001, "zoom must clamp to the human range")
+}
+
+@Test func agentCanPrintPageToARealPDFArtifact() async throws {
+  let engine = NativeBrowserEngine()
+  let (_, page) = try await makeCapabilityPage(engine)
+  let url = FileManager.default.temporaryDirectory
+    .appendingPathComponent("aether-print-\(UUID().uuidString).pdf")
+  defer { try? FileManager.default.removeItem(at: url) }
+  let bytes = try await engine.runtime.printPage(pageID: page, into: url)
+  #expect(bytes > 0)
+  #expect(FileManager.default.fileExists(atPath: url.path))
+  let head = try Data(contentsOf: url).prefix(5)
+  #expect(String(decoding: head, as: UTF8.self) == "%PDF-")
+}
+
+@Test func fileUploadReportsTypedUnsupportedRatherThanSilentNoOp() async throws {
+  let engine = NativeBrowserEngine()
+  let (_, page) = try await makeCapabilityPage(engine)
+  let dispatcher = AgentCommandDispatcher(engine: engine)
+  let response = await dispatcher.handle(
+    AgentRequest(
+      method: AgentMethod.pageUploadFile,
+      params: ["page": .number(Double(page.rawValue)), "path": .string("/tmp/report.pdf")]))
+  #expect(response.error?.code == "unsupported")
+}
+
+@Test func extensionListIsTruthfulWhenNoExtensionIsInstalled() async throws {
+  let engine = NativeBrowserEngine()
+  let (_, page) = try await makeCapabilityPage(engine)
+  let extensions = try await engine.runtime.listExtensions(pageID: page)
+  #expect(extensions.isEmpty)
+}
+
+@Test func execSnapshotSinceGenerationIsUnchangedWhenNothingChanged() async throws {
+  let engine = NativeBrowserEngine()
+  let program = ExecProgram(steps: scaffold() + [
+    .snapshot(page: .ref("pg.id"), limit: nil, since: nil, into: "s1"),
+    .snapshot(page: .ref("pg.id"), limit: nil, since: .ref("s1.mutationVersion"), into: "s2"),
+  ])
+  let outcome = await AgentExecRuntime(engine: engine).run(program)
+  #expect(outcome.status == .completed)
+  guard case .object(let second)? = outcome.vars["s2"] else {
+    Issue.record("second snapshot missing")
+    return
+  }
+  #expect(second["unchanged"] == .bool(true))
+}
+
+@Test func execCallReachesTier2CapabilityWithoutLeavingTheProgram() async throws {
+  let engine = NativeBrowserEngine()
+  let program = ExecProgram(steps: scaffold() + [
+    .call(
+      method: .literal(.string("page.setZoom")),
+      params: .literal(
+        .object([
+          "page": .object(["ref": .string("pg.id")]), "factor": .number(2),
+        ])),
+      into: "zoom"),
+  ])
+  let outcome = await AgentExecRuntime(engine: engine).run(program)
+  #expect(outcome.status == .completed)
+  #expect(outcome.vars["zoom"]?.object?["factor"] == .number(2))
+}
+
 @Test func execCallStepRefusesMethodsOutsideTheProgramSurface() async throws {
   let engine = NativeBrowserEngine()
   let program = ExecProgram(steps: [

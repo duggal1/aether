@@ -65,6 +65,8 @@ extension AgentCommandDispatcher {
       context = identifier("context")
     } else if method.hasPrefix("workspace.lease.") {
       context = identifier("context")
+    } else if method.hasPrefix("extension."), let page = identifier("page") {
+      context = try? await engine.runtime.pageInfo(PageID(rawValue: page)).contextID.rawValue
     } else if method.hasPrefix("page."), let page = identifier("page") {
       context = try? await engine.runtime.pageInfo(PageID(rawValue: page)).contextID.rawValue
     } else if method.hasPrefix("handoff.") || method.hasPrefix("approval.") {

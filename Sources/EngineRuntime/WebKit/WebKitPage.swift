@@ -158,6 +158,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   let view: WKWebView
   let context: WebKitContext
   var generation: UInt32 = 1
+  /// The snapshot generation the isolated-world DOM extractor is currently installed for.
+  /// When it matches `generation`, `domScript` sends only the tiny activation script
+  /// instead of re-transmitting the extractor on every operation (directive §10.3.3).
+  var domInstalledGeneration: UInt32?
   var loaded = false
   var contentReady = false
   var paintReported = false
@@ -716,6 +720,11 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     self.emitEvent = emitEvent
     let viewStart = WebKitNavigationProbe.enabled ? Date() : nil
     let configuration = Self.makeConfiguration(context: context)
+    // The Tier 1 structured-state extractor exists before page script can run, in the
+    // isolated client world the page cannot see or tamper with (directive §4.1.7).
+    configuration.userContentController.addUserScript(WKUserScript(
+      source: WebKitDOMScript.source(generation: 1), injectionTime: .atDocumentStart,
+      forMainFrameOnly: true, in: .defaultClient))
     configuration.userContentController.addUserScript(WKUserScript(
       source: WebKitPage.paintObserverJS, injectionTime: .atDocumentStart,
       forMainFrameOnly: true, in: .defaultClient))

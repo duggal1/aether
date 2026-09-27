@@ -296,3 +296,35 @@ program at a time — a concurrent program is refused with `sessionBusy`
 session's previous state intact: partial work never becomes the session's
 truth. After a daemon restart the session is rebuilt empty; no live heap is
 restored (§5.1.5).
+
+## Human-parity capabilities (code-first additions)
+
+Every method below is reachable program-side through the `call` step and
+through native, CLI, and MCP, and every one is a real platform call rather
+than a simulated one:
+
+- `page.stopLoading {page}` — aborts the in-flight navigation.
+- `page.zoom {page}` — the current page zoom factor (1.0 = 100%).
+- `page.setZoom {page, factor}` — sets zoom, clamped to 0.25–5 like the human
+  control; the applied factor is returned.
+- `page.print {page, path}` — writes a real PDF artifact and returns its byte
+  size. Success is the file on disk, never the gesture.
+- `page.clipboardRead` / `page.clipboardWrite {text}` — the system clipboard.
+  Explicit calls only; nothing reads or writes it automatically.
+- `extension.list {page}` — the extensions loaded on the page's profile
+  controller (`identifier`, `name`, `loaded`, `inspectable`). An empty list is
+  a truthful "none installed".
+
+Typed limitations, reported rather than silently ignored (`code:
+"unsupported"`): `page.uploadFile {page, path}` — WebKit exposes no public API
+to populate a file input outside the user-picked panel; `extension.setEnabled`
+and `page.moveTab` — not yet implemented. Typed-refusal semantics follow §6.7
+and §12.1.14: an unsupported capability is visible in the API, not hidden.
+
+Structured state reads are bounded and diffable: `page.snapshot {page, limit,
+[since]}` returns `truncated`/`omittedNodes` when a cap applied, and an
+`unchanged: true` snapshot with no nodes when `since` still matches the
+current `mutationVersion`. The in-page extractor is installed once per
+document as a document-start user script in the isolated client world, so a
+same-document read sends only a generation activation, not the extractor
+(directive §4.1, §10.3.3).

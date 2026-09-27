@@ -51,7 +51,16 @@ extension WebKitPage {
   }
 
   func domScript(_ source: String) -> String {
-    WebKitDOMScript.source(generation: generation) + ";\n" + source
+    // The extractor is installed once per document (document-start user script, with this
+    // as the lazy fallback). Once installed for the current generation, only the tiny
+    // activation script crosses the bridge, so a per-operation read no longer pays for a
+    // 3.5 KiB source re-transmission (directive §10.3.3, §10.4.6).
+    let installed = domInstalledGeneration == generation
+    let prefix = installed
+      ? WebKitDOMScript.activation(generation: generation)
+      : WebKitDOMScript.source(generation: generation)
+    domInstalledGeneration = generation
+    return prefix + ";\n" + source
   }
 
   func query(_ selector: String) async throws -> [InspectedNode] {
@@ -164,8 +173,23 @@ extension WebKitPage {
   /// page can force on a single read (directive §4.1.4, §9.6).
   static let snapshotByteBudget = 1 * 1024 * 1024
 
-  func snapshot(info: BrowserPageInfo, limit: Int = 20000) async throws -> PageSnapshot {
+  func snapshot(info: BrowserPageInfo, limit: Int = 20000, since: UInt64? = nil) async throws
+    -> PageSnapshot
+  {
     let capped = max(1, min(limit, 20000))
+    // Change check first: if the caller's generation matches this document and nothing has
+    // mutated, return a flagged no-op instead of re-serializing the tree (directive §4.1.3).
+    if let since, (since >> 32) == UInt64(generation) {
+      let revision = try await decode(
+        UInt64.self, domScript("JSON.stringify(globalThis.__aetherDOM.mutationVersion())"))
+      let current = (UInt64(generation) << 32) | (revision & 0xffff_ffff)
+      if current == since {
+        return PageSnapshot(
+          page: info, documentID: DocumentID(rawValue: UInt64(generation)),
+          mutationVersion: current, nodes: [], truncated: false, omittedNodes: 0,
+          unchanged: true)
+      }
+    }
     let values = try await decode([WebDOMNode].self, domScript("JSON.stringify(globalThis.__aetherDOM.snapshot(\(capped)))"))
     let mutationRevision = try await decode(UInt64.self,
       domScript("JSON.stringify(globalThis.__aetherDOM.mutationVersion())"))

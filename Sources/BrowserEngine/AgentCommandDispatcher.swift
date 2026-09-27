@@ -114,9 +114,10 @@ public final class AgentCommandDispatcher: Sendable {
         ])
       case .pageSnapshot:
         let limit = request.params["limit"]?.number.map { Int($0) } ?? 20000
+        let since = request.params["since"]?.exactUInt64
         result = snapshotJSON(
           try await engine.runtime.snapshot(
-            pageID: PageID(rawValue: try uint64(request, "page")), limit: limit))
+            pageID: PageID(rawValue: try uint64(request, "page")), limit: limit, since: since))
       case .pageQuery:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let selector = request.params["selector"]?.string else {
@@ -709,6 +710,65 @@ public final class AgentCommandDispatcher: Sendable {
         else { throw DispatchError.badParameter("manifest") }
         manifest["directory"] = .string(capture.directory.path)
         result = .object(manifest)
+      case .pageStopLoading:
+        try await engine.runtime.stopLoading(
+          pageID: PageID(rawValue: try uint64(request, "page")))
+        result = .object(["ok": .bool(true)])
+      case .pageZoom:
+        result = .object([
+          "factor": .number(
+            try await engine.runtime.zoom(
+              pageID: PageID(rawValue: try uint64(request, "page"))))
+        ])
+      case .pageSetZoom:
+        guard let factor = request.params["factor"]?.number else {
+          throw DispatchError.badParameter("factor")
+        }
+        result = .object([
+          "factor": .number(
+            try await engine.runtime.setZoom(
+              pageID: PageID(rawValue: try uint64(request, "page")), factor: factor))
+        ])
+      case .pagePrint:
+        guard let path = request.params["path"]?.string else {
+          throw DispatchError.badParameter("path")
+        }
+        let url = URL(fileURLWithPath: path)
+        let bytes = try await engine.runtime.printPage(
+          pageID: PageID(rawValue: try uint64(request, "page")), into: url)
+        result = .object(["path": .string(url.path), "bytes": .number(Double(bytes))])
+      case .pageClipboardRead:
+        let text = await engine.runtime.clipboardRead()
+        result = .object(["text": .string(text)])
+      case .pageClipboardWrite:
+        guard let text = request.params["text"]?.string else {
+          throw DispatchError.badParameter("text")
+        }
+        await engine.runtime.clipboardWrite(text)
+        result = .object(["ok": .bool(true)])
+      case .pageUploadFile:
+        guard let path = request.params["path"]?.string else {
+          throw DispatchError.badParameter("path")
+        }
+        _ = try await engine.runtime.uploadFile(
+          pageID: PageID(rawValue: try uint64(request, "page")), path: path)
+        result = .object(["ok": .bool(true)])
+      case .pageMoveTab:
+        throw DispatchError.unsupported(
+          "Moving a tab between windows is not implemented for agents yet")
+      case .extensionList:
+        let extensions = try await engine.runtime.listExtensions(
+          pageID: PageID(rawValue: try uint64(request, "page")))
+        result = .array(
+          extensions.map { info in
+            .object([
+              "identifier": .string(info.identifier), "name": .string(info.name),
+              "loaded": .bool(info.loaded), "inspectable": .bool(info.inspectable),
+            ])
+          })
+      case .extensionSetEnabled:
+        throw DispatchError.unsupported(
+          "No extension is installable through the agent surface yet; extension.list reports the loaded set")
       case .exec:
         result = try await runExec(request, allowedContexts: nil)
       case .taskVerify:
@@ -745,6 +805,16 @@ public final class AgentCommandDispatcher: Sendable {
       return AgentResponse(id: request.id, result: result)
     } catch let error as AgentProcedureError {
       return failure(request, code: "engine_error", message: "Invalid or missing parameter: \(error.message)")
+    } catch let error as DispatchError {
+      if case .unsupported(let message) = error {
+        return failure(request, code: "unsupported", message: message)
+      }
+      return failure(request, code: "engine_error", message: error.description)
+    } catch let error as BrowserRuntimeError {
+      if case .unsupported(let message) = error {
+        return failure(request, code: "unsupported", message: message)
+      }
+      return failure(request, code: "engine_error", message: String(describing: error))
     } catch {
       return failure(request, code: "engine_error", message: String(describing: error))
     }
@@ -897,6 +967,7 @@ public final class AgentCommandDispatcher: Sendable {
         }),
       "truncated": .bool(snapshot.truncated),
       "omittedNodes": .number(Double(snapshot.omittedNodes)),
+      "unchanged": .bool(snapshot.unchanged),
     ])
   }
 
@@ -1157,9 +1228,11 @@ public final class AgentCommandDispatcher: Sendable {
 
 private enum DispatchError: Error, CustomStringConvertible {
   case badParameter(String)
+  case unsupported(String)
   var description: String {
     switch self {
     case .badParameter(let value): return "Invalid or missing parameter: \(value)"
+    case .unsupported(let value): return value
     }
   }
 }
