@@ -1,76 +1,104 @@
 import SwiftUI
 
 public enum AetherMotion {
-    public static let micro = Animation.spring(duration: 0.11, bounce: 0.02)
-    public static let standard = Animation.spring(duration: 0.28, bounce: 0.06)
-    public static let large = Animation.spring(duration: 0.36, bounce: 0.08)
-    public static let snappy = Animation.snappy(duration: 0.20)
-    public static let smooth = Animation.smooth(duration: 0.24)
-    public static let interactive = Animation.interactiveSpring(response: 0.20, dampingFraction: 0.82)
-    public static let liquid = Animation.spring(duration: 0.40, bounce: 0.16)
-    public static let liquidSnap = Animation.spring(duration: 0.26, bounce: 0.20)
-    public static let pressScale: CGFloat = 0.965
-    public static let hoverScale: CGFloat = 1.015
+    // Apple liquid motion (Sep 22 editorial foundation): native smooth/snappy
+    // curves only. No custom bouncy springs anywhere — bounce is what made
+    // every dropdown feel non-native.
+    public static let pressScale: CGFloat = 0.987
+    public static let hoverScale: CGFloat = 1.0
 
-    public static func hover(_ reduced: Bool) -> Animation? { reduced ? nil : micro }
-    public static func focus(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.26, bounce: 0.08) }
-    public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.16, bounce: 0.10) }
-    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.24, bounce: 0.08) }
-    public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.16, bounce: 0.12) }
-    public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.10, bounce: 0.0) }
-    public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.20, bounce: 0.12) }
-    public static func dropdown(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.20, bounce: 0.16) }
-    public static func panel(_ reduced: Bool) -> Animation? { reduced ? nil : .spring(duration: 0.22, bounce: 0.08) }
-    public static func container(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.22) }
-    public static func morph(_ reduced: Bool) -> Animation? { reduced ? nil : liquid }
-    public static func snappy(_ reduced: Bool) -> Animation? { reduced ? nil : snappy }
-    public static func smooth(_ reduced: Bool) -> Animation? { reduced ? nil : smooth }
+    public static func hover(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.15) }
+    public static func focus(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.21) }
+    public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.11) }
+    public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
+    public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.10) }
+    public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.22) }
+    public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
+    public static func dropdown(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
+    public static func panel(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.16) }
+    public static func container(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
+    public static func morph(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.24) }
+    public static func snappy(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.12) }
+    public static func smooth(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.18) }
     // Coordinated, interruptible cross-fade when the resolved site appearance changes.
     public static func appearance(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.22) }
 
     public static func glow(_ reduced: Bool, entering: Bool) -> Animation? {
-        if reduced { return .easeOut(duration: 0.2) }
-        return .easeOut(duration: entering ? 0.24 : 0.40)
+        if reduced { return .easeOut(duration: 0.15) }
+        return .easeOut(duration: entering ? 0.18 : 0.32)
+    }
+
+    /// One opening curve for every floating surface in the browser: profile
+    /// menu, Search Tabs, three-dot menu, suggestion panel, history, bookmarks
+    /// and the dialogs. Restrained on purpose — 160–240 ms perceived, no bounce
+    /// and no zooming from nowhere.
+    public static func surfaceOpen(_ reduced: Bool) -> Animation? {
+        reduced ? nil : .spring(response: 0.22, dampingFraction: 0.88, blendDuration: 0.08)
+    }
+
+    /// The matching transition: the card fades in while growing a hair out of
+    /// its own trigger, so it reads as emerging from the control that opened it
+    /// rather than appearing out of nowhere. Pass the anchor that matches the
+    /// trigger — `.topLeading` for the space menu, `.topTrailing` for the
+    /// right-side menus, `.top` for the suggestion panel, `.center` for panels.
+    public static func surfaceTransition(_ reduced: Bool, anchor: UnitPoint) -> AnyTransition {
+        reduced ? .opacity : AnyTransition.asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.985, anchor: anchor)),
+            removal: .opacity.combined(with: .scale(scale: 0.99, anchor: anchor)))
     }
 
     public static func panelTransition(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : blurInOut(reduced)
+        surfaceTransition(reduced, anchor: .topTrailing)
     }
 
     public static func sheetTransition(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : AnyTransition.asymmetric(
-            insertion: blurInOut(reduced).combined(with: .scale(scale: 0.94, anchor: .center)).combined(with: .opacity),
-            removal: blurInOut(reduced).combined(with: .scale(scale: 0.97, anchor: .center)).combined(with: .opacity))
+        surfaceTransition(reduced, anchor: .center)
     }
 
     public static func disclosure(_ reduced: Bool, expanded: Bool) -> AnyTransition {
         reduced ? .opacity : AnyTransition.asymmetric(
-            insertion: .scale(scale: 0.96, anchor: expanded ? .top : .topLeading).combined(with: .opacity),
-            removal: .scale(scale: 0.98, anchor: expanded ? .top : .topLeading).combined(with: .opacity))
+            insertion: .scale(scale: 0.97, anchor: expanded ? .top : .topLeading).combined(with: .opacity),
+            removal: .scale(scale: 0.99, anchor: expanded ? .top : .topLeading).combined(with: .opacity))
     }
 
     public static func contentSwap(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : .opacity.combined(with: .scale(scale: 0.995))
+        reduced ? .opacity : .opacity.combined(with: .move(edge: .trailing))
     }
 
+    // Compat shims: these used to add blur-based transitions/animations that
+    // smeared text during dropdown morphs. They now resolve to pure Apple
+    // opacity/smooth curves — no blur radius anywhere.
     public static func blurMicro(_ reduced: Bool) -> Animation? { reduced ? nil : .easeOut(duration: 0.14) }
 
     public static func textResolve(_ reduced: Bool) -> Animation? {
-        reduced ? nil : .timingCurve(0.22, 1, 0.36, 1, duration: 0.18)
+        reduced ? nil : .smooth(duration: 0.18)
     }
 
     public static func blurInOut(_ reduced: Bool) -> AnyTransition {
-        reduced ? .opacity : .modifier(
-            active: AetherBlurReveal(hidden: true),
-            identity: AetherBlurReveal(hidden: false))
+        reduced ? .opacity : .opacity
     }
 }
 
-public enum AetherGlassNamespace {
-    public static let tab = "aether.tab.top"
-    public static let tabActive = "aether.tab.active"
-    public static let settingsSection = "aether.settings.section"
-    public static let profileCluster = "aether.toolbar.profile-cluster"
+/// The same opening motion for surfaces the system presents for us — sheets and
+/// dialogs. Their frame animation belongs to AppKit, so the card inside picks up
+/// the matching emerge-from-center beat.
+public struct AetherSurfaceAppear: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduced
+    @State private var shown = false
+    public init() {}
+
+    public func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(shown || reduced ? 1 : 0.985, anchor: .center)
+            .onAppear {
+                withAnimation(AetherMotion.surfaceOpen(reduced)) { shown = true }
+            }
+    }
+}
+
+public extension View {
+    func aetherSurfaceAppear() -> some View { modifier(AetherSurfaceAppear()) }
 }
 
 public struct AetherPressStyle: ButtonStyle {
@@ -83,17 +111,6 @@ public struct AetherPressStyle: ButtonStyle {
             .modifier(AetherPointingCursor())
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
             .animation(AetherMotion.press(reduced), value: configuration.isPressed)
-    }
-}
-
-public struct AetherBlurReveal: ViewModifier {
-    let hidden: Bool
-    public init(hidden: Bool) { self.hidden = hidden }
-    public func body(content: Content) -> some View {
-        content
-            .opacity(hidden ? 0 : 1)
-            .blur(radius: hidden ? 3 : 0)
-            .scaleEffect(hidden ? 0.988 : 1, anchor: .top)
     }
 }
 
@@ -140,8 +157,19 @@ public extension View {
 }
 
 public struct AetherPointingCursor: ViewModifier {
+    @Environment(\.aetherIsFullscreen) private var fullscreen
     public init() {}
     public func body(content: Content) -> some View {
-        content.pointerStyle(.link)
+        // Correction pass §5: custom pointing-hand behavior is disabled while
+        // fullscreen is active so no cursor/tracking logic can sit above the
+        // toolbar and steal pointer events. Toolbar buttons stay the topmost
+        // interactive hit targets. Windowed behavior is unchanged.
+        Group {
+            if fullscreen {
+                content
+            } else {
+                content.pointerStyle(.link)
+            }
+        }
     }
 }

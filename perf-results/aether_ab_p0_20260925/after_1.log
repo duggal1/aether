@@ -1,0 +1,201 @@
+[latency]       0.0ms epoch=1790336861666 app.init.start
+[latency]      18.7ms epoch=1790336861684 app.init.end
+[latency]     208.6ms epoch=1790336861874 model.created
+[latency]     350.6ms epoch=1790336862016 app.delegate.launched
+[latency]  164652.4ms epoch=1790337026318 ui.navigate.enter
+[latency]  164653.6ms epoch=1790337026319 ui.resolve.end
+[latency]  164706.6ms epoch=1790337026372 adapter.createPage.start
+[webkit-nav] epoch=1790337026373 webPage.miss id=1
+[webkit-nav] epoch=1790337026384 view-alloc 9.8ms
+[webkit-nav] epoch=1790337026386 webPage.ready id=1
+[latency]  164719.9ms epoch=1790337026386 adapter.createPage.end
+[latency]  164720.0ms epoch=1790337026386 ui.page.created
+[latency]  164790.9ms epoch=1790337026457 adapter.navigate.start
+[webkit-nav] epoch=1790337026499 [scope=1 begin url=https://youtube.com/]
+[webkit-nav] epoch=1790337026515 [scope=1 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://youtube.com/]
+[webkit-nav] epoch=1790337026691 [scope=1 didStartProvisional tracked=true retired=false url=https://youtube.com/]
+[webkit-nav] epoch=1790337026702 [scope=1 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.youtube.com/]
+[webkit-nav] epoch=1790337026718 [scope=1 serverRedirect tracked=true url=https://www.youtube.com/]
+[webkit-nav] epoch=1790337026885 [scope=1 didCommit tracked=true url=https://www.youtube.com/ t=0.386s]
+[webkit-nav] epoch=1790337026886 navigate total=428.6ms settle=commit commitToReturn=1.0ms
+[latency]  165220.4ms epoch=1790337026886 adapter.navigate.commit
+[latency]  165220.5ms epoch=1790337026886 ui.navigate.dispatched
+[webkit-nav] epoch=1790337026937 [scope=1 decideResponse mainFrame=true authoritative=true mime=nil policy=download]
+[webkit-nav] epoch=1790337026938 [scope=1 downloadTerminal committed=true waiters=0]
+[webkit-nav] epoch=1790337026943 [scope=1 didFail tracked=false domain=WebKitErrorDomain code=102 class=benign committed=1 t=0.444s]
+sandbox_extension_issue_file failed for : 2 (No such file or directory)
+[webkit-nav] epoch=1790337033375 [scope=2 begin url=https://www.youtube.com/]
+[webkit-nav] epoch=1790337033376 [scope=2 decideAction scheme=https mainFrame=true type=3 mainNavTracked=tracked url=https://www.youtube.com/]
+[webkit-nav] epoch=1790337033378 [scope=2 didStartProvisional tracked=true retired=false url=https://www.youtube.com/]
+[webkit-nav] epoch=1790337033623 [scope=2 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337033626 [scope=2 didCommit tracked=true url=https://www.youtube.com/ t=0.251s]
+[webkit-nav] epoch=1790337034102 [scope=2 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3D%252Fsignin_passive%26feature%3Dpassive&hl=en]
+[webkit-nav] epoch=1790337034129 [scope=2 paint observed gen=2 t=0.755s]
+[webkit-nav] epoch=1790337034557 [scope=2 decideResponse mainFrame=false authoritative=false mime=text/html policy=allow]
+[webkit-nav] epoch=1790337035432 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337035481 [scope=2 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=stale url=https://www.youtube.com/?themeRefresh=1]
+[webkit-nav] epoch=1790337035497 [scope=2 didStartProvisional tracked=false retired=false url=https://www.youtube.com/?themeRefresh=1]
+[webkit-nav] epoch=1790337035497 [scope=2 track new-identity transferred=0 url=https://www.youtube.com/?themeRefresh=1 loading=true]
+[webkit-nav] epoch=1790337035714 [scope=3 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337035721 [scope=3 didCommit tracked=true url=https://www.youtube.com/?themeRefresh=1 t=0.224s]
+[webkit-nav] epoch=1790337036055 [scope=3 paint observed gen=2 t=0.558s]
+[webkit-nav] epoch=1790337036743 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337037298 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337037453 [scope=3 didFinish tracked=true url=https://www.youtube.com/ t=1.956s]
+[webkit-nav] epoch=1790337056527 [scope=3 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=stale url=https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&hl=en&ec=65620]
+[webkit-nav] epoch=1790337056648 [scope=3 didStartProvisional tracked=false retired=false url=https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&hl=en&ec=65620]
+[webkit-nav] epoch=1790337056649 [scope=3 track new-identity transferred=0 url=https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&hl=en&ec=65620 loading=true]
+[webkit-nav] epoch=1790337058482 [scope=4 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://accounts.google.com/v3/signin/identifier?continue=https://www.youtube.com/signin?action_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&ec=65620&hl=en&passive=true&service=youtube&uilel=3&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S2133946129:1790337058396584]
+[webkit-nav] epoch=1790337058526 [scope=4 serverRedirect tracked=true url=https://accounts.google.com/v3/signin/identifier?continue=https://www.youtube.com/signin?action_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&ec=65620&hl=en&passive=true&service=youtube&uilel=3&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S2133946129:1790337058396584]
+[webkit-nav] epoch=1790337058834 [scope=4 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337058844 [scope=4 didCommit tracked=true url=https://accounts.google.com/v3/signin/identifier?continue=https://www.youtube.com/signin?action_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&ec=65620&hl=en&passive=true&service=youtube&uilel=3&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S2133946129:1790337058396584 t=2.196s]
+[webkit-nav] epoch=1790337059104 [scope=4 paint observed gen=2 t=2.455s]
+[webkit-nav] epoch=1790337059387 [scope=4 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://accounts.youtube.com/accounts/CheckConnection?pmpo=https%3A%2F%2Faccounts.google.com&v=-1741174253&timestamp=1790337059385]
+[webkit-nav] epoch=1790337059399 [scope=4 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://accounts.google.com/_/bscframe]
+[webkit-nav] epoch=1790337059734 [scope=4 decideResponse mainFrame=false authoritative=false mime=text/html policy=allow]
+[webkit-nav] epoch=1790337060037 [scope=4 decideResponse mainFrame=false authoritative=false mime=text/html policy=allow]
+[webkit-nav] epoch=1790337060042 [scope=4 didFinish tracked=true url=https://accounts.google.com/v3/signin/identifier?continue=https://www.youtube.com/signin?action_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F%253FthemeRefresh%253D1&ec=65620&hl=en&passive=true&service=youtube&uilel=3&flowName=GlifWebSignIn&flowEntry=ServiceLogin&dsh=S2133946129:1790337058396584 t=3.393s]
+[webkit-nav] epoch=1790337060071 [scope=4 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337060114 [scope=4 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[latency]  202809.8ms epoch=1790337064475 ui.navigate.enter
+[latency]  202810.1ms epoch=1790337064476 ui.resolve.end
+[latency]  202877.2ms epoch=1790337064543 adapter.createPage.start
+[webkit-nav] epoch=1790337064543 webPage.miss id=2
+[webkit-nav] epoch=1790337064557 view-alloc 4.4ms
+[webkit-nav] epoch=1790337064557 webPage.ready id=2
+[latency]  202891.9ms epoch=1790337064558 adapter.createPage.end
+[latency]  202891.9ms epoch=1790337064558 ui.page.created
+[latency]  202992.1ms epoch=1790337064658 adapter.navigate.start
+[webkit-nav] epoch=1790337064684 [scope=1 begin url=https://www.clay.com/]
+[webkit-nav] epoch=1790337064727 [scope=1 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.clay.com/]
+[webkit-nav] epoch=1790337065102 [scope=1 didStartProvisional tracked=true retired=false url=https://www.clay.com/]
+[webkit-nav] epoch=1790337065138 [scope=1 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337065143 [scope=1 didCommit tracked=true url=https://www.clay.com/ t=0.460s]
+[webkit-nav] epoch=1790337065146 navigate total=485.9ms settle=commit commitToReturn=2.3ms
+[latency]  203480.4ms epoch=1790337065146 adapter.navigate.commit
+[latency]  203480.4ms epoch=1790337065146 ui.navigate.dispatched
+[webkit-nav] epoch=1790337066164 [scope=1 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337066165 [scope=1 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337066237 [scope=1 paint observed gen=1 t=1.553s]
+[latency]  209595.2ms epoch=1790337071261 ui.navigate.enter
+[latency]  209595.3ms epoch=1790337071261 ui.resolve.end
+[latency]  209628.4ms epoch=1790337071294 ui.page.created
+[latency]  209634.9ms epoch=1790337071301 adapter.navigate.start
+[webkit-nav] epoch=1790337071301 [scope=1 stop waiters=0]
+[webkit-nav] epoch=1790337071301 [scope=2 begin url=https://www.apollo.io/]
+[webkit-nav] epoch=1790337071324 [scope=2 didFail tracked=false domain=NSURLErrorDomain code=-999 class=benign committed=nil t=0.024s]
+[webkit-nav] epoch=1790337071325 [scope=2 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.apollo.io/]
+[webkit-nav] epoch=1790337071499 [scope=2 didStartProvisional tracked=true retired=false url=https://www.apollo.io/]
+[webkit-nav] epoch=1790337072579 [scope=2 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337072582 [scope=2 didCommit tracked=true url=https://www.apollo.io/ t=1.281s]
+[webkit-nav] epoch=1790337072599 navigate total=1296.5ms settle=commit commitToReturn=16.4ms
+[latency]  210945.9ms epoch=1790337072612 adapter.navigate.commit
+[latency]  210946.1ms epoch=1790337072612 ui.navigate.dispatched
+[webkit-nav] epoch=1790337072969 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337073072 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337073103 [scope=2 paint observed gen=2 t=1.801s]
+[webkit-nav] epoch=1790337073146 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337073466 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337073502 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:srcdoc]
+[webkit-nav] epoch=1790337082225 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337082352 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337082541 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337082611 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337082634 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:srcdoc]
+[webkit-nav] epoch=1790337082642 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337082999 [scope=2 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://21165194.hs-sites.com/hs-web-interactive-21165194-218711470726?parentPageUrl=https%3A%2F%2Fwww.apollo.io%2F&enableResponsiveStyles=true]
+[webkit-nav] epoch=1790337083329 [scope=2 decideResponse mainFrame=false authoritative=false mime=text/html policy=allow]
+[webkit-nav] epoch=1790337083487 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337084429 [scope=2 didFinish tracked=true url=https://www.apollo.io/ t=13.128s]
+[webkit-nav] epoch=1790337084556 [scope=2 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://i.liadm.com/sync-container?duid=98584daca2d7--01m3c6ft4ckh45dnp09ms3mb2p&ds=did-004q&euns=1&s=&version=v3.19.0&cd=.apollo.io&pv=0d8335c9-4f86-450b-b030-4ba8fdf383f3]
+[webkit-nav] epoch=1790337085457 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337085472 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:srcdoc]
+[webkit-nav] epoch=1790337086276 [scope=2 decideResponse mainFrame=false authoritative=false mime=text/html policy=allow]
+[webkit-nav] epoch=1790337087756 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337087839 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337088240 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337088304 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337090966 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337090981 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337092363 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337092479 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337097065 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337097083 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337097728 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337097743 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337100238 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337100250 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337100963 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337100974 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[latency]  241336.4ms epoch=1790337103002 ui.navigate.enter
+[latency]  241336.7ms epoch=1790337103002 ui.resolve.end
+[latency]  241359.4ms epoch=1790337103025 ui.page.created
+[latency]  241365.6ms epoch=1790337103031 adapter.navigate.start
+[webkit-nav] epoch=1790337103035 [scope=3 begin url=https://www.apollo.io/product/intelligence]
+[webkit-nav] epoch=1790337103050 [scope=3 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.apollo.io/product/intelligence]
+[webkit-nav] epoch=1790337103082 [scope=3 didStartProvisional tracked=true retired=false url=https://www.apollo.io/product/intelligence]
+[webkit-nav] epoch=1790337103636 [scope=3 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337103739 [scope=3 didCommit tracked=true url=https://www.apollo.io/product/intelligence t=0.704s]
+[webkit-nav] epoch=1790337103743 navigate total=710.0ms settle=commit commitToReturn=3.7ms
+[latency]  242078.0ms epoch=1790337103744 adapter.navigate.commit
+[latency]  242078.0ms epoch=1790337103744 ui.navigate.dispatched
+[webkit-nav] epoch=1790337103958 [scope=3 paint observed gen=3 t=0.922s]
+[webkit-nav] epoch=1790337104164 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337104610 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337104640 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:srcdoc]
+[webkit-nav] epoch=1790337104676 [scope=3 didFinish tracked=true url=https://www.apollo.io/product/intelligence t=1.641s]
+[webkit-nav] epoch=1790337104989 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337104996 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337105039 [scope=3 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337105893 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337105899 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:srcdoc]
+[latency]  251981.9ms epoch=1790337113648 ui.navigate.enter
+[latency]  251982.0ms epoch=1790337113648 ui.resolve.end
+[latency]  252033.3ms epoch=1790337113699 adapter.createPage.start
+[webkit-nav] epoch=1790337113699 webPage.miss id=3
+[webkit-nav] epoch=1790337113726 view-alloc 19.1ms
+[webkit-nav] epoch=1790337113727 webPage.ready id=3
+[latency]  252061.0ms epoch=1790337113727 adapter.createPage.end
+[latency]  252061.1ms epoch=1790337113727 ui.page.created
+[latency]  252159.7ms epoch=1790337113825 adapter.navigate.start
+[webkit-nav] epoch=1790337113862 [scope=1 begin url=https://www.clay.com/]
+[webkit-nav] epoch=1790337113978 [scope=1 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.clay.com/]
+[webkit-nav] epoch=1790337113988 [scope=1 didStartProvisional tracked=true retired=false url=https://www.clay.com/]
+[webkit-nav] epoch=1790337114048 [scope=1 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337114054 [scope=1 didCommit tracked=true url=https://www.clay.com/ t=0.192s]
+[webkit-nav] epoch=1790337114058 navigate total=231.1ms settle=commit commitToReturn=3.6ms
+[latency]  252392.2ms epoch=1790337114058 adapter.navigate.commit
+[latency]  252392.3ms epoch=1790337114058 ui.navigate.dispatched
+[webkit-nav] epoch=1790337114890 [scope=1 paint observed gen=1 t=1.028s]
+[webkit-nav] epoch=1790337115047 [scope=1 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337115068 [scope=1 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337117385 [scope=1 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337117399 [scope=1 decideAction scheme=https mainFrame=true type=0 mainNavTracked=stale url=https://app.clay.com/signup?source=nav&su=e43f42c7-7a5e-4790-bebc-7f3ca411eeb0]
+[webkit-nav] epoch=1790337117400 [scope=1 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337117410 [scope=1 didStartProvisional tracked=false retired=false url=https://app.clay.com/signup?source=nav&su=e43f42c7-7a5e-4790-bebc-7f3ca411eeb0]
+[webkit-nav] epoch=1790337117411 [scope=1 track new-identity transferred=0 url=https://app.clay.com/signup?source=nav&su=e43f42c7-7a5e-4790-bebc-7f3ca411eeb0 loading=true]
+[webkit-nav] epoch=1790337117993 [scope=2 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790337118017 [scope=2 didCommit tracked=true url=https://app.clay.com/signup?source=nav&su=e43f42c7-7a5e-4790-bebc-7f3ca411eeb0 t=0.606s]
+[webkit-nav] epoch=1790337122707 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123308 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123514 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123771 [scope=2 didFinish tracked=true url=https://app.clay.com/signup?source=nav&su=e43f42c7-7a5e-4790-bebc-7f3ca411eeb0 t=6.361s]
+[webkit-nav] epoch=1790337123772 [scope=2 paint fallback no-observed-fcp t=6.361s]
+[webkit-nav] epoch=1790337123782 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337123784 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123793 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123812 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337123813 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337123927 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123938 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337123966 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337123967 [scope=2 decideAction scheme=https mainFrame=false type=1 mainNavTracked=nil url=https://www.facebook.com/tr/]
+[webkit-nav] epoch=1790337124167 [scope=2 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/f/av0/rch/5axxm/0x4AAAAAAD2v0bGNPBXklYW3/auto/fbE/new/normal?lang=auto]
+[webkit-nav] epoch=1790337124806 [scope=2 decideResponse mainFrame=false authoritative=false mime=text/html policy=allow]
+[webkit-nav] epoch=1790337124861 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337125398 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337125564 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337125716 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337125722 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:srcdoc]
+[webkit-nav] epoch=1790337125722 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790337125744 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]

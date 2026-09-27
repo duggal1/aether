@@ -7,6 +7,7 @@ public struct NewTabView: View {
     @BrowserState private var editing: BrowserShortcut?
     @BrowserState private var adding = false
     @BrowserState private var hoveredShortcut: UUID?
+    @State private var hoveredSuggestionID: String?
     @State private var shortcutMenuID: UUID?
     @BrowserState private var ask = ""
     @FocusState private var askFocused: Bool
@@ -42,21 +43,38 @@ public struct NewTabView: View {
             .scrollIndicators(.hidden)
         }
         .background(AetherPalette.canvas(theme.dark))
-        .sheet(isPresented: $adding) { ShortcutEditor(workspace: window.workspace, shortcut: nil) }
-        .sheet(item: $editing) { item in ShortcutEditor(workspace: window.workspace, shortcut: item) }
+        // The start page draws its own synthetic background, so the shortcut
+        // card is solid here rather than a blur card over a blurred card.
+        .sheet(isPresented: $adding) {
+            AetherDialogScope { ShortcutEditor(workspace: window.workspace, shortcut: nil) }
+                .environment(\.aetherSurfaceStyle, startPageSurface)
+        }
+        .sheet(item: $editing) { item in
+            AetherDialogScope { ShortcutEditor(workspace: window.workspace, shortcut: item) }
+                .environment(\.aetherSurfaceStyle, startPageSurface)
+        }
         .task {
             AetherFaviconStore.shared.prefetch(window.workspace.shortcuts.compactMap { URL(string: $0.url)?.host })
         }
+        // Not forced through the intelligence layer: the selected provider
+        // decides, so the start page searches the engine you actually picked
+        // while Jev still contributes its own candidates beside it.
         .onChange(of: ask) { _, value in
-            window.suggestions.update(prefix: value, window: window, forceIntelligence: true)
+            window.suggestions.update(prefix: value, window: window)
         }
         .onChange(of: window.activeProfileID) { _, _ in
-            window.suggestions.update(prefix: ask, window: window, forceIntelligence: true)
+            window.suggestions.update(prefix: ask, window: window)
         }
         .onDisappear { window.suggestions.dismiss() }
     }
 
     private var canSubmit: Bool { !ask.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// The start page draws its own background, so its dialogs are solid rather
+    /// than blurred over a website.
+    private var startPageSurface: AetherSurfaceStyle {
+        AetherSurfaceResolver.style(.homepage, darkHomepage: theme.dark)
+    }
 
     private var askCard: some View {
         VStack(spacing: 0) {
@@ -75,23 +93,19 @@ public struct NewTabView: View {
             }
             .padding(.horizontal, 17)
             .frame(height: 44)
+            .background {
+                if !canSubmit { AetherSearchFieldBackground(radius: AetherMetrics.fieldRadius) }
+            }
+            .padding(.horizontal, 7)
+            .padding(.top, 7)
             if canSubmit {
                 suggestionRows
-                    .transition(.opacity)
+                    .transition(AetherMotion.disclosure(reduced, expanded: true))
             }
         }
+        .padding(.bottom, canSubmit ? 7 : 0)
         .background {
-            let shape = RoundedRectangle(cornerRadius: 17, style: .continuous)
-            ZStack {
-                AetherStrongBlurView().clipShape(shape)
-                shape.fill(theme.dark
-                    ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.32)
-                    : Color.white.opacity(0.55))
-                shape.fill(.clear)
-                    .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)),
-                                 in: shape)
-                    .glassEffectTransition(.materialize)
-            }
+            if canSubmit { AetherSuggestionBackground() }
         }
         .animation(AetherMotion.morph(reduced), value: canSubmit)
     }
@@ -122,12 +136,24 @@ public struct NewTabView: View {
                     }
                     .padding(.horizontal, 13)
                     .frame(height: 40)
-                    .background(index == window.suggestions.selected ? theme.selected : .clear,
-                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(index == window.suggestions.selected
+                                  ? theme.sidebarSelection
+                                  : hoveredSuggestionID == row.id ? theme.hover : .clear)
+                    }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .aetherPointingCursor()
+                .animation(AetherMotion.hover(reduced), value: hoveredSuggestionID)
+                .onHover { hovering in
+                    if hovering {
+                        hoveredSuggestionID = row.id
+                    } else if hoveredSuggestionID == row.id {
+                        hoveredSuggestionID = nil
+                    }
+                }
                 .accessibilityIdentifier("aether.center-suggestion.\(row.kind.rawValue)")
             }
         }
@@ -150,7 +176,7 @@ public struct NewTabView: View {
         }
         ask = ""
         window.suggestions.dismiss()
-        window.navigateSelected(text, intelligence: true)
+        window.navigateSelected(text)
     }
 
     private func choose(_ row: OmniboxSuggestion) {
@@ -163,7 +189,7 @@ public struct NewTabView: View {
         } else if let url = row.url {
             window.navigateSelected(url)
         } else {
-            window.navigateSelected(row.completion ?? query, intelligence: true)
+            window.navigateSelected(row.completion ?? query)
         }
     }
 
@@ -222,7 +248,7 @@ public struct NewTabView: View {
                 .padding(7)
                 .frame(width: 218)
                 .background { AetherPopoverBackground() }
-                .environment(\.aetherChromeAppearance, theme.dark ? .dark : .light)
+                .environment(\.aetherSurfaceStyle, startPageSurface)
                 .preferredColorScheme(theme.dark ? .dark : .light)
                 .presentationBackground(.clear)
         }

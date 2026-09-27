@@ -44,6 +44,13 @@ extension AetherEngineAdapter: BrowserPageTextProviding {
   }
 }
 
+extension AetherEngineAdapter: BrowserNativeSemanticActions {
+  func joinMeeting(pageID: String) async {
+    guard let pageID = try? page(pageID) else { return }
+    await engine.runtime.joinMeeting(pageID: pageID)
+  }
+}
+
 extension BrowserSearchSignal {
   var localSignal: LocalSignal? {
     guard let address = URL(string: url), address.host != nil else { return nil }

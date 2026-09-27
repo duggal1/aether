@@ -1,0 +1,5 @@
+[latency]       0.0ms epoch=1790336802048 app.init.start
+[latency]      26.6ms epoch=1790336802075 app.init.end
+sandbox_extension_issue_file_to_process failed for /tmp/aether-perf-before-20260925.app: 1 (Operation not permitted)
+[latency]     487.0ms epoch=1790336802535 model.created
+[latency]     487.6ms epoch=1790336802536 app.delegate.launched

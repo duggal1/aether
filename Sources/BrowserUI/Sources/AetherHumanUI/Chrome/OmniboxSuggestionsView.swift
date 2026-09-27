@@ -2,9 +2,8 @@ import SwiftUI
 
 public struct OmniboxSuggestionsView: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @Namespace private var glassNS
     let model: OmniboxSuggestionModel
     let prefix: String
     let provider: SearchProvider
@@ -19,18 +18,14 @@ public struct OmniboxSuggestionsView: View {
     }
 
     public var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            VStack(spacing: 0) {
-                ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
-                    if index == separatorIndex { gap }
-                    OmniboxSuggestionRow(row: row, prefix: prefix, provider: provider,
-                                         selected: model.selected == index,
-                                         namespace: glassNS,
-                                         onHoverSelect: { model.select(index) }) {
-                        onChoose(row)
-                    }
-                    .id(row.id)
+        VStack(spacing: 0) {
+            ForEach(Array(model.rows.enumerated()), id: \.element.id) { index, row in
+                if index == separatorIndex { gap }
+                OmniboxSuggestionRow(row: row, prefix: prefix, provider: provider,
+                                     selected: model.selected == index) {
+                    onChoose(row)
                 }
+                .id(row.id)
             }
         }
         .padding(9)
@@ -40,8 +35,8 @@ public struct OmniboxSuggestionsView: View {
         }
         .offset(y: 37)
         .zIndex(2)
-        .transition(AetherMotion.blurInOut(reduced))
-        .animation(AetherMotion.container(reduced), value: model.rows.count)
+        .transition(AetherMotion.surfaceTransition(reduced, anchor: .top))
+        .animation(AetherMotion.surfaceOpen(reduced), value: model.rows.count)
     }
 
     private var separatorIndex: Int? {
@@ -58,18 +53,18 @@ public struct OmniboxSuggestionsView: View {
 
 private struct OmniboxSuggestionRow: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @State private var hovering = false
     let row: OmniboxSuggestion
     let prefix: String
     let provider: SearchProvider
     let selected: Bool
-    let namespace: Namespace.ID
-    let onHoverSelect: () -> Void
     let action: () -> Void
 
-    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     var body: some View {
         Button(action: action) {
@@ -80,21 +75,20 @@ private struct OmniboxSuggestionRow: View {
                 trailing
             }
             .font(AetherType.body(13))
-            .foregroundStyle(appearance.text)
+            .foregroundStyle(skin.primaryText)
             .padding(.horizontal, 12)
             .frame(height: 40)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 ZStack {
                     if selected {
-                        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        shape.fill(.clear)
-                            .glassEffect(.regular.tint(appearance.isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
-                            .glassEffectID("omnibox.selection", in: namespace)
-                            .glassEffectTransition(.matchedGeometry)
+                        // Apple Wi-Fi-menu style highlight: a subtle translucent
+                        // fill over the blur, never a flat grey slab.
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(skin.selectionFill)
                     } else if hovering {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(appearance.hover)
+                            .fill(skin.hoverFill)
                     }
                 }
             }
@@ -104,14 +98,12 @@ private struct OmniboxSuggestionRow: View {
         .aetherFocusTreatment(radius: 8)
         .focusEffectDisabled()
         .aetherPointingCursor()
-        .animation(AetherMotion.textResolve(reduced), value: row.title)
-        .animation(AetherMotion.dropdown(reduced), value: selected)
+        .animation(AetherMotion.selection(reduced), value: selected)
         // Hover only highlights. It must never move the keyboard selection, or
         // Enter would commit whatever the pointer happens to rest on instead of
         // the address the user typed.
         .onHover { inside in
             hovering = inside
-            if inside { onHoverSelect() }
         }
         .accessibilityIdentifier("aether.suggestion.\(row.kind.rawValue)")
     }
@@ -122,7 +114,7 @@ private struct OmniboxSuggestionRow: View {
             DomainIcon(row.url ?? provider.homepage.absoluteString, size: 18)
                 .frame(width: 18, alignment: .center)
         case .completion:
-            BrowserIconView(icon: .search, tint: appearance.secondary)
+            BrowserIconView(icon: .search, tint: skin.secondaryIcon)
                 .iconSize(12)
                 .frame(width: 16, alignment: .center)
         case .tab, .bookmark, .history:
@@ -142,8 +134,6 @@ private struct OmniboxSuggestionRow: View {
                 .font(AetherType.rowTitle(12))
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .id("title-\(row.title)")
-                .transition(.opacity)
         }
     }
 
@@ -152,38 +142,38 @@ private struct OmniboxSuggestionRow: View {
         let head = String(row.title.prefix(match))
         let tail = String(row.title.dropFirst(match))
         return HStack(spacing: 0) {
-            Text(head).foregroundColor(appearance.text)
-            Text(tail).foregroundColor(appearance.secondary)
+            Text(head).foregroundColor(skin.primaryText)
+            Text(tail).foregroundColor(skin.secondaryText)
         }
             .lineLimit(1)
             .truncationMode(.tail)
-            .id("completion-\(row.title)")
-            .transition(.opacity)
     }
 
     @ViewBuilder private var trailing: some View {
         switch row.kind {
         case .completion:
-            if selected { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(appearance.secondary) }
+            if selected {
+                Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(skin.secondaryIcon)
+            }
         case .tab, .bookmark, .history:
             HStack(spacing: 7) {
                 if let host = row.host, !row.title.localizedCaseInsensitiveContains(host) {
                     Text(host)
                         .font(AetherType.caption(11))
-                        .foregroundStyle(appearance.secondary)
+                        .foregroundStyle(skin.metadataText)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                        .id("host-\(host)")
-                        .transition(.opacity)
                 }
                 if selected {
-                    Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(appearance.secondary)
+                    Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(skin.secondaryIcon)
                 } else {
-                    BrowserIconView(icon: kindIcon, tint: appearance.secondary).iconSize(13)
+                    BrowserIconView(icon: kindIcon, tint: skin.secondaryIcon).iconSize(13)
                 }
             }
         case .open:
-            if selected { Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(appearance.secondary) }
+            if selected {
+                Image(systemName: "return").font(AetherType.symbol(12)).foregroundStyle(skin.secondaryIcon)
+            }
         }
     }
 
@@ -193,11 +183,5 @@ private struct OmniboxSuggestionRow: View {
         case .bookmark: .bookmark
         default: .history
         }
-    }
-
-    private func hint(_ glyph: String) -> some View {
-        Text(glyph)
-            .font(AetherType.data(10))
-            .foregroundStyle(theme.soft)
     }
 }

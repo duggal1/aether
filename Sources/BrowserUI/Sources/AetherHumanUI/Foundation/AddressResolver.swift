@@ -6,6 +6,11 @@ public enum SearchProvider: String, CaseIterable, Codable, Identifiable, Sendabl
     case duckDuckGo = "DuckDuckGo"
     case bing = "Bing"
     case brave = "Brave"
+    case qwant = "Qwant"
+    case ecosia = "Ecosia"
+    case startpage = "Startpage"
+    case kagi = "Kagi"
+    case custom = "Custom"
     case jev = "Jev"
     public var id: String { rawValue }
     public var searchName: String {
@@ -13,17 +18,30 @@ public enum SearchProvider: String, CaseIterable, Codable, Identifiable, Sendabl
         case .google, .googleAI: "Google"
         case .duckDuckGo: "DuckDuckGo"
         case .bing: "Bing"
+        case .ecosia: "Ecosia"
+        case .startpage: "Startpage"
+        case .kagi: "Kagi"
         case .brave: "Brave"
+        case .qwant: "Qwant"
+        case .custom: customHost ?? "Custom"
         case .jev: "Jev"
         }
     }
+    /// Search-port: host of custom template for display. Set via resolve path.
+    public static var customHost: String? = nil
+    public var customHost: String? { Self.customHost }
     public var homepage: URL {
         switch self {
         case .google: URL(string: "https://www.google.com/")!
         case .googleAI: URL(string: "https://www.google.com/ai")!
         case .duckDuckGo: URL(string: "https://duckduckgo.com/")!
         case .bing: URL(string: "https://www.bing.com/")!
+        case .ecosia: URL(string: "https://www.ecosia.org/")!
+        case .startpage: URL(string: "https://www.startpage.com/")!
+        case .kagi: URL(string: "https://kagi.com/")!
         case .brave: URL(string: "https://search.brave.com/")!
+        case .qwant: URL(string: "https://www.qwant.com/")!
+        case .custom: URL(string: "https://www.google.com/")!
         case .jev: URL(string: "https://s1.dev")!
         }
     }
@@ -32,14 +50,73 @@ public enum SearchProvider: String, CaseIterable, Codable, Identifiable, Sendabl
         case .google, .googleAI: URL(string: "https://www.google.com/search")!
         case .duckDuckGo: URL(string: "https://duckduckgo.com/")!
         case .bing: URL(string: "https://www.bing.com/search")!
+        case .ecosia: URL(string: "https://www.ecosia.org/search")!
+        case .startpage: URL(string: "https://www.startpage.com/sp/search")!
+        case .kagi: URL(string: "https://kagi.com/search")!
         case .brave: URL(string: "https://search.brave.com/search")!
-        case .jev: nil
+        case .qwant: URL(string: "https://www.qwant.com/")!
+        case .custom, .jev: nil
         }
+    }
+    /// Search-port: Engine.template equivalent — %s templates for all providers.
+    public func template(custom: String) -> String {
+        switch self {
+        case .google, .googleAI: return "https://www.google.com/search?q=%s"
+        case .duckDuckGo: return "https://duckduckgo.com/?q=%s"
+        case .bing: return "https://www.bing.com/search?q=%s"
+        case .ecosia: return "https://www.ecosia.org/search?q=%s"
+        case .startpage: return "https://www.startpage.com/sp/search?query=%s"
+        case .kagi: return "https://kagi.com/search?q=%s"
+        case .brave: return "https://search.brave.com/search?q=%s"
+        case .qwant: return "https://www.qwant.com/?q=%s"
+        case .custom:
+            let t = custom.trimmingCharacters(in: .whitespacesAndNewlines)
+            return Self.acceptsTemplate(t) ? t : "https://www.google.com/search?q=%s"
+        case .jev: return "https://www.google.com/search?q=%s"
+        }
+    }
+    public static func url(for text: String, template: String) -> URL? {
+        let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let mark = "SEARCHWORDSGOHERE"
+        let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        guard !words.isEmpty,
+              let escaped = words.addingPercentEncoding(withAllowedCharacters: unreserved),
+              let base = URL(string: template.replacingOccurrences(of: "%s", with: mark))?.absoluteString
+        else { return nil }
+        return URL(string: base.replacingOccurrences(of: mark, with: escaped))
+    }
+    public static func acceptsTemplate(_ template: String) -> Bool {
+        let t = template.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.contains("%s"),
+              let a = URLComponents(string: t.replacingOccurrences(of: "%s", with: "a")),
+              let b = URLComponents(string: t.replacingOccurrences(of: "%s", with: "b")),
+              let scheme = a.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = a.host, !host.isEmpty, host == b.host
+        else { return false }
+        return true
     }
     public var usesIntelligence: Bool { self == .jev }
     public var endpoint: URL? { searchEndpoint }
     public func searchURL(for query: String, locality: SearchLocality? = nil,
-                          localityTerms: Bool = false) -> URL? {
+                          localityTerms: Bool = false, customTemplate: String = "") -> URL? {
+        // Search-port: custom %s template path (Engine.url equivalent).
+        if self == .custom {
+            var text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            if localityTerms, let locality { text += " " + locality.city + ", " + locality.regionCode }
+            return Self.url(for: text, template: template(custom: customTemplate))
+        }
+        // Search-port: startpage uses `query`, others use `q`.
+        if self == .startpage {
+            let cleaned = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleaned.isEmpty, let searchEndpoint,
+                  var components = URLComponents(url: searchEndpoint, resolvingAgainstBaseURL: false)
+            else { return nil }
+            components.fragment = nil
+            var text = cleaned
+            if localityTerms, let locality { text += " " + locality.city + ", " + locality.regionCode }
+            components.queryItems = [URLQueryItem(name: "query", value: text)]
+            return components.url
+        }
         let cleaned = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty, let searchEndpoint,
               var components = URLComponents(url: searchEndpoint, resolvingAgainstBaseURL: false)
@@ -61,7 +138,7 @@ public enum SearchProvider: String, CaseIterable, Codable, Identifiable, Sendabl
                 items.append(URLQueryItem(name: "setlang", value: "en-US"))
             case .duckDuckGo:
                 items.append(URLQueryItem(name: "kl", value: "us-en"))
-            case .brave, .jev:
+            case .ecosia, .startpage, .kagi, .brave, .qwant, .custom, .jev:
                 break
             }
         }
@@ -195,10 +272,10 @@ public enum AddressResolver {
 
     public static func resolve(_ raw: String, provider: SearchProvider = .google,
                                locality: SearchLocality? = nil,
-                               localityTerms: Bool = false) -> URL? {
+                               localityTerms: Bool = false, customTemplate: String = "") -> URL? {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         if let url = directURL(text) { return url }
-        return provider.searchURL(for: text, locality: locality, localityTerms: localityTerms)
+        return provider.searchURL(for: text, locality: locality, localityTerms: localityTerms, customTemplate: customTemplate)
     }
 }

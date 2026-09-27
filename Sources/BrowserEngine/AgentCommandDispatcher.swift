@@ -1,5 +1,6 @@
 import AetherCapture
 import AgentProtocol
+import BrowserEvents
 import DOM
 import Diagnostics
 import EngineCore
@@ -18,6 +19,9 @@ public final class AgentCommandDispatcher: Sendable {
     do {
       guard let method = AgentMethod(rawValue: request.method) else {
         return failure(request, code: "method_not_found", message: request.method)
+      }
+      if let blocked = await handoffAutomationBlocked(request, method: method) {
+        return blocked
       }
       let result: JSONValue
       switch method {
@@ -175,6 +179,17 @@ public final class AgentCommandDispatcher: Sendable {
       case .pageClick:
         let page = PageID(rawValue: try uint64(request, "page"))
         result = pageJSON(try await engine.runtime.click(pageID: page, nodeID: try nodeID(request)))
+      case .pageDrag:
+        let page = PageID(rawValue: try uint64(request, "page"))
+        guard let startX = request.params["startX"]?.number,
+              let startY = request.params["startY"]?.number,
+              let endX = request.params["endX"]?.number,
+              let endY = request.params["endY"]?.number else {
+          throw DispatchError.badParameter("startX/startY/endX/endY")
+        }
+        try await engine.runtime.drag(pageID: page,
+          from: Point(x: startX, y: startY), to: Point(x: endX, y: endY))
+        result = .object(["ok": .bool(true)])
       case .pageType:
         let page = PageID(rawValue: try uint64(request, "page"))
         guard let text = request.params["text"]?.string else {
@@ -540,6 +555,56 @@ public final class AgentCommandDispatcher: Sendable {
             try await engine.runtime.removeBookmark(
               contextID: ContextID(rawValue: try uint64(request, "context")), url: url))
         ])
+      case .credentialsList:
+        result = .array(
+          try await engine.runtime.listCredentials(
+            contextID: ContextID(rawValue: try uint64(request, "context")),
+            origin: request.params["origin"]?.string
+          ).map(credentialJSON))
+      case .credentialsGet:
+        guard let credentialID = request.params["credential"]?.string else {
+          throw DispatchError.badParameter("credential")
+        }
+        let (gotUsername, gotPassword) = try await engine.runtime.credentialSecret(
+          contextID: ContextID(rawValue: try uint64(request, "context")),
+          credentialID: credentialID)
+        let gotMeta = try await engine.runtime.listCredentials(
+          contextID: ContextID(rawValue: try uint64(request, "context")))
+          .first { $0.id == credentialID }
+        var gotObject = (gotMeta.map(credentialJSON) ?? .object([:]))
+        if case .object(var fields) = gotObject {
+          fields["username"] = .string(gotUsername)
+          fields["password"] = .string(gotPassword)
+          gotObject = .object(fields)
+        }
+        result = gotObject
+      case .credentialsSave:
+        guard let origin = request.params["origin"]?.string,
+          let username = request.params["username"]?.string,
+          let password = request.params["password"]?.string
+        else { throw DispatchError.badParameter("origin/username/password") }
+        result = credentialJSON(
+          try await engine.runtime.saveCredential(
+            contextID: ContextID(rawValue: try uint64(request, "context")),
+            origin: origin, username: username, password: password,
+            label: request.params["label"]?.string ?? ""))
+      case .credentialsDelete:
+        guard let credentialID = request.params["credential"]?.string else {
+          throw DispatchError.badParameter("credential")
+        }
+        result = .object([
+          "removed": .bool(
+            try await engine.runtime.deleteCredential(
+              contextID: ContextID(rawValue: try uint64(request, "context")),
+              credentialID: credentialID))
+        ])
+      case .credentialsFill:
+        guard let credentialID = request.params["credential"]?.string else {
+          throw DispatchError.badParameter("credential")
+        }
+        try await engine.runtime.fillCredential(
+          pageID: PageID(rawValue: try uint64(request, "page")), credentialID: credentialID)
+        result = .object(["ok": .bool(true)])
       case .contextSuggest:
         guard let prefix = request.params["prefix"]?.string else {
           throw DispatchError.badParameter("prefix")
@@ -596,6 +661,42 @@ public final class AgentCommandDispatcher: Sendable {
             .reduce(into: [String: JSONValue]()) { partial, entry in
               partial[String(entry.key.rawValue)] = .string(entry.value.rawValue)
             })
+      case .workspaceLeaseAcquire:
+        let contextID = ContextID(rawValue: try uint64(request, "context"))
+        let duration = try leaseDuration(request)
+        result = workspaceLeaseJSON(
+          try await engine.runtime.acquireWorkspaceLease(
+            contextID: contextID, agentID: request.params["agentID"]?.string ?? "local",
+            durationSeconds: duration, branchID: request.params["branchID"]?.string,
+            repositoryRoot: request.params["repositoryRoot"]?.string,
+            worktreePath: request.params["worktreePath"]?.string))
+      case .workspaceLeaseRenew:
+        let contextID = ContextID(rawValue: try uint64(request, "context"))
+        guard let leaseID = request.params["leaseID"]?.string.flatMap(UUID.init(uuidString:))
+        else { throw DispatchError.badParameter("leaseID") }
+        result = workspaceLeaseJSON(
+          try await engine.runtime.renewWorkspaceLease(
+            contextID: contextID, leaseID: leaseID,
+            agentID: request.params["agentID"]?.string ?? "local",
+            durationSeconds: try leaseDuration(request)))
+      case .workspaceLeaseRelease, .workspaceLeaseCancel:
+        let contextID = ContextID(rawValue: try uint64(request, "context"))
+        guard let leaseID = request.params["leaseID"]?.string.flatMap(UUID.init(uuidString:))
+        else { throw DispatchError.badParameter("leaseID") }
+        let lease: BrowserWorkspaceLease
+        if method == .workspaceLeaseCancel {
+          lease = try await engine.runtime.cancelWorkspaceLease(
+            contextID: contextID, leaseID: leaseID)
+        } else {
+          lease = try await engine.runtime.releaseWorkspaceLease(
+            contextID: contextID, leaseID: leaseID,
+            agentID: request.params["agentID"]?.string ?? "local")
+        }
+        result = workspaceLeaseJSON(lease)
+      case .workspaceLeaseList:
+        let contextID = request.params["context"]?.exactUInt64.map(ContextID.init(rawValue:))
+        result = .array(
+          await engine.runtime.listWorkspaceLeases(contextID: contextID).map(workspaceLeaseJSON))
       case .pageCapture:
         guard let raw = request.params["url"]?.string, let url = URL(string: raw),
           let path = request.params["path"]?.string
@@ -608,6 +709,38 @@ public final class AgentCommandDispatcher: Sendable {
         else { throw DispatchError.badParameter("manifest") }
         manifest["directory"] = .string(capture.directory.path)
         result = .object(manifest)
+      case .exec:
+        result = try await runExec(request, allowedContexts: nil)
+      case .taskVerify:
+        let input = try typedInput(TaskVerify.self, request: request)
+        try input.validate()
+        result = try AgentProcedureCodec.encodeResult(
+          await engine.verify(input.plan))
+      case .eventsRecent:
+        let input = try typedInput(EventsRecent.self, request: request)
+        try input.validate()
+        let families = input.family.flatMap(BrowserEventFamily.init(rawValue:)).map { Set([$0]) }
+        let contexts = input.context.map { Set([ContextID(rawValue: $0)]) }
+        let pages = input.page.map { Set([PageID(rawValue: $0)]) }
+        let filter = BrowserEventBus.Filter(families: families, contexts: contexts, pages: pages)
+        let events = await engine.runtime.recentEvents(
+          limit: input.effectiveLimit, filter: filter, since: input.effectiveSince)
+        let latest = await engine.runtime.events.lastSequence
+        result = try AgentProcedureCodec.encodeResult(
+          EventsRecent.Output(
+            events: events.map { event in
+              AgentEventEnvelope(
+                sequence: event.sequence, timestamp: event.timestamp.timeIntervalSince1970,
+                family: event.family.rawValue, name: event.name,
+                context: event.identity.context?.rawValue, page: event.identity.page?.rawValue,
+                navigation: event.identity.navigation?.rawValue, branch: event.identity.branch,
+                session: event.identity.session?.rawValue, details: event.details)
+            },
+            nextSequence: latest ?? input.effectiveSince))
+      case .handoffRequest, .handoffList, .handoffClaim, .handoffComplete, .handoffCancel,
+        .handoffResume, .handoffWait, .approvalRequest, .approvalList, .approvalResolve,
+        .approvalCancel, .approvalWait:
+        return await humanRequestResponse(request, method: method)
       }
       return AgentResponse(id: request.id, result: result)
     } catch let error as AgentProcedureError {
@@ -615,6 +748,31 @@ public final class AgentCommandDispatcher: Sendable {
     } catch {
       return failure(request, code: "engine_error", message: String(describing: error))
     }
+  }
+
+  func handleExecRequest(_ request: AgentRequest, allowedContexts: Set<UInt64>?)
+    async -> AgentResponse
+  {
+    do {
+      return AgentResponse(
+        id: request.id, result: try await runExec(request, allowedContexts: allowedContexts))
+    } catch let error as AgentProcedureError {
+      return failure(
+        request, code: "engine_error",
+        message: "Invalid or missing parameter: \(error.message)")
+    } catch {
+      return failure(request, code: "engine_error", message: String(describing: error))
+    }
+  }
+
+  private func runExec(_ request: AgentRequest, allowedContexts: Set<UInt64>?) async throws
+    -> JSONValue
+  {
+    let input = try typedInput(AgentExec.self, request: request)
+    try input.validate()
+    let outcome = await AgentExecRuntime(engine: engine).run(
+      input.program, timeoutMs: input.timeoutMs, allowedContexts: allowedContexts)
+    return try AgentProcedureCodec.encodeResult(outcome)
   }
 
   private func typedInput<P: AgentProcedure>(_ type: P.Type, request: AgentRequest) throws -> P.Input {
@@ -819,6 +977,20 @@ public final class AgentCommandDispatcher: Sendable {
     ])
   }
 
+  /// Metadata only — never a secret. `credentials.get` adds the password
+  /// explicitly at the call site above.
+  private func credentialJSON(_ credential: CredentialInfo) -> JSONValue {
+    .object([
+      "id": .string(credential.id),
+      "profile": .string(credential.profileID),
+      "origin": .string(credential.origin),
+      "username": .string(credential.username),
+      "label": .string(credential.label),
+      "createdAt": .number(credential.createdAt.timeIntervalSince1970),
+      "updatedAt": .number(credential.updatedAt.timeIntervalSince1970),
+    ])
+  }
+
   private func suggestionJSON(_ suggestion: NavigationSuggestion) -> JSONValue {
     var object: [String: JSONValue] = [
       "kind": .string(suggestion.kind), "url": .string(suggestion.url),
@@ -908,6 +1080,27 @@ public final class AgentCommandDispatcher: Sendable {
       "importance": .number(entry.importance),
       "estimatedBytes": .number(Double(entry.estimatedBytes)),
     ])
+  }
+
+  private func workspaceLeaseJSON(_ lease: BrowserWorkspaceLease) -> JSONValue {
+    .object([
+      "workspaceID": .string(lease.workspaceID.uuidString),
+      "leaseID": .string(lease.leaseID.uuidString),
+      "context": .number(Double(lease.contextID.rawValue)),
+      "agentID": .string(lease.agentID),
+      "branchID": lease.branchID.map(JSONValue.string) ?? .null,
+      "repositoryRoot": lease.repositoryRoot.map(JSONValue.string) ?? .null,
+      "worktreePath": lease.worktreePath.map(JSONValue.string) ?? .null,
+      "acquiredAt": .number(lease.acquiredAt),
+      "expiresAt": .number(lease.expiresAt),
+      "state": .string(lease.state.rawValue),
+    ])
+  }
+
+  private func leaseDuration(_ request: AgentRequest) throws -> Double {
+    guard let value = request.params["leaseSeconds"] else { return 300 }
+    guard let duration = value.number else { throw DispatchError.badParameter("leaseSeconds") }
+    return duration
   }
 
   private func profileJSON(_ usage: ProfileUsage) -> JSONValue {

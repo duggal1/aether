@@ -19,6 +19,7 @@ public struct TopTabStripView: View {
         HStack(spacing: 0) {
             HStack(spacing: 7) {
                 ProfileSwitcherView(window: window)
+                AetherExtensionsButton(window: window)
                 IncognitoToggleView(window: window)
             }
             .frame(height: AetherMetrics.profileClusterHeight)
@@ -71,7 +72,9 @@ public struct TopTabStripView: View {
         }
         .padding(.leading, fullscreen ? 12 : trafficLeading + 2).padding(.trailing, 8)
         .frame(height: AetherMetrics.chromeHeight)
-        .background { if showsChrome { AetherChromeBackground(.toolbar) } }
+        .background {
+            if showsChrome { AetherChromeBackground(.tabStrip) }
+        }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
     }

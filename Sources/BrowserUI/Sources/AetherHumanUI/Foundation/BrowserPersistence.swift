@@ -17,18 +17,20 @@ public struct BrowserSessionTab: Codable, Equatable, Sendable, Identifiable {
     public var id: UUID
     public var profileID: UUID
     public var title: String
+    public var customTitle: String
     public var url: String?
     public var isPinned: Bool
-    public init(id: UUID, profileID: UUID, title: String, url: String?, isPinned: Bool) {
+    public init(id: UUID, profileID: UUID, title: String, customTitle: String = "", url: String?, isPinned: Bool) {
         self.id = id; self.profileID = profileID; self.title = title
-        self.url = url; self.isPinned = isPinned
+        self.customTitle = customTitle; self.url = url; self.isPinned = isPinned
     }
     @MainActor public init?(tab: BrowserTab) {
         let isSearch: Bool
         if case .search = tab.loadState { isSearch = true } else { isSearch = false }
-        guard !isSearch else { return nil }
+        // Search-port: private tabs never archived (like Search private tab).
+        guard !isSearch, !tab.isPrivateTab else { return nil }
         id = tab.id; profileID = tab.profileID; title = tab.title
-        url = tab.url; isPinned = tab.isPinned
+        customTitle = tab.customTitle; url = tab.url; isPinned = tab.isPinned
     }
 }
 
@@ -59,9 +61,16 @@ public struct BrowserSessionArchive: Codable, Equatable, Sendable {
 public enum BrowserPersistence {
     private static let key = "aether.human.archive.v1"
     private static let sessionKey = "aether.human.session.v1"
+    /// Search-port: quarantine undecodable payloads instead of dropping silently.
+    public static func quarantine(_ data: Data, name: String, defaults: UserDefaults = .standard) {
+        let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        defaults.set(data, forKey: "aether.quarantine.\(name).\(stamp)")
+    }
     public static func load(defaults: UserDefaults = .standard) -> BrowserArchive {
-        guard let data = defaults.data(forKey: key), let archive = try? JSONDecoder().decode(BrowserArchive.self, from: data) else { return BrowserArchive() }
-        return archive
+        guard let data = defaults.data(forKey: key) else { return BrowserArchive() }
+        if let archive = try? JSONDecoder().decode(BrowserArchive.self, from: data) { return archive }
+        quarantine(data, name: "archive", defaults: defaults)
+        return BrowserArchive()
     }
     public static func save(_ archive: BrowserArchive, defaults: UserDefaults = .standard) {
         if let data = try? JSONEncoder().encode(archive) { defaults.set(data, forKey: key) }
@@ -72,10 +81,10 @@ public enum BrowserPersistence {
         saveSession(session, defaults: defaults)
     }
     public static func loadSession(defaults: UserDefaults = .standard) -> BrowserSessionArchive {
-        guard let data = defaults.data(forKey: sessionKey),
-              let session = try? JSONDecoder().decode(BrowserSessionArchive.self, from: data)
-        else { return BrowserSessionArchive() }
-        return session
+        guard let data = defaults.data(forKey: sessionKey) else { return BrowserSessionArchive() }
+        if let session = try? JSONDecoder().decode(BrowserSessionArchive.self, from: data) { return session }
+        quarantine(data, name: "session", defaults: defaults)
+        return BrowserSessionArchive()
     }
     public static func saveSession(_ session: BrowserSessionArchive, defaults: UserDefaults = .standard) {
         if let data = try? JSONEncoder().encode(session) { defaults.set(data, forKey: sessionKey) }

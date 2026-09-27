@@ -1,4 +1,5 @@
 import AppKit
+import BrowserEvents
 import DOM
 import EngineCore
 import Foundation
@@ -17,6 +18,19 @@ final class WebKitStoreCache {
     let created = WKWebsiteDataStore(forIdentifier: identifier)
     named[identifier] = created
     return created
+  }
+
+  func purge(_ identifier: UUID) async {
+    guard let store = named[identifier] else { return }
+    await store.removeData(
+      ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+    named[identifier] = nil
+  }
+}
+
+extension BrowserRuntime {
+  func purgeWebKitStore(identifier: UUID) async {
+    await WebKitStoreCache.shared.purge(identifier)
   }
 }
 
@@ -42,6 +56,9 @@ public struct WebProxyEndpoint: Sendable, Equatable {
 extension BrowserRuntime {
   func webPage(_ id: PageID) async throws -> WebKitPage {
     let record = try requirePage(id)
+    guard record.lifecycle != .discarded else {
+      throw BrowserRuntimeError.invalidState("Page is discarded; restore it before use")
+    }
     if let page = webPages[id] { return page }
     if let task = webPageTasks[id] { return await task.value }
     WebKitNavigationProbe.log("webPage.miss id=\(id)")
@@ -71,12 +88,23 @@ extension BrowserRuntime {
       context = fresh
     }
     if let page = webPages[id] { return page }
-    if let pending = webPageTasks[id] { return await pending.value }
+    if let pending = webPageTasks[id] {
+      let page = await pending.value
+      await applyPreparedPresentationPolicy(to: page, pageID: id)
+      return page
+    }
     let viewport = record.viewport
+    let relay = pageEventChannel.continuation
+    let eventPageID = id
     let task = Task { @MainActor [weak self] in
-      let page = WebKitPage(context: context, viewport: viewport) { [weak self] state in
-        Task { await self?.receiveWebState(state, pageID: id) }
-      }
+      let page = WebKitPage(context: context, viewport: viewport,
+        fileUploadRequested: { [weak self] upload in
+          Task { await self?.classifyFileUpload(pageID: id, context: upload) }
+        },
+        emitEvent: { kind in relay.yield((eventPageID, kind)) }
+      ) { [weak self] state in
+          Task { await self?.receiveWebState(state, pageID: id) }
+        }
       return page
     }
     webPageTasks[id] = task
@@ -85,11 +113,18 @@ extension BrowserRuntime {
     webPageTasks[id] = nil
     guard contextID(containing: id) != nil else {
       await page.close()
+      webPagesPreparedForPresentation.remove(id)
       throw BrowserRuntimeError.pageNotFound(id)
     }
     webPages[id] = page
     webContexts[record.contextID] = page.context
+    await applyPreparedPresentationPolicy(to: page, pageID: id)
     return page
+  }
+
+  private func applyPreparedPresentationPolicy(to page: WebKitPage, pageID: PageID) async {
+    guard webPagesPreparedForPresentation.remove(pageID) != nil else { return }
+    await page.prepareForPresentation()
   }
 
   public func webSurface(pageID: PageID) async throws -> WKWebView {
@@ -98,8 +133,18 @@ extension BrowserRuntime {
 
   public func isWebContentLive(pageID: PageID) -> Bool { webPages[pageID] != nil }
 
+  public func prepareWebPageForPresentation(pageID: PageID) async throws {
+    _ = try requirePage(pageID)
+    guard let page = webPages[pageID] else {
+      webPagesPreparedForPresentation.insert(pageID)
+      return
+    }
+    await page.prepareForPresentation()
+  }
+
   public func warmProfileStore(contextID: ContextID) async throws {
-    _ = try await webContextForCookies(contextID)
+    let context = try await webContextForCookies(contextID)
+    await MainActor.run { WebKitPrewarm.warmProfileStore(context) }
   }
 
   func restoreWebContent(_ id: PageID) async throws {
@@ -107,28 +152,68 @@ extension BrowserRuntime {
     let record = try requirePage(id)
     let target = webStates[id]?.url
       ?? (record.history.indices.contains(record.historyIndex) ? record.history[record.historyIndex] : nil)
-    _ = try await webPage(id)
-    if let target { _ = try await navigateWeb(pageID: id, request: HTTPRequest(url: target)) }
+    let page = try await webPage(id)
+    if let html = record.lastHTML {
+      let url = target ?? URL(string: "https://localhost/")!
+      try await page.loadHTML(html, url: url)
+      _ = try await synchronizedWebInfo(id)
+    } else if let target {
+      _ = try await navigateWeb(pageID: id, request: HTTPRequest(url: target))
+    }
   }
 
   func receiveWebState(_ state: WebPageState, pageID: PageID) {
     guard let contextID = contextID(containing: pageID),
       var page = contexts[contextID]?.pages[pageID],
       state.sequence > (webStates[pageID]?.sequence ?? 0) else { return }
+    let previous = webStates[pageID]
     webStates[pageID] = state
-    page.viewport = state.viewport
-    page.lastActive = Date().timeIntervalSince1970
-    if !state.history.isEmpty {
+    if state.loaded, let previousURL = previous?.url, previousURL != state.url {
+      page.lastHTML = nil
+    }
+    let viewportChanged = previous?.viewport != state.viewport
+    let historyChanged =
+      previous?.history != state.history ||
+      previous?.historyIndex != state.historyIndex
+    let currentHistoryURL = page.history.indices.contains(page.historyIndex)
+      ? page.history[page.historyIndex] : nil
+    let shouldRecordDocumentURL =
+      state.loaded && state.history.isEmpty && state.url != nil && currentHistoryURL != state.url
+    guard viewportChanged || historyChanged || shouldRecordDocumentURL else {
+      publishPageState(pageID)
+      return
+    }
+    if viewportChanged {
+      page.viewport = state.viewport
+    }
+    if historyChanged, !state.history.isEmpty {
       page.history = state.history
       page.historyIndex = state.historyIndex
+    } else if shouldRecordDocumentURL, let url = state.url {
+      // `loadHTMLString` has a base URL but WebKit may not add it to its
+      // back-forward list. Keep the current document address available to
+      // Aether's persisted history/session APIs without inventing an HTTP
+      // response for the synthetic document.
+      if page.historyIndex + 1 < page.history.count {
+        page.history.removeSubrange((page.historyIndex + 1)..<page.history.count)
+      }
+      page.history.append(url)
+      page.historyIndex = page.history.count - 1
     }
     updatePageRecord(page)
   }
 
   func synchronizedWebInfo(_ id: PageID) async throws -> BrowserPageInfo {
     let page = try await webPage(id)
-    receiveWebState(await page.state(), pageID: id)
-    return try pageInfo(id)
+    let state = await page.state()
+    receiveWebState(state, pageID: id)
+    var info = try pageInfo(id)
+    if state.loaded, info.title.isEmpty,
+      let title = try? await page.decode(String.self, "JSON.stringify(document.title)")
+    {
+      info.title = title
+    }
+    return info
   }
 
   func navigateWeb(pageID: PageID, request: HTTPRequest, settle: PageReadiness = .complete) async throws -> BrowserPageInfo {
@@ -146,6 +231,13 @@ extension BrowserRuntime {
       throw error
     }
     let info = try await synchronizedWebInfo(pageID)
+    if let contextID = contextID(containing: pageID), var context = contexts[contextID],
+      var record = context.pages[pageID]
+    {
+      record.lastHTML = nil
+      context.pages[pageID] = record
+      contexts[contextID] = context
+    }
     if let start {
       let total = Date().timeIntervalSince(start) * 1000
       let tail: String
@@ -171,6 +263,77 @@ extension BrowserRuntime {
   public func webDocumentText(pageID: PageID) async throws -> String {
     try await webPage(pageID).script("document.body.innerText")
   }
+
+  /// Clean article markdown for Reader. Not `innerText`: the live DOM is
+  /// cloned, chrome/junk subtrees are removed (nav, header, footer, asides,
+  /// forms, ads, share/subscribe/comment blocks, hidden nodes), the content
+  /// root prefers `<article>` / `[role=main]` / `<main>`, and the remainder is
+  /// converted to headings, paragraphs, lists, quotes, fenced code and links.
+  /// Whitespace is collapsed and output is capped, so Reader gets an article —
+  /// not the page's nav, footer and cookie banners.
+  public func webReaderMarkdown(pageID: PageID) async throws -> String {
+    try await webPage(pageID).script(Self.readerExtractionScript)
+  }
+
+  private static let readerExtractionScript = """
+  (() => {
+    const JUNK_TAGS = new Set(['SCRIPT','STYLE','NOSCRIPT','IFRAME','CANVAS','SVG','VIDEO','AUDIO','FORM','BUTTON','SELECT','INPUT','TEXTAREA','OPTION','NAV','HEADER','FOOTER','ASIDE','DIALOG']);
+    const JUNK_SEL = '[role="banner"],[role="contentinfo"],[role="complementary"],[role="navigation"],[hidden],.ad,.ads,.advert,.sidebar,.menu,.nav,.navbar,.footer,.header,.cookie,.popup,.modal,.share,.sharing,.social,.subscribe,.newsletter,.related,.comments,.byline,.breadcrumb';
+    const INLINE = new Set(['A','SPAN','CODE','STRONG','B','EM','I','U','SMALL','TIME','ABBR','CITE','Q','SUB','SUP','MARK','IMG','BR']);
+    const root = document.querySelector('article') || document.querySelector('[role="main"]') || document.querySelector('main') || document.body;
+    if (!root) return '';
+    const clone = root.cloneNode(true);
+    clone.querySelectorAll(JUNK_SEL).forEach(n => n.remove());
+    JUNK_TAGS.forEach(t => Array.from(clone.getElementsByTagName(t)).forEach(n => n.remove()));
+    const out = [];
+    const clean = s => (s || '').replace(/[ \\t\\u00a0]+/g, ' ').trim();
+    function inlineText(el) {
+      let s = '';
+      el.childNodes.forEach(n => {
+        if (n.nodeType === 3) { s += n.textContent; }
+        else if (n.nodeType === 1) {
+          const t = n.tagName;
+          if (t === 'BR') s += '\\n';
+          else if (t === 'A') {
+            const inner = inlineText(n).trim();
+            const href = (n.getAttribute('href') || '').trim();
+            s += (inner && /^https?:\\/\\//.test(href)) ? '[' + inner + '](' + href + ')' : inner;
+          }
+          else if (t === 'CODE') s += '`' + inlineText(n).trim() + '`';
+          else if (t === 'STRONG' || t === 'B') s += '**' + inlineText(n).trim() + '**';
+          else if (t === 'EM' || t === 'I') s += '*' + inlineText(n).trim() + '*';
+          else if (!JUNK_TAGS.has(t)) s += inlineText(n);
+        }
+      });
+      return s.replace(/[ \\t\\u00a0]+/g, ' ');
+    }
+    function blocks(el) {
+      el.childNodes.forEach(n => {
+        if (n.nodeType === 3) { const s = clean(n.textContent); if (s) out.push(s); return; }
+        if (n.nodeType !== 1) return;
+        const t = n.tagName;
+        if (JUNK_TAGS.has(t) || t === 'TD' || t === 'TH') return;
+        if (/^H[1-6]$/.test(t)) { const s = clean(inlineText(n)); if (s) out.push('#'.repeat(Number(t[1])) + ' ' + s); }
+        else if (t === 'LI') { const s = clean(inlineText(n)); if (s) out.push('- ' + s); }
+        else if (t === 'PRE') { const c = (n.textContent || '').replace(/\\n{3,}/g, '\\n\\n').trim(); if (c) out.push('```\\n' + c + '\\n```'); }
+        else if (t === 'BLOCKQUOTE') { const s = clean(inlineText(n)).replace(/\\n+/g, '\\n> '); if (s) out.push('> ' + s); }
+        else if (t === 'HR') out.push('---');
+        else if (t === 'TR') {
+          const cells = Array.from(n.children).filter(c => c.tagName === 'TD' || c.tagName === 'TH').map(c => clean(inlineText(c))).filter(Boolean);
+          if (cells.length) out.push(cells.join(' | '));
+        }
+        else if (t === 'P' || t === 'DIV' || t === 'SECTION' || t === 'ARTICLE' || t === 'MAIN' || t === 'FIGURE' || t === 'UL' || t === 'OL' || t === 'TABLE' || t === 'TBODY') {
+          const kids = Array.from(n.children);
+          if (kids.length && kids.every(k => INLINE.has(k.tagName))) { const s = clean(inlineText(n)); if (s) out.push(s); }
+          else blocks(n);
+        }
+        else { const s = clean(inlineText(n)); if (s) out.push(s); }
+      });
+    }
+    blocks(clone);
+    return out.join('\\n\\n').replace(/\\n{3,}/g, '\\n\\n').trim().slice(0, 200000);
+  })()
+  """
 
   func configureWebBlocking(contextID: ContextID, rules: String, enabled: Bool) async throws {
     let wantEphemeral = webEphemeral.contains(contextID)

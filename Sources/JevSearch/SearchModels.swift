@@ -156,6 +156,10 @@ public struct JevQuestion: Sendable, Encodable {
     JevQuestion(type: .choice, instructions: instructions, criteria: .options(options))
   }
 
+  public static func score(_ instructions: String, _ levels: [String]) -> JevQuestion {
+    JevQuestion(type: .score, instructions: instructions, criteria: .levels(levels))
+  }
+
   public static func noul(_ instructions: String, yes: String, no: String) -> JevQuestion {
     JevQuestion(
       type: .noul, instructions: instructions, criteria: .options(["true": yes, "false": no]))
@@ -189,6 +193,8 @@ public struct JevResponse: Sendable, Decodable {
 
 public enum JevError: Error, Sendable, CustomStringConvertible {
   case notConfigured
+  case timeout
+  case overloaded
   case transport(String)
   case status(Int, String)
   case decoding(String)
@@ -196,6 +202,8 @@ public enum JevError: Error, Sendable, CustomStringConvertible {
   public var description: String {
     switch self {
     case .notConfigured: return "Jev search is not configured"
+    case .timeout: return "Jev request timed out"
+    case .overloaded: return "Jev request capacity is full"
     case .transport(let value): return value
     case .status(let code, let body): return "HTTP \(code): \(body)"
     case .decoding(let value): return value

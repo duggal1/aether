@@ -1,32 +1,37 @@
 import AppKit
 import SwiftUI
 
+// Warm neutral family (stone), not cold grey. Every surface in both schemes
+// comes from this one ramp so light and dark feel like the same product.
 public enum AetherNeutral {
-    public static let background: UInt = 0x171717
-    public static let chrome: UInt = 0x1B1B1B
-    public static let card: UInt = 0x202020
-    public static let hover: UInt = 0x292929
-    public static let selected: UInt = 0x2D2D2D
-    public static let input: UInt = 0x2D2D2D
-    public static let focus: UInt = 0x323232
-    public static let dropdownNested: UInt = 0x252525
-    public static let text: UInt = 0xF5F5F5
-    public static let textStrong: UInt = 0xFAFAFA
-    public static let muted: UInt = 0xA3A3A3
-    public static let tertiary: UInt = 0x737373
+    // Dark scheme: warm charcoal, never pure black.
+    public static let background: UInt = 0x151413
+    public static let chrome: UInt = 0x1F1E1C
+    public static let card: UInt = 0x232120
+    public static let hover: UInt = 0x2C2A27
+    public static let selected: UInt = 0x35322E
+    public static let input: UInt = 0x2A2825
+    public static let focus: UInt = 0x3A3733
+    public static let dropdownNested: UInt = 0x272523
+    public static let text: UInt = 0xF5F5F4
+    public static let textStrong: UInt = 0xFAFAF9
+    public static let muted: UInt = 0xA8A29E
+    public static let tertiary: UInt = 0x78716C
     public static let hairline: UInt = 0xFFFFFF
-    public static let focusRing: UInt = 0x323232
+    public static let focusRing: UInt = 0x57534E
     public static let folderBlue: UInt = 0x2563EB
     public static let closeOnLight: UInt = 0x1A1B1F
 
-    public static let lightBackground: UInt = 0xFFFFFF
-    public static let lightChrome: UInt = 0xF7F7F7
-    public static let lightCard: UInt = 0xF5F5F5
-    public static let lightHover: UInt = 0xE8E8E8
-    public static let lightSelected: UInt = 0xE0E0E0
-    public static let lightText: UInt = 0x171717
-    public static let lightTextStrong: UInt = 0x000000
-    public static let lightMuted: UInt = 0x525252
+    // Light scheme: warm off-white (porcelain), never pure white.
+    public static let lightBackground: UInt = 0xFBFAF8
+    public static let lightChrome: UInt = 0xF6F4EF
+    public static let lightCard: UInt = 0xF5F4F1
+    public static let lightHover: UInt = 0xE9E6E0
+    public static let lightSelected: UInt = 0xE2DED7
+    public static let lightText: UInt = 0x1C1917
+    public static let lightTextStrong: UInt = 0x0C0A09
+    public static let lightMuted: UInt = 0x57534E
+    public static let lightTertiary: UInt = 0x78716C
     public static let lightHairline: UInt = 0x000000
 }
 
@@ -56,6 +61,12 @@ public enum AetherPalette {
     public static func selected(_ dark: Bool) -> Color {
         dark ? Color.white.opacity(0.12) : Color.black.opacity(0.07)
     }
+    /// Sidebar selection: the exact fill under every rendering sidebar row.
+    /// Search/dropdown selected rows reuse this verbatim so text contrast
+    /// matches the sidebar instead of inventing its own highlight.
+    public static func sidebarSelection(_ dark: Bool) -> Color {
+        dark ? Color.white.opacity(0.10) : Color.black.opacity(0.06)
+    }
     public static func text(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.text, lightHex: AetherNeutral.lightText)
     }
@@ -65,14 +76,16 @@ public enum AetherPalette {
     public static func muted(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.muted, lightHex: AetherNeutral.lightMuted)
     }
+    /// One hairline for every card edge and separator. Visible but quiet:
+    /// an invisible hairline is why cards used to read as borderless slabs.
     public static func hairline(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.hairline, lightHex: AetherNeutral.lightHairline, alpha: 0)
+        dark ? Color.white.opacity(0.08) : Color.black.opacity(0.07)
     }
     public static func input(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.input, lightHex: AetherNeutral.lightHover)
     }
     public static func tertiary(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.tertiary, lightHex: AetherNeutral.lightMuted)
+        neutral(dark, darkHex: AetherNeutral.tertiary, lightHex: AetherNeutral.lightTertiary)
     }
     public static func dropdownNested(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.dropdownNested, lightHex: AetherNeutral.lightHover)
@@ -84,7 +97,10 @@ public enum AetherPalette {
         neutral(dark, darkHex: AetherNeutral.card, lightHex: AetherNeutral.lightCard)
     }
     public static func raised(_ dark: Bool) -> Color {
-        neutral(dark, darkHex: AetherNeutral.selected, lightHex: AetherNeutral.lightSelected)
+        // The raised control step and the selection step are the same elevation:
+        // one definition, so a selected control can never disagree with a
+        // selected row.
+        selected(dark)
     }
     public static func ink(_ dark: Bool) -> Color {
         neutral(dark, darkHex: AetherNeutral.text, lightHex: AetherNeutral.lightText)
@@ -213,12 +229,18 @@ public enum AetherPalette {
     }
 }
 
+/// One shape scale. Every surface picks a step from this list — nothing invents
+/// its own rounding: 8 inline controls, 10 fields, 12 cards, 14 large panels.
 public enum AetherMetrics {
-    public static let cardRadius: CGFloat = 12
-    public static let fieldRadius: CGFloat = 10
+    /// Smallest step: rows, chips, inline buttons, tiles, tab-strip buttons.
     public static let utilityRadius: CGFloat = 8
-    public static let menuRadius: CGFloat = 12
+    /// Every text input and search well.
+    public static let fieldRadius: CGFloat = 10
+    /// Every floating card: popover, menu, suggestion list, dropdown, popup panel.
+    public static let cardRadius: CGFloat = 12
+    /// Full-window panels: history, bookmarks, reader, inspector, settings.
     public static let panelRadius: CGFloat = 14
+    /// Top-tab shape only.
     public static let tabRadius: CGFloat = 14
     public static let tabHeight: CGFloat = 40
     public static let rowHeight: CGFloat = 33
@@ -280,17 +302,20 @@ public enum AetherProgressColor: String, CaseIterable, Codable, Identifiable, Se
     }
 }
 
+/// One elevation ramp for every floating surface. Native popovers carry real
+/// depth; near-zero alphas are why cards used to read as flat slabs that were
+/// pasted onto the page instead of floating above it.
 public enum AetherShadow {
     public static func minimal(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
-        (Color.black.opacity(dark ? 0.06 : 0.03), 2, 1)
+        (Color.black.opacity(dark ? 0.22 : 0.06), 4, 1)
     }
     public static func resting(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
-        (Color.black.opacity(dark ? 0.08 : 0.04), 3, 1)
+        (Color.black.opacity(dark ? 0.34 : 0.11), 12, 3)
     }
     public static func floating(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
-        (Color.black.opacity(dark ? 0.10 : 0.05), 6, 2)
+        (Color.black.opacity(dark ? 0.44 : 0.15), 18, 6)
     }
     public static func sheet(_ dark: Bool) -> (color: Color, radius: CGFloat, y: CGFloat) {
-        (Color.black.opacity(dark ? 0.12 : 0.06), 10, 4)
+        (Color.black.opacity(dark ? 0.54 : 0.20), 30, 12)
     }
 }

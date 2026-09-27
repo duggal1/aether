@@ -11,8 +11,9 @@ public actor JevClient {
 
   public nonisolated var isConfigured: Bool { configuration.hasIntelligence }
 
-  public func ask<S: Encodable & Sendable>(state: S, questions: [String: JevQuestion]) async throws
-    -> JevResponse
+  public func ask<S: Encodable & Sendable>(
+    state: S, questions: [String: JevQuestion], timeout: TimeInterval? = nil
+  ) async throws -> JevResponse
   {
     guard configuration.hasIntelligence else { throw JevError.notConfigured }
     let encoder = JSONEncoder()
@@ -24,7 +25,7 @@ public actor JevClient {
     let body = try JSONSerialization.data(withJSONObject: root)
     let data = try await transport.post(
       body, to: configuration.typeSafeEndpoint, bearer: configuration.typeSafeKey,
-      timeout: configuration.timeout)
+      timeout: timeout ?? configuration.timeout)
     do {
       return try JSONDecoder().decode(JevResponse.self, from: data)
     } catch {

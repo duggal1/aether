@@ -75,7 +75,7 @@ public enum SearchInput {
 
 public actor SearchIntelligence {
   private var configuration: JevConfiguration
-  private var intelligence: JevClient
+  private let semanticSignals: SemanticSignalService
   private var retrieval: Search1APIClient
   private let transport: any HTTPPostTransport
   private var cachedResults: [String: (results: [WebSearchResult], storedAt: Double)] = [:]
@@ -85,19 +85,21 @@ public actor SearchIntelligence {
 
   public init(
     configuration: JevConfiguration = .load(),
-    transport: any HTTPPostTransport = URLSessionTransport()
+    transport: any HTTPPostTransport = URLSessionTransport(),
+    semanticSignals: SemanticSignalService? = nil
   ) {
     self.configuration = configuration
     self.transport = transport
-    self.intelligence = JevClient(configuration: configuration, transport: transport)
+    self.semanticSignals = semanticSignals
+      ?? SemanticSignalService(configuration: configuration, transport: transport)
     self.retrieval = Search1APIClient(configuration: configuration, transport: transport)
   }
 
-  public func updateKeys(typeSafeKey: String, search1APIKey: String) {
+  public func updateKeys(typeSafeKey: String, search1APIKey: String) async {
     let environment = JevConfiguration.load()
     configuration.typeSafeKey = typeSafeKey.isEmpty ? environment.typeSafeKey : typeSafeKey
     configuration.search1APIKey = search1APIKey.isEmpty ? environment.search1APIKey : search1APIKey
-    intelligence = JevClient(configuration: configuration, transport: transport)
+    await semanticSignals.updateKeys(typeSafeKey: typeSafeKey, search1APIKey: search1APIKey)
     retrieval = Search1APIClient(configuration: configuration, transport: transport)
     invalidateCaches()
   }
@@ -167,7 +169,15 @@ public actor SearchIntelligence {
     if !configuration.hasIntelligence { degraded = true }
 
     var ordered = Self.ordered(candidates)
-    if degraded || retrieved.isEmpty || ordered.isEmpty, let fallback = Self.googleFallback(query) {
+    // Google is offered on every search, not only when Jev cannot serve.
+    //
+    // Jev judges and ranks; it cannot retrieve the web, and it cannot answer a
+    // question it misread. Leaving Google out of a search that succeeded meant
+    // the one escape hatch a person has — take the same words to a search
+    // engine — was withdrawn exactly when they were most likely to want it, and
+    // nothing in the results said so. It sits last, below everything Jev was
+    // confident about, so the intelligence leads and the fallback follows.
+    if let fallback = Self.googleFallback(query) {
       ordered.append(fallback)
     }
     return SearchOutcome(
@@ -236,7 +246,7 @@ public actor SearchIntelligence {
         no: "It is unrelated, or only loosely related")
     }
     do {
-      let response = try await intelligence.ask(
+      let response = try await semanticSignals.ask(
         state: RequestState(request: query), questions: questions)
       result.model = response.model
       result.answers = response.answers.count
@@ -278,7 +288,7 @@ public actor SearchIntelligence {
         no: "The result is off topic, an advertisement, or a generic hub page")
     }
     do {
-      let response = try await intelligence.ask(
+      let response = try await semanticSignals.ask(
         state: RequestState(request: query), questions: questions)
       var scores: [Int: Double] = [:]
       for index in results.indices {
@@ -348,7 +358,7 @@ public actor SearchIntelligence {
         options)
     ]
     guard
-      let response = try? await intelligence.ask(
+      let response = try? await semanticSignals.ask(
         state: RequestState(request: token), questions: questions),
       let answer = response.answers["domain"], let choice = answer.choice, choice != "none",
       guesses.contains(choice), let url = URL(string: "https://" + choice)

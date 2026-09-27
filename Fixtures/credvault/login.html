@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>CredVault Fixture — Log in</title></head>
+<body>
+  <main>
+    <h1>Log in</h1>
+    <form id="login" method="post" action="/login">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Log in</button>
+    </form>
+    <p id="login-success" hidden></p>
+    <p id="login-error" hidden></p>
+    <p><a href="/signup.html">New here? Create an account</a></p>
+  </main>
+  <script>
+    document.getElementById('login').addEventListener('submit', event => {
+      event.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const ok = document.getElementById('login-success');
+      const err = document.getElementById('login-error');
+      ok.hidden = true; err.hidden = true;
+      const accounts = JSON.parse(localStorage.getItem('credvault.accounts') || '{}');
+      if (accounts[email] && accounts[email].password === password) {
+        ok.textContent = 'Signed in as ' + email;
+        ok.hidden = false;
+      } else {
+        err.textContent = 'Invalid email or password';
+        err.hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>

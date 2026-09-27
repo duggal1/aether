@@ -14,6 +14,9 @@ public struct NavigationBarView: View {
     public var body: some View {
         HStack(spacing: 4) {
             HStack(spacing: 4) {
+                // No profile control here on purpose: the sidebar owns it in
+                // sidebar arrangement, the tab strip owns it in top arrangement.
+                // Rendering it twice is what made the window look redundant.
                 if window.arrangement == .sidebar {
                     ChromeButton(.sidebar, help: window.sidebarCollapsed ? "Show sidebar" : "Hide sidebar") {
                         withAnimation(AetherMotion.sidebar(reduced)) {
@@ -32,6 +35,8 @@ public struct NavigationBarView: View {
             }
             OmniboxView(window: window).padding(.horizontal, 7)
             HStack(spacing: 2) {
+                AetherJevChip(window: window)
+                AetherExtensionToolbarActions(window: window)
                 ChromeButton(.search, help: "Search tabs, history, bookmarks \u{21E7}\u{2318}A",
                              selected: window.showsTabSearch, iconSize: 14) {
                     window.closeMenus()
@@ -39,32 +44,31 @@ public struct NavigationBarView: View {
                 }
                 ChromeButton(.history, help: "History \u{2318}Y", selected: window.showsHistory, iconSize: 14) {
                     window.closeMenus()
-                    window.showsHistory.toggle()
+                    window.toggleHistoryPanel()
                 }
                 ChromeButton(.moreHorizontal, help: "More browser actions", selected: window.showsMoreMenu, iconSize: 14) {
-                    window.showsMoreMenu.toggle()
+                    // One dropdown at a time: opening this closes the space menu
+                    // and the extensions drawer rather than stacking on them.
+                    if window.showsMoreMenu {
+                        window.showsMoreMenu = false
+                    } else {
+                        window.closeMenus()
+                        window.showsMoreMenu = true
+                    }
                 }
             }
         }
         .padding(.leading, window.arrangement == .sidebar && window.sidebarCollapsed ? 78 : 4)
         .padding(.trailing, 6)
-        .frame(height: 40)
+        .frame(height: AetherMetrics.navigationHeight)
         .background { barSurface.allowsHitTesting(false) }
         .environment(\.colorScheme, chrome?.isDark ?? theme.dark ? .dark : .light)
     }
 
-    // Dia attachment: in top-tabs mode this bar is the same address-input
-    // surface as the active tab, and its background reaches 3pt up behind the
-    // strip so the junction can never show a gap or hairline at any scale.
-    // The strip's scroll clipping would eat a tab-side overlap, so the bridge
-    // is painted from the bar side (which renders above the strip).
+    // One chrome surface. The tab strip above and the address row here are two
+    // tones of the same piece, and the active tab fills with this bar's tone, so
+    // there is no junction for a seam, gap or hairline to appear in.
     private var barSurface: some View {
-        Group {
-            if window.arrangement == .top {
-                (chrome?.addressBG ?? theme.omnibox).padding(.top, -3)
-            } else {
-                AetherChromeBackground(.toolbar)
-            }
-        }
+        AetherChromeBackground(.toolbar)
     }
 }

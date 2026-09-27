@@ -4,15 +4,17 @@ import BrowserEngine
 import EngineCore
 import EngineRuntime
 import Foundation
+import JevSearch
 
 @MainActor
-final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
+final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving, BrowserAgentInteractionObserving {
   let engine: NativeBrowserEngine
   let profileDirectory: URL
   var restoredProfiles: Set<UUID> = []
   var contexts: [UUID: ContextID] = [:]
   var contextTasks: [UUID: Task<ContextID, Error>] = [:]
   var pages: [String: PageID] = [:]
+  var migratedCredentialProfiles: Set<UUID> = []
   var findPositions: [String: (query: String, index: Int)] = [:]
   var surfaces: [String: NSView] = [:]
   var observers: [UUID: AsyncStream<EnginePageSnapshot>.Continuation] = [:]
@@ -95,7 +97,28 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
       title: state.page.title, canGoBack: state.page.canGoBack,
       canGoForward: state.page.canGoForward, isLoading: state.loading,
       contentReady: state.contentReady, paintReady: state.painted, progress: state.progress,
-      isSecure: url?.scheme == "https", error: state.error, closed: state.closed)
+      isSecure: url?.scheme == "https", error: state.error, closed: state.closed,
+      semanticSignals: Self.project(state.semanticSignals))
+  }
+
+  private static func project(_ signals: SemanticPageSignals?) -> BrowserSemanticSignals? {
+    guard let signals else { return nil }
+    return BrowserSemanticSignals(
+      sessionState: signals.sessionState.flatMap { BrowserSessionState(rawValue: $0.rawValue) },
+      sessionConfidence: signals.sessionConfidence,
+      overlayKind: signals.overlay?.kind.flatMap { BrowserOverlayKind(rawValue: $0.rawValue) },
+      overlayConfidence: signals.overlay?.confidence,
+      overlaySafeToDismissProbability: signals.overlay?.safeToDismissProbability,
+      accessGateKind: signals.accessGateKind.flatMap { BrowserAccessGateKind(rawValue: $0.rawValue) },
+      accessGateConfidence: signals.accessGateConfidence,
+      phishingIdentityMismatchProbability: signals.phishingIdentityMismatchProbability,
+      relatedPageID: signals.relatedPageID,
+      relatedPageConfidence: signals.relatedPageConfidence,
+      semanticGroupID: signals.semanticGroupID,
+      uploadIntent: signals.uploadIntent.flatMap { BrowserUploadIntent(rawValue: $0.rawValue) },
+      uploadConfidence: signals.uploadConfidence,
+      tabImportanceScore: signals.tabImportanceScore,
+      tabImportanceConfidence: signals.tabImportanceConfidence)
   }
 
   func navigate(pageID: String, url: URL) async throws {
@@ -121,7 +144,11 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
     surfaces.removeValue(forKey: pageID)?.removeFromSuperview()
     let context = try? await engine.runtime.pageInfo(id).contextID
     try? await engine.closePage(id)
-    if let context { try? await engine.runtime.checkpoint(contextID: context) }
+    if let context {
+      pendingCheckpoints[context]?.cancel()
+      pendingCheckpoints[context] = nil
+      try? await engine.runtime.checkpoint(contextID: context)
+    }
   }
   func persist(_ id: String) async throws {
     let info = try await engine.runtime.pageInfo(page(id))
@@ -149,6 +176,15 @@ final class AetherEngineAdapter: BrowserEnginePort, BrowserPageObserving {
       Task { @MainActor in self?.observers[token] = nil }
     }
     return pair.stream
+  }
+
+  func agentInteractionUpdates() async -> AsyncStream<AgentInteractionUpdate> {
+    await engine.runtime.observeAgentInteractions()
+  }
+
+  func cancelAgentInteraction(pageID: String) async {
+    guard let raw = UInt64(pageID) else { return }
+    await engine.runtime.cancelAgentInteraction(pageID: PageID(rawValue: raw))
   }
 
   func updatePrivacy(profileID: UUID, policy: BrowserPrivacyPolicy) async throws {

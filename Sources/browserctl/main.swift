@@ -1,5 +1,6 @@
 import AetherCapture
 import AgentProtocol
+import BrowserVerification
 import BrowserEngine
 import DOM
 import EngineCore
@@ -31,8 +32,12 @@ struct BrowserControl {
         try await runLocal(args)
       }
     } catch {
-      FileHandle.standardError.write(Data("\(error)\n\n\(usage)\n".utf8))
-      Foundation.exit(2)
+      FileHandle.standardError.write(Data("\(error)\n".utf8))
+      if let cliError = error as? CLIError, case .usage = cliError {
+        FileHandle.standardError.write(Data("\n\(usage)\n".utf8))
+        Foundation.exit(2)
+      }
+      Foundation.exit(1)
     }
   }
 
@@ -496,6 +501,34 @@ struct BrowserControl {
       request = AgentRequest(
         method: .contextBookmarkRemove,
         params: ["context": .number(context), "url": .string(args[2])])
+    case "credentials-list":
+      guard args.count >= 2, let context = Double(args[1]) else { throw CLIError.usage }
+      var listParams: [String: JSONValue] = ["context": .number(context)]
+      if args.count > 2 { listParams["origin"] = .string(args[2]) }
+      request = AgentRequest(method: .credentialsList, params: listParams)
+    case "credentials-get":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .credentialsGet,
+        params: ["context": .number(context), "credential": .string(args[2])])
+    case "credentials-save":
+      guard args.count >= 5, let context = Double(args[1]) else { throw CLIError.usage }
+      var saveParams: [String: JSONValue] = [
+        "context": .number(context), "origin": .string(args[2]),
+        "username": .string(args[3]), "password": .string(args[4]),
+      ]
+      if args.count > 5 { saveParams["label"] = .string(args[5]) }
+      request = AgentRequest(method: .credentialsSave, params: saveParams)
+    case "credentials-delete":
+      guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .credentialsDelete,
+        params: ["context": .number(context), "credential": .string(args[2])])
+    case "credentials-fill":
+      guard args.count >= 3, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .credentialsFill,
+        params: ["page": .number(page), "credential": .string(args[2])])
     case "context-suggest":
       guard args.count >= 3, let context = Double(args[1]) else { throw CLIError.usage }
       var suggestParams: [String: JSONValue] = [
@@ -533,6 +566,61 @@ struct BrowserControl {
       if args.count > 1, let maxActive = Double(args[1]) { params["maxActive"] = .number(maxActive) }
       if args.count > 2, let budget = Double(args[2]) { params["memoryBudgetBytes"] = .number(budget) }
       request = AgentRequest(method: .fleetSweep, params: params)
+    case "workspace-lease-acquire":
+      guard args.count >= 3, let context = UInt64(args[1]), context > 0 else {
+        throw CLIError.usage
+      }
+      var params: [String: JSONValue] = [
+        "context": .uint(context), "agentID": .string(args[2]),
+      ]
+      if args.count > 3 {
+        guard let duration = Double(args[3]) else { throw CLIError.usage }
+        params["leaseSeconds"] = .number(duration)
+      }
+      if args.count > 4 { params["branchID"] = .string(args[4]) }
+      if args.count > 5 { params["repositoryRoot"] = .string(args[5]) }
+      if args.count > 6 { params["worktreePath"] = .string(args[6]) }
+      guard args.count <= 7 else { throw CLIError.usage }
+      request = AgentRequest(method: .workspaceLeaseAcquire, params: params)
+    case "workspace-lease-renew":
+      guard args.count >= 4, let context = UInt64(args[1]), context > 0,
+        UUID(uuidString: args[2]) != nil
+      else { throw CLIError.usage }
+      var params: [String: JSONValue] = [
+        "context": .uint(context), "leaseID": .string(args[2]), "agentID": .string(args[3]),
+      ]
+      if args.count > 4 {
+        guard let duration = Double(args[4]) else { throw CLIError.usage }
+        params["leaseSeconds"] = .number(duration)
+      }
+      guard args.count <= 5 else { throw CLIError.usage }
+      request = AgentRequest(method: .workspaceLeaseRenew, params: params)
+    case "workspace-lease-release", "workspace-lease-cancel":
+      guard args.count >= 3, let context = UInt64(args[1]), context > 0,
+        UUID(uuidString: args[2]) != nil
+      else { throw CLIError.usage }
+      var params: [String: JSONValue] = [
+        "context": .uint(context), "leaseID": .string(args[2]),
+      ]
+      let method: AgentMethod
+      if command == "workspace-lease-cancel" {
+        method = .workspaceLeaseCancel
+        guard args.count == 3 else { throw CLIError.usage }
+      } else {
+        method = .workspaceLeaseRelease
+        guard args.count == 4 else { throw CLIError.usage }
+        params["agentID"] = .string(args[3])
+      }
+      request = AgentRequest(method: method, params: params)
+    case "workspace-lease-list":
+      var params: [String: JSONValue] = [:]
+      if args.count > 1 {
+        guard args.count == 2, let context = UInt64(args[1]), context > 0 else {
+          throw CLIError.usage
+        }
+        params["context"] = .uint(context)
+      }
+      request = AgentRequest(method: .workspaceLeaseList, params: params)
     case "page-capture":
       guard args.count >= 3 else { throw CLIError.usage }
       let options = try captureOptions(from: Array(args.dropFirst(3)))
@@ -550,6 +638,105 @@ struct BrowserControl {
           "captureSections": .bool(options.captureSections),
           "redactSensitive": .bool(options.redactSensitiveContent),
         ])
+    case "handoff-request":
+      guard args.count >= 4, let page = Double(args[1]) else { throw CLIError.usage }
+      request = AgentRequest(
+        method: .handoffRequest,
+        params: [
+          "page": .number(page), "category": .string(args[2]),
+          "reason": .string(args.dropFirst(3).joined(separator: " ")),
+        ])
+    case "handoff-list":
+      request = AgentRequest(method: .handoffList, params: try humanRequestListParams(args))
+    case "handoff-claim":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2 { params["human"] = .string(args.dropFirst(2).joined(separator: " ")) }
+      request = AgentRequest(method: .handoffClaim, params: params)
+    case "handoff-complete":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2 { params["outcome"] = .string(args.dropFirst(2).joined(separator: " ")) }
+      request = AgentRequest(method: .handoffComplete, params: params)
+    case "handoff-cancel":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2 { params["actor"] = .string(args.dropFirst(2).joined(separator: " ")) }
+      request = AgentRequest(method: .handoffCancel, params: params)
+    case "handoff-resume":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2, let page = Double(args[2]) { params["page"] = .number(page) }
+      request = AgentRequest(method: .handoffResume, params: params)
+    case "handoff-wait":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2, let timeout = Double(args[2]) { params["timeoutMilliseconds"] = .number(timeout) }
+      request = AgentRequest(method: .handoffWait, params: params)
+    case "approval-request":
+      request = AgentRequest(method: .approvalRequest, params: try approvalRequestParams(args))
+    case "approval-list":
+      request = AgentRequest(method: .approvalList, params: try humanRequestListParams(args))
+    case "approval-resolve":
+      guard args.count >= 3, args[2] == "approve" || args[2] == "deny" else {
+        throw CLIError.usage
+      }
+      var params: [String: JSONValue] = ["id": .string(args[1]), "approved": .bool(args[2] == "approve")]
+      if args.count > 3 { params["note"] = .string(args.dropFirst(3).joined(separator: " ")) }
+      request = AgentRequest(method: .approvalResolve, params: params)
+    case "approval-cancel":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2 { params["actor"] = .string(args.dropFirst(2).joined(separator: " ")) }
+      request = AgentRequest(method: .approvalCancel, params: params)
+    case "approval-wait":
+      var params: [String: JSONValue] = ["id": .string(try identifierArgument(args))]
+      if args.count > 2, let timeout = Double(args[2]) { params["timeoutMilliseconds"] = .number(timeout) }
+      request = AgentRequest(method: .approvalWait, params: params)
+    case "exec":
+      guard args.count >= 2 else { throw CLIError.usage }
+      let programData = try Data(
+        contentsOf: URL(fileURLWithPath: args[1]), options: .mappedIfSafe)
+      let programValue = try JSONDecoder().decode(JSONValue.self, from: programData)
+      var execParams: [String: JSONValue] = ["program": programValue]
+      var flagIndex = 2
+      while flagIndex < args.count {
+        guard args[flagIndex] == "--timeout-ms", flagIndex + 1 < args.count,
+          let timeout = Double(args[flagIndex + 1])
+        else { throw CLIError.usage }
+        execParams["timeoutMs"] = .number(timeout)
+        flagIndex += 2
+      }
+      request = AgentRequest(method: .exec, params: execParams)
+    case "task-verify":
+      guard args.count == 2 else { throw CLIError.usage }
+      let plan = try JSONDecoder().decode(
+        BrowserVerificationPlan.self,
+        from: Data(contentsOf: URL(fileURLWithPath: args[1]), options: .mappedIfSafe))
+      let input = TaskVerify.Input(plan: plan)
+      try input.validate()
+      request = AgentRequest(
+        method: .taskVerify, params: try AgentProcedureCodec.encodeParams(input))
+    case "events-recent":
+      var params: [String: JSONValue] = [:]
+      var index = 1
+      while index < args.count {
+        guard index + 1 < args.count else { throw CLIError.usage }
+        let value = args[index + 1]
+        switch args[index] {
+        case "--context":
+          guard let context = UInt64(value), context > 0 else { throw CLIError.usage }
+          params["context"] = .uint(context)
+        case "--page":
+          guard let page = UInt64(value), page > 0 else { throw CLIError.usage }
+          params["page"] = .uint(page)
+        case "--family":
+          params["family"] = .string(value)
+        case "--since":
+          guard let sequence = UInt64(value) else { throw CLIError.usage }
+          params["since"] = .uint(sequence)
+        case "--limit":
+          guard let limit = Int(value) else { throw CLIError.usage }
+          params["limit"] = .integer(Int64(limit))
+        default: throw CLIError.usage
+        }
+        index += 2
+      }
+      request = AgentRequest(method: .eventsRecent, params: params)
     default: throw CLIError.usage
     }
     try printResponse(send(request))
@@ -650,6 +837,9 @@ struct BrowserControl {
   private static func printResponse(_ response: AgentResponse) throws {
     let data = try JSONEncoder().encode(response)
     print(String(decoding: data, as: UTF8.self))
+    if let error = response.error {
+      throw CLIError.remote("\(error.code): \(error.message)")
+    }
   }
 
   private static func settleArg(_ args: [String]) -> String {
@@ -699,6 +889,59 @@ struct BrowserControl {
     return options
   }
 
+  private static func identifierArgument(_ args: [String]) throws -> String {
+    guard args.count >= 2, !args[1].isEmpty else { throw CLIError.usage }
+    return args[1]
+  }
+
+  private static func humanRequestListParams(_ args: [String]) throws -> [String: JSONValue] {
+    var params: [String: JSONValue] = [:]
+    var index = 1
+    while index < args.count {
+      guard index + 1 < args.count else { throw CLIError.usage }
+      switch args[index] {
+      case "--context":
+        guard let value = Double(args[index + 1]) else { throw CLIError.usage }
+        params["context"] = .number(value)
+      case "--page":
+        guard let value = Double(args[index + 1]) else { throw CLIError.usage }
+        params["page"] = .number(value)
+      case "--state", "--kind", "--id":
+        params[String(args[index].dropFirst(2))] = .string(args[index + 1])
+      default: throw CLIError.usage
+      }
+      index += 2
+    }
+    return params
+  }
+
+  private static func approvalRequestParams(_ args: [String]) throws -> [String: JSONValue] {
+    guard args.count >= 3 else { throw CLIError.usage }
+    var params: [String: JSONValue] = [
+      "category": .string(args[1]), "reason": .string(args[2]),
+    ]
+    var index = 3
+    while index < args.count {
+      guard index + 1 < args.count else { throw CLIError.usage }
+      switch args[index] {
+      case "--context":
+        guard let value = Double(args[index + 1]) else { throw CLIError.usage }
+        params["context"] = .number(value)
+      case "--page":
+        guard let value = Double(args[index + 1]) else { throw CLIError.usage }
+        params["page"] = .number(value)
+      case "--agent":
+        params["agent"] = .string(args[index + 1])
+      case "--ttl-seconds":
+        guard let value = Double(args[index + 1]) else { throw CLIError.usage }
+        params["ttlSeconds"] = .number(value)
+      default: throw CLIError.usage
+      }
+      index += 2
+    }
+    return params
+  }
+
   private static func splitCommand(_ line: String) -> [String] {
     var result: [String] = []
     var current = ""
@@ -723,7 +966,14 @@ struct BrowserControl {
 
   private enum CLIError: Error, CustomStringConvertible {
     case usage
-    var description: String { "Invalid command" }
+    case remote(String)
+
+    var description: String {
+      switch self {
+      case .usage: "Invalid command"
+      case .remote(let message): message
+      }
+    }
   }
 
   private static let usage = """
@@ -813,6 +1063,11 @@ struct BrowserControl {
     browserctl --socket <path> context-bookmark-add <context> <url> [title]
     browserctl --socket <path> context-bookmarks <context>
     browserctl --socket <path> context-bookmark-remove <context> <url>
+    browserctl --socket <path> credentials-list <context> [origin]
+    browserctl --socket <path> credentials-get <context> <credential-id>
+    browserctl --socket <path> credentials-save <context> <origin> <username> <password> [label]
+    browserctl --socket <path> credentials-delete <context> <credential-id>
+    browserctl --socket <path> credentials-fill <page> <credential-id>
     browserctl --socket <path> context-suggest <context> <prefix> [limit] [--local]
     browserctl --socket <path> context-search-provider <context>
     browserctl --socket <path> context-set-search-provider <context> <endpoint>
@@ -823,7 +1078,27 @@ struct BrowserControl {
     browserctl --socket <path> fleet-stats
     browserctl --socket <path> fleet-pages
     browserctl --socket <path> fleet-sweep [max-active] [memory-budget-bytes]
+    browserctl --socket <path> workspace-lease-acquire <context> <agent> [seconds] [branch] [repo-root] [worktree]
+    browserctl --socket <path> workspace-lease-renew <context> <lease-id> <agent> [seconds]
+    browserctl --socket <path> workspace-lease-release <context> <lease-id> <agent>
+    browserctl --socket <path> workspace-lease-cancel <context> <lease-id>
+    browserctl --socket <path> workspace-lease-list [context]
     browserctl --socket <path> page-capture <url> <output-dir> [capture-flags]
+    browserctl --socket <path> exec <program.json> [--timeout-ms N]
+    browserctl --socket <path> handoff-request <page> <category> <reason...>
+    browserctl --socket <path> handoff-list [--context N] [--page N] [--state S] [--kind K] [--id ID]
+    browserctl --socket <path> handoff-claim <id> [human]
+    browserctl --socket <path> handoff-complete <id> [outcome]
+    browserctl --socket <path> handoff-cancel <id> [actor]
+    browserctl --socket <path> handoff-resume <id> [page]
+    browserctl --socket <path> handoff-wait <id> [timeout-ms]
+    browserctl --socket <path> approval-request <category> <reason> [--context N] [--page N] [--agent A] [--ttl-seconds N]
+    browserctl --socket <path> approval-list [--context N] [--page N] [--state S] [--id ID]
+    browserctl --socket <path> approval-resolve <id> <approve|deny> [note]
+    browserctl --socket <path> approval-cancel <id> [actor]
+    browserctl --socket <path> approval-wait <id> [timeout-ms]
+    browserctl --socket <path> task-verify <verification-plan.json>
+    browserctl --socket <path> events-recent (--context ID|--page ID) [--family NAME] [--since N] [--limit N]
     capture-flags: [--format webp|jpeg|png] [--quality 0..1] [--width N] [--height N]
       [--max-steps N] [--no-assets] [--no-computed-styles] [--no-sections] [--no-redact]
     """

@@ -37,8 +37,10 @@ public enum CaptureFormat: String, Codable, Sendable {
 
 public struct CaptureOptions: Sendable {
     public var viewport: CaptureViewport = .init()
-    public var preferredFormat: CaptureFormat = .webp
-    public var quality: Double = 0.92
+    /// JPEG: the image format every macOS natively encodes. WebP is honoured
+    /// only where the OS reports an encoder (see NativeImageEncoder).
+    public var preferredFormat: CaptureFormat = .jpeg
+    public var quality: Double = 0.95
     public var overlapCSSPixels: Double = 0
     public var scrollStepFraction: Double = 0.80
     public var settleMilliseconds: Int = 180
@@ -47,7 +49,10 @@ public struct CaptureOptions: Sendable {
     public var maximumResources: Int = 1_200
     public var maximumAssetBytes: Int = 30_000_000
     public var maximumSingleAssetBytes: Int = 8_000_000
-    public var fullPageMaximumPixels: Int = 12_000_000
+    /// Pixel budget for the single vertically-joined whole-page image (and
+    /// for retained per-section pixels): 32M holds several native-resolution
+    /// screens. Per-tile screenshots are always written regardless of this.
+    public var fullPageMaximumPixels: Int = 32_000_000
     public var collectAssets: Bool = true
     public var collectComputedStyles: Bool = true
     public var captureSections: Bool = true

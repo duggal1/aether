@@ -51,11 +51,13 @@ public struct AetherNeutralButtonStyle: ButtonStyle {
 }
 
 public extension View {
+    // Gated via AetherNeutralButtonStyle → AetherPointingCursor (§5): no
+    // direct pointerStyle here, so fullscreen adds no cursor layer above chrome.
     func aetherButton() -> some View {
-        buttonStyle(AetherNeutralButtonStyle(prominent: false)).focusEffectDisabled().pointerStyle(.link)
+        buttonStyle(AetherNeutralButtonStyle(prominent: false)).focusEffectDisabled()
     }
 
     func aetherProminentButton() -> some View {
-        buttonStyle(AetherNeutralButtonStyle(prominent: true)).focusEffectDisabled().pointerStyle(.link)
+        buttonStyle(AetherNeutralButtonStyle(prominent: true)).focusEffectDisabled()
     }
 }

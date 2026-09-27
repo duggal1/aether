@@ -37,6 +37,7 @@ PROBE = """JSON.stringify((() => {
   const fcp = paints.find(e => e.name === 'first-contentful-paint');
   return { href: location.href, title: document.title, readyState: document.readyState,
     timeOrigin: performance.timeOrigin, fcpMs: fcp ? fcp.startTime : null,
+    loadComplete: document.readyState === 'complete',
     lcpMs: l.length ? l[l.length-1].startTime : null,
     requestStartMs: nav ? nav.requestStart : null, responseStartMs: nav ? nav.responseStart : null,
     responseEndMs: nav ? nav.responseEnd : null, redirectCount: nav ? nav.redirectCount : null,
@@ -117,8 +118,8 @@ class AetherHeadless:
             pg = ctl("page-open", str(int(ctx)), url, "commit")
             page_id = int(pg["id"])
             row["dispatchMs"] = round((time.perf_counter() - t0) * 1000, 1)
-            m = self._probe(page_id, url, t0wall, timeout)
-            row.update(self._row(t0, t0wall, m, url))
+            m, ready_elapsed, load_elapsed = self._probe(page_id, url, t0, t0wall, timeout)
+            row.update(self._row(m, ready_elapsed, load_elapsed, t0wall))
             ctl("page-render", str(page_id), os.path.join(folder, f"aether_cold_{site}_{kind}.png"))
             row["screenshot"] = f"aether_cold_{site}_{kind}.png"
             ctl("context-destroy", str(int(ctx)))
@@ -139,8 +140,8 @@ class AetherHeadless:
         try:
             ctl("page-navigate", str(page_id), url, "commit")
             row["dispatchMs"] = round((time.perf_counter() - t0) * 1000, 1)
-            m = self._probe(page_id, url, t0wall, timeout)
-            row.update(self._row(t0, t0wall, m, url))
+            m, ready_elapsed, load_elapsed = self._probe(page_id, url, t0, t0wall, timeout)
+            row.update(self._row(m, ready_elapsed, load_elapsed, t0wall))
             ctl("page-render", str(page_id), os.path.join(folder, f"aether_warm_{site}_{kind}.png"))
             row["screenshot"] = f"aether_warm_{site}_{kind}.png"
         except Exception as e:
@@ -148,21 +149,30 @@ class AetherHeadless:
             row["elapsedMs"] = round((time.perf_counter() - t0) * 1000, 1)
         return row
 
-    def _probe(self, page_id, url, t0wall, timeout):
+    def _probe(self, page_id, url, started, t0wall, timeout):
         deadline = time.monotonic() + timeout
-        last = None
+        last, ready_elapsed, load_elapsed = None, None, None
         while time.monotonic() < deadline:
             raw = ctl("page-eval", str(page_id), PROBE)["value"]
             last = json.loads(raw) if isinstance(raw, str) else raw
             if (last.get("fcpMs") is not None and last.get("timeOrigin", 0) >= t0wall - 10
                     and same_site(url, last.get("href", ""))):
-                return last
+                if ready_elapsed is None:
+                    ready_elapsed = time.perf_counter() - started
+                if last.get("loadComplete") and last.get("loadEventEndMs"):
+                    load_elapsed = time.perf_counter() - started
+                    break
             time.sleep(0.1)
-        raise RuntimeError(f"no FCP; last={json.dumps(last)[:200]}")
+        if ready_elapsed is None:
+            raise RuntimeError(f"no FCP; last={json.dumps(last)[:200]}")
+        return last, ready_elapsed, load_elapsed
 
     @staticmethod
-    def _row(t0, t0wall, m, url):
-        return {"status": "ok", "toReadyMs": round((time.perf_counter() - t0) * 1000, 1),
+    def _row(m, ready_elapsed, load_elapsed, t0wall):
+        return {"status": "ok", "toReadyMs": round(ready_elapsed * 1000, 1),
+                "toLoadMs": round(m["timeOrigin"] - t0wall + m["loadEventEndMs"], 1)
+                if load_elapsed is not None else None,
+                "loadComplete": load_elapsed is not None,
                 "finalURL": m["href"], "title": m["title"],
                 "navigationStartDelayMs": round(m["timeOrigin"] - t0wall, 1),
                 "fcpMs": m["fcpMs"], "lcpMs": m.get("lcpMs"),
@@ -262,16 +272,24 @@ class HeadlessChromium:
         try:
             cdp.call("Page.navigate", {"url": url})
             row["dispatchMs"] = round((time.perf_counter() - t0) * 1000, 1)
-            m, deadline = None, time.monotonic() + timeout
+            m, ready_elapsed, load_elapsed = None, None, None
+            deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
                 m = cdp.js(PROBE)
                 if (m.get("fcpMs") is not None and m.get("timeOrigin", 0) >= t0wall - 10
                         and same_site(url, m.get("href", ""))):
-                    break
+                    if ready_elapsed is None:
+                        ready_elapsed = time.perf_counter()
+                    if m.get("loadComplete") and m.get("loadEventEndMs"):
+                        load_elapsed = time.perf_counter()
+                        break
                 time.sleep(0.1)
-            else:
+            if ready_elapsed is None:
                 raise RuntimeError(f"no FCP; last={json.dumps(m)[:200]}")
-            row.update({"status": "ok", "toReadyMs": round((time.perf_counter() - t0) * 1000, 1),
+            row.update({"status": "ok", "toReadyMs": round((ready_elapsed - t0) * 1000, 1),
+                        "toLoadMs": round(m["timeOrigin"] - t0wall + m["loadEventEndMs"], 1)
+                        if load_elapsed else None,
+                        "loadComplete": load_elapsed is not None,
                         "finalURL": m["href"], "title": m["title"],
                         "navigationStartDelayMs": round(m["timeOrigin"] - t0wall, 1),
                         "fcpMs": m["fcpMs"], "lcpMs": m.get("lcpMs"),
@@ -378,15 +396,20 @@ def main():
         for mode in ("cold", "warm"):
             ok = [r for r in mine if r.get("mode") == mode and r.get("status") == "ok"]
             summary[f"{b}/{mode}"] = {"completed": f"{len(ok)}/{len([r for r in mine if r.get('mode')==mode])}",
+                                      "dispatchMs": dist([r.get("dispatchMs") for r in ok]),
                                       "toReadyMs": dist([r.get("toReadyMs") for r in ok]),
+                                      "toLoadMs": dist([r.get("toLoadMs") for r in ok]),
+                                      "loadCompleted": sum(r.get("loadComplete") is True for r in ok),
                                       "fcpMs": dist([r.get("fcpMs") for r in ok])}
     with open(os.path.join(folder, "results.json"), "w") as f:
         json.dump({"summary": summary, "steps": rows}, f, indent=2)
     lines = [f"# Headless comparison — {stamp} (zero windows, zero focus theft)", "",
-             "| Browser | Completed | Median ready ms | Median FCP ms | p95 ready | Worst |",
-             "| --- | ---: | ---: | ---: | ---: | ---: |"]
+             "| Browser | Completed | Load complete | Median dispatch ms | Median ready ms | Median load ms | Median FCP ms | p95 ready | Worst ready |",
+             "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for key, v in summary.items():
-        lines.append(f"| {key} | {v['completed']} | {v['toReadyMs']['medianMs']} | "
+        lines.append(f"| {key} | {v['completed']} | {v['loadCompleted']} | {v['dispatchMs']['medianMs']} | "
+                     f"{v['toReadyMs']['medianMs']} | "
+                     f"{v['toLoadMs']['medianMs']} | "
                      f"{v['fcpMs']['medianMs']} | {v['toReadyMs']['p95Ms']} | {v['toReadyMs']['worstMs']} |")
     with open(os.path.join(folder, "report.md"), "w") as f:
         f.write("\n".join(lines) + "\n")

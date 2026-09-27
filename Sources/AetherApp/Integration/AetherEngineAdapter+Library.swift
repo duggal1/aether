@@ -25,16 +25,26 @@ extension AetherEngineAdapter: BrowserLibraryProviding {
     let context = try await context(for: profileID)
     let existing = try await engine.runtime.listBookmarks(contextID: context)
     let desired = library.bookmarks.filter { $0.profileID == profileID }
-    for item in existing where !desired.contains(where: { $0.url == item.url }) {
+    let existingByURL = Dictionary(uniqueKeysWithValues: existing.map { ($0.url, $0) })
+    let desiredByURL = Dictionary(uniqueKeysWithValues: desired.map { ($0.url, $0) })
+    var bookmarksChanged = false
+    for item in existing where desiredByURL[item.url] == nil {
       if let url = URL(string: item.url) { _ = try await engine.runtime.removeBookmark(contextID: context, url: url) }
+      bookmarksChanged = true
     }
     for item in desired {
-      if let url = URL(string: item.url) {
-        _ = try await engine.runtime.addBookmark(contextID: context, url: url, title: item.title)
-      }
+      guard let url = URL(string: item.url) else { continue }
+      if let current = existingByURL[item.url], current.title == item.title { continue }
+      _ = try await engine.runtime.addBookmark(contextID: context, url: url, title: item.title)
+      bookmarksChanged = true
     }
     let data = try JSONEncoder().encode(library)
-    try await engine.runtime.setCheckpoint(contextID: context, key: "human.library.v1", value: data)
-    try await engine.runtime.checkpoint(contextID: context)
+    let previous = try await engine.runtime.checkpointValue(contextID: context, key: "human.library.v1")
+    if previous != data {
+      try await engine.runtime.setCheckpoint(contextID: context, key: "human.library.v1", value: data)
+    }
+    if bookmarksChanged {
+      try await engine.runtime.checkpoint(contextID: context)
+    }
   }
 }

@@ -344,7 +344,7 @@ struct SearchIntelligenceTests {
         == "https://www.google.com/search?q=swift%20concurrency")
   }
 
-  @Test func googleFallbackIsAbsentWhenJevServesResults() async {
+  @Test func googleIsOfferedEvenWhenJevServesResults() async {
     let transport = FakeTransport(
       jevResponses: [
         jevPage(["intent": choiceAnswer("informational", 0.8)]),
@@ -356,7 +356,9 @@ struct SearchIntelligenceTests {
     let search = SearchIntelligence(configuration: configuration(), transport: transport)
     let outcome = await search.search(query: "swift", now: now)
     #expect(outcome.degraded == false)
-    #expect(outcome.candidates.contains { $0.kind == .google } == false)
+    // Google is offered on every search now, and sits last: Jev's judgment
+    // leads, and the search engine is always there as the way out.
+    #expect(outcome.candidates.last?.kind == .google)
     #expect(outcome.candidates.first?.kind == .web)
   }
 

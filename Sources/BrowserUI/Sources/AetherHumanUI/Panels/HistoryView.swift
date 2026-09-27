@@ -2,13 +2,17 @@ import SwiftUI
 
 public struct HistoryView: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var query = ""
     @BrowserState private var confirmClear = false
     @State private var closeHovering = false
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
+
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     private var results: [BrowserVisit] {
         window.workspace.visits.filter {
@@ -38,16 +42,25 @@ public struct HistoryView: View {
         VStack(alignment: .leading, spacing: 19) {
             HStack(spacing: 10) {
                 Text("History").font(AetherType.panelTitle(22)).tracking(AetherTracking.heading)
-                    .foregroundStyle(theme.textStrong)
+                    .foregroundStyle(skin.primaryText)
                 Spacer(minLength: 8)
-                Button("Clear History") { confirmClear = true }
-                    .aetherButton()
-                    .frame(minWidth: 112, minHeight: 30)
-                    .disabled(results.isEmpty)
+                Button {
+                    confirmClear = true
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "trash")
+                            .font(AetherType.symbol(13, weight: .medium))
+                        Text("Clear History")
+                    }
+                }
+                .buttonStyle(AetherPanelActionButtonStyle())
+                .focusEffectDisabled()
+                .aetherPointingCursor()
+                .disabled(results.isEmpty)
                 Button { window.showsHistory = false } label: {
                     Image(systemName: "xmark")
                         .font(AetherType.symbol(11))
-                        .foregroundStyle(theme.muted)
+                        .foregroundStyle(skin.secondaryIcon)
                         .frame(width: 28, height: 28)
                         .background { AetherInteractionSurface(active: closeHovering, radius: 8) }
                         .contentShape(Rectangle())
@@ -71,7 +84,7 @@ public struct HistoryView: View {
                             LazyVStack(alignment: .leading, spacing: 7) {
                                 Text(group.title)
                                     .font(AetherType.emphasis(12))
-                                    .foregroundStyle(theme.muted)
+                                    .foregroundStyle(skin.secondaryText)
                                     .padding(.horizontal, 12)
                                     .padding(.top, 7)
                                     .padding(.bottom, 3)
@@ -119,11 +132,16 @@ public struct HistoryView: View {
 
 private struct HistoryEntry: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @State private var hovering = false
     let visit: BrowserVisit
     let open: () -> Void
     let delete: () -> Void
+
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -133,18 +151,18 @@ private struct HistoryEntry: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(visit.title)
                             .font(AetherType.emphasis(13))
-                            .foregroundStyle(theme.textStrong)
+                            .foregroundStyle(skin.primaryText)
                             .lineLimit(1)
                         Text(visit.url)
                             .font(AetherType.caption(11))
-                            .foregroundStyle(theme.muted)
+                            .foregroundStyle(skin.metadataText)
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
                     Spacer(minLength: 8)
                     Text(visit.visitedAt, style: .time)
                         .font(AetherType.caption(12))
-                        .foregroundStyle(theme.muted)
+                        .foregroundStyle(skin.metadataText)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -155,7 +173,7 @@ private struct HistoryEntry: View {
             Button(action: delete) {
                 Image(systemName: "xmark")
                     .font(AetherType.symbol(12))
-                    .foregroundStyle(theme.muted)
+                    .foregroundStyle(skin.secondaryIcon)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
@@ -168,7 +186,7 @@ private struct HistoryEntry: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 52)
-        .background(hovering ? theme.hover : Color.clear,
+        .background(hovering ? skin.hoverFill : Color.clear,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .animation(AetherMotion.hover(reduced), value: hovering)
         .onHover { hovering = $0 }

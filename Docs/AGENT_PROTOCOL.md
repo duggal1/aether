@@ -2,7 +2,7 @@
 
 Agents are first-class clients of the engine. Structured state is the default control surface; screenshots and raw coordinate interaction are fallbacks for genuinely visual tasks.
 
-`Sources/AgentProtocol/AgentMessages.swift` is authoritative for the method set. This document describes the wire contract and every method as of the current tree (84 methods).
+`Sources/AgentProtocol/AgentMessages.swift` is authoritative for the method set. This document describes the wire contract and every method as of the current tree (89 methods).
 
 `browserd` accepts newline-delimited JSON over a local Unix-domain socket (default `/tmp/native-browser-engine.sock`). Every request contains an `id`, `method`, and optional `params`. Every response repeats the request `id` and contains either `result` or a structured `error`:
 
@@ -45,7 +45,7 @@ page.snapshot     page.wait          page.mutations
 ### Input and interaction (9)
 
 ```text
-page.click        page.type          page.setValue     page.pressKey
+page.click        page.drag          page.type          page.setValue     page.pressKey
 page.selectOption page.fill          page.submit       page.hover
 page.focus
 ```
@@ -117,6 +117,13 @@ context.bookmarkAdd      context.bookmarks       context.bookmarkRemove
 context.suggest          context.searchProvider  context.setSearchProvider
 ```
 
+### Agent-readable credentials (5)
+
+```text
+credentials.list       credentials.get         credentials.save
+credentials.delete     credentials.fill
+```
+
 ### Sessions (4)
 
 ```text
@@ -159,6 +166,12 @@ Interactive inspection exposes semantic role, accessible name, current value, hr
 {"id":"5","method":"page.click","params":{"page":1,"nodeIndex":17,"nodeGeneration":1}}
 ```
 
+`page.drag` accepts viewport CSS-pixel coordinates and requires the page to be attached to a visible WebKit surface:
+
+```json
+{"id":"6","method":"page.drag","params":{"page":1,"startX":220,"startY":340,"endX":780,"endY":510}}
+```
+
 `browserctl` mirrors these methods as subcommands (`browserctl --socket <path> page-query 1 a`, …) plus socket-free local commands: `inspect`, `render`, `eval`, `shell`, `capture`, `bench-info`.
 
 ## Honest limitations
@@ -186,4 +199,59 @@ Interactive inspection exposes semantic role, accessible name, current value, hr
 
 `browserctl --socket ... context-bookmark-add <context> <url> [title]`, `context-bookmarks`, `context-bookmark-remove`, `context-suggest`, `context-search-provider`, and `context-set-search-provider` forward to these dispatcher methods.
 
+## Agent-readable credential vault
+
+`credentials.save` takes `context`, `origin`, `username`, `password`, and an optional `label`. It is the explicit-save path (human confirmation dialog or an authorized agent call — never silent harvesting) and upserts on `(origin, username)`: same credential id, new secret, refreshed `updatedAt`. Origins are normalized to `scheme://host[:port]`; `https` anywhere, `http` only for loopback (`localhost`, `127.0.0.1`, `::1`) — remote `http` is refused. Metadata (`id`, `profile`, `origin`, `username`, `label`, `createdAt`, `updatedAt`) lives in the profile's `credentials` table (schema v4); the secret lives only in the macOS Keychain (`fun.aether.secure-storage`, `WhenUnlockedThisDeviceOnly`, account `<profileUUID>:credential:<id>`) and never in SQLite, snapshots, logs, or events. `credentials.list` returns metadata only. `credentials.get` is the single operation that returns a password, for one credential id owned by the caller's context profile. `credentials.delete` removes metadata and secret. `credentials.fill` takes `page` and `credential`, refuses origin mismatches, and fills the page's generic login form through its own `__aetherCredentialForms.fill` primitive. Every method is scoped to one `ContextID`: a credential saved under profile A is invisible to profile B.
+
+The native save-password confirmation, autofill choices, and Passwords settings use this same profile vault. Existing credentials from the earlier Internet Password Keychain format migrate on first vault access; their old Keychain item is deleted only after the replacement metadata and generic-password secret have been stored. The native UI follows the same loopback-only `http` rule as the agent API.
+
+`browserctl --socket ... credentials-list <context> [origin]`, `credentials-get <context> <id>`, `credentials-save <context> <origin> <username> <password> [label]`, `credentials-delete <context> <id>`, and `credentials-fill <page> <id>` forward to these dispatcher methods.
+
 **Authorization dependency:** same as above — these `context.*` methods need Agent 1's capability check against the owning context on integration. `context.setSearchProvider` accepts an arbitrary endpoint but only builds a search URL from it; it performs no fetch and grants no network authority beyond the existing navigation path.
+
+## Local agent execution: `agent.exec` (Agent 1 addition)
+
+`agent.exec` runs a whole multi-step program beside the browser runtime in a
+single RPC instead of one round trip per operation. It takes `program` (an
+`ExecProgram` object) and an optional overriding `timeoutMs`, and returns an
+`ExecOutcome`. `browserctl --socket <path> exec <program.json>
+[--timeout-ms N]` forwards to it.
+
+A program declares `version` (currently 1), an optional attributing
+`session` id (verified to exist, not created), an optional `timeoutMs`, an
+`onError` policy (`stop` or `proceed`), and an ordered `steps` list (1–1000
+declared, 100k executed, `forEach` over at most 10k items — over-limit is an
+error, never silent truncation). Step ops: `createContext`, `createPage`,
+`navigate`, `loadHTML`, `query`, `queryAll`, `click`, `type`, `evaluate`,
+`snapshot`, `inspect`, `wait`, `restore`, `set`, `assert`, `forEach`, `if`,
+`result`. `restore` activates a hibernated page (`page.restore` in step form) —
+every page returned by a branch fork starts hibernated and
+`BrowserBranchInfo.restoreRequiredPages` names them, so a program can activate
+the branch page it is about to drive without a second RPC.
+Variables are bound with `into` and referenced as `{"ref":
+"var.path[0].field"}`; any other JSON is a literal, and `{"literal": ...}`
+escapes a literal object that would otherwise look like a reference.
+Conditions (`assert`, `if`) support `eq`, `ne`, `exists`, `notExists`,
+`empty`, `contains`, `gt`, `lt`.
+
+The outcome carries a per-run `executionID` (UUID; join key for handoff
+records and the event stream), a `status` (`completed`, `failed`, `timeout`,
+`cancelled`), ordered `results`, final `vars`, `stepsExecuted` and
+`operations` counters (operations count browser-touching steps only, as
+batching proof), per-step `failures`, and a terminal `error` with the
+failing step path. Program deadlines (default 30s, max 300s) and task
+cancellation produce `timeout`/`cancelled` with partial state preserved.
+
+Authorization: host connections run unrestricted; non-host principals are
+confined to contexts they own (resolved dynamically per page op, including
+through variables), and `createContext` is refused under confinement —
+pre-create via `context.create` first. Every page op additionally honors the
+handoff gate: pages parked for human control fail steps with `handoff_active`.
+Unknown program versions and unknown ops fail closed (`badParameter`).
+
+Lease binding: a program confined to leased contexts is registered against
+those workspaces. When the authorizing lease is released, cancelled, or
+expires, the runtime revokes the program at the next step boundary; it ends as
+`cancelled` with `error.code == "leaseRevoked"` (never swallowed by
+`onError: proceed`), so an agent that loses its workspace cannot keep driving
+the browser. Unrestricted host executions are never revoked.

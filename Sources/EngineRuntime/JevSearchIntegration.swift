@@ -35,6 +35,16 @@ extension BrowserRuntime {
 
   public func updateJevSearchKeys(typeSafeKey: String, search1APIKey: String) async {
     await searchIntelligence.updateKeys(typeSafeKey: typeSafeKey, search1APIKey: search1APIKey)
+    for context in contexts.values {
+      for page in context.pages.values {
+        semanticScheduledRevisions[page.id] = nil
+        semanticObservationsByPage[page.id] = nil
+        semanticPageAssessmentTargets[page.id] = nil
+        semanticSignalsByPage[page.id] = nil
+        scheduleSemanticAnalysis(state(for: page))
+      }
+    }
+    publishPageStates()
   }
 
   public func invalidateJevSearchCaches() async {

@@ -67,6 +67,19 @@ private func captureFixturePage() async throws -> (NativeBrowserEngine, BrowserP
   #expect(data.viewport.height == 600)
   #expect(data.documentSize.height > 0)
   #expect(data.scroll.y == 0)
+  #expect(data.statusCode == 0)
+}
+
+@Test func captureStatePreservesHTTPResponseStatus() async throws {
+  let port = ValidationFixtureServer.randomPort()
+  let server = try ValidationFixtureServer.start(port: port)
+  defer { server.terminate() }
+  let engine = NativeBrowserEngine()
+  let context = await engine.runtime.createContext(name: "capture-http-status")
+  let page = try await engine.runtime.createPage(contextID: context.id)
+  _ = try await engine.runtime.navigate(
+    pageID: page.id, to: ValidationFixtureServer.url(port, "/fast"))
+  let data = try await engine.runtime.captureState(pageID: page.id)
   #expect(data.statusCode == 200)
 }
 
@@ -109,12 +122,15 @@ private func captureFixturePage() async throws -> (NativeBrowserEngine, BrowserP
 @Test func scrolledRenderMatchesViewportGeometry() async throws {
   let (engine, loaded) = try await captureFixturePage()
   let top = try await engine.runtime.render(pageID: loaded.id, origin: Point(x: 0, y: 0))
-  #expect(top.width == 800 && top.height == 600)
-  #expect(top.bytes.count == 800 * 600 * 4)
+  let widthScale = Double(top.width) / 800
+  let heightScale = Double(top.height) / 600
+  #expect(widthScale == heightScale)
+  #expect(widthScale >= 1)
+  #expect(top.bytes.count == top.width * top.height * 4)
   _ = try await engine.runtime.scrollTo(pageID: loaded.id, x: 0, y: 50)
   let scrolled = try await engine.runtime.render(pageID: loaded.id, origin: Point(x: 0, y: 50))
-  #expect(scrolled.width == 800 && scrolled.height == 600)
-  #expect(scrolled.bytes.count == 800 * 600 * 4)
+  #expect(scrolled.width == top.width && scrolled.height == top.height)
+  #expect(scrolled.bytes.count == scrolled.width * scrolled.height * 4)
 }
 
 @Test func stabilityWaitReturnsImmediatelyOnEmptyPage() async throws {

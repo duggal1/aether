@@ -1,0 +1,10 @@
+{
+  "steps": [
+    {
+      "binary": "before",
+      "repeat": 1,
+      "status": "failed",
+      "error": "before_1 app automation did not become ready; see /Users/harshitduggal/workspace/Aether/perf-results/aether_ab_p0_20260925/before_1.log"
+    }
+  ]
+}

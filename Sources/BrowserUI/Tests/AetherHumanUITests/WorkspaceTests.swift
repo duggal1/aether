@@ -26,4 +26,21 @@ struct WorkspaceTests {
         #expect(window.selectedID == before)
     }
 
+    @Test func historyAndBookmarksPanelsReplaceEachOther() {
+        let workspace = BrowserWorkspace(engine: DisconnectedEnginePort())
+        let window = BrowserWindowModel(workspace: workspace)
+
+        window.showsHistory = true
+        window.showBookmarksPanel()
+        #expect(window.showsBookmarks)
+        #expect(!window.showsHistory)
+
+        window.toggleHistoryPanel()
+        #expect(window.showsHistory)
+        #expect(!window.showsBookmarks)
+
+        window.toggleHistoryPanel()
+        #expect(!window.showsHistory)
+    }
+
 }

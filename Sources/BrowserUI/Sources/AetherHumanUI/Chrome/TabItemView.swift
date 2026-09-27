@@ -42,20 +42,33 @@ public struct TabItemView: View {
             .frame(width: 16)
     }
 
+    @BrowserState private var renameText = ""
     private var tabTitleText: some View {
-        Text(tab.title)
-            .font(AetherType.body(12))
-            .fontWeight(.regular)
-            .lineLimit(1)
-            .foregroundStyle(titleColor)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .mask {
-                HStack(spacing: 0) {
-                    Rectangle().fill(.white)
-                    truncationMask
-                }
+        Group {
+            if window.renamingTabID == tab.id {
+                TextField("Tab name", text: $renameText)
+                    .textFieldStyle(.plain)
+                    .font(AetherType.body(12))
+                    .onSubmit { window.renameTab(tab.id, to: renameText); window.renamingTabID = nil }
+                    .onExitCommand { window.renamingTabID = nil }
+                    .onAppear { renameText = tab.customTitle.isEmpty ? tab.title : tab.customTitle }
+            } else {
+                Text(tab.displayTitle)
+                    .font(AetherType.body(12))
+                    .fontWeight(.regular)
+                    .lineLimit(1)
+                    .foregroundStyle(titleColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .mask {
+                        HStack(spacing: 0) {
+                            Rectangle().fill(.white)
+                            truncationMask
+                        }
+                    }
+                    .offset(y: topFused ? 0.35 : 0.3)
+                    .opacity(tab.isSleeping ? 0.55 : 1.0)
             }
-            .offset(y: topFused ? 0.35 : 0.3)
+        }
     }
 
     private var titleColor: Color {
@@ -130,7 +143,22 @@ public struct TabItemView: View {
                 selectionBackground
                     .animation(AetherMotion.tab(reduced), value: selected)
             }
+            .overlay(alignment: .bottomLeading) {
+                // Search-port: reading-progress grey fill, throttled by engine updates.
+                if tab.loadState == .loading && tab.loadProgress > 0.02 && tab.loadProgress < 0.999 {
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(theme.muted.opacity(selected ? 0.35 : 0.25))
+                            .frame(width: geo.size.width * CGFloat(min(1, max(0, tab.loadProgress))), height: 2)
+                    }
+                    .frame(height: 2)
+                }
+            }
             .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
+                guard !compact else { return }
+                window.renamingTabID = tab.id
+            }
         }
         .buttonStyle(.plain)
         .aetherPointingCursor()
@@ -158,16 +186,26 @@ public struct TabItemView: View {
                     .allowsHitTesting(false)
             }
         }
+        .overlay { TabMiddleClick { window.close(tab.id) } }
         .aetherPointingCursor()
         .zIndex(topFused ? (selected ? 5 : 1) : 0)
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
         .contextMenu {
             Button("New Tab") { _ = window.newTab() }
+            Button("New Private Tab") { _ = window.newPrivateTab() }
             Button("Duplicate Tab") { window.duplicate(tab.id) }
+            Button("Open Beside") { if let url = tab.url { _ = window.openBeside(url: url) } }.disabled(tab.url == nil)
+            Button("Rename Tab…") { window.renamingTabID = tab.id }
             Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") { window.togglePin(tab.id) }
+            Button(tab.isMuted ? "Unmute Tab" : "Mute Tab") { window.toggleMute(tab) }
+                .disabled(tab.enginePageID == nil)
+            Button(tab.isSleeping ? "Wake Tab" : "Sleep Tab") { tab.isSleeping ? window.select(tab.id) : window.sleepTab(tab.id) }
+                .disabled(tab.enginePageID == nil && !tab.isSleeping)
+            Button("Share Page…") { window.sharePage(for: tab) }.disabled(tab.url == nil)
+            Button("Copy as Markdown Link") { window.copyMarkdownLink(for: tab) }.disabled(tab.url == nil)
             Divider()
             Button("Close Other Tabs") { window.closeOthers(tab.id) }
-            Button("Close Tab") { window.close(tab.id) }
+            Button("Close Tab") { window.closeOrPutDown(tab.id) }
         }
         .onDrag { NSItemProvider(object: tab.id.uuidString as NSString) }
         .onDrop(of: [.plainText], isTargeted: nil) { providers in
@@ -199,9 +237,13 @@ public struct TabItemView: View {
                     .fill(chrome?.hover ?? theme.hover)
             }
         } else if selected {
+            // The one deliberate glass surface in the app: the selected sidebar
+            // row. Everything else is solid chrome or a native blur card.
             let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
             shape.fill(.clear)
-                .glassEffect(.regular.tint(Color.black.opacity(0.18)), in: shape)
+                .glassEffect(.regular.tint((chrome?.isDark ?? theme.dark)
+                                            ? Color.black.opacity(0.20)
+                                            : Color.white.opacity(0.35)), in: shape)
                 .glassEffectTransition(.materialize)
         } else if hovering {
             let hoverShape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
@@ -209,10 +251,11 @@ public struct TabItemView: View {
         }
     }
 
+    /// Filled with the toolbar tone so the active tab fuses into the address row
+    /// below it — one chrome piece, no seam to bridge with a negative offset.
     @ViewBuilder private var fusedActive: some View {
         FusedTopTabShape(leftFoot: !isFirst)
-            .fill(chrome?.addressBG ?? theme.omnibox)
-            .padding(.bottom, -1)
+            .fill(chrome?.toolbarBG ?? theme.chrome)
     }
 }
 
@@ -237,7 +280,9 @@ private struct SidebarHoverPreview: View {
             RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous)
                 .fill(theme.card)
         }
-        .shadow(color: Color.black.opacity(theme.dark ? 0.08 : 0.04), radius: 6, y: 2)
+        .shadow(color: AetherShadow.floating(theme.dark).color,
+                radius: AetherShadow.floating(theme.dark).radius,
+                y: AetherShadow.floating(theme.dark).y)
         .allowsHitTesting(false)
     }
 }

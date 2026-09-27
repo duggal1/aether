@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>CredVault Fixture — Sign up</title></head>
+<body>
+  <main>
+    <h1>Create your account</h1>
+    <form id="signup" method="post" action="/signup">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username">
+      <label for="new-password">Password</label>
+      <input id="new-password" name="password" type="password" autocomplete="new-password">
+      <button type="submit">Create account</button>
+    </form>
+    <p id="signup-success" hidden></p>
+    <p id="signup-error" hidden></p>
+    <p><a href="/login.html">Have an account? Log in</a></p>
+  </main>
+  <script>
+    const store = () => JSON.parse(localStorage.getItem('credvault.accounts') || '{}');
+    const save = accounts => localStorage.setItem('credvault.accounts', JSON.stringify(accounts));
+    document.getElementById('signup').addEventListener('submit', event => {
+      event.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('new-password').value;
+      const ok = document.getElementById('signup-success');
+      const err = document.getElementById('signup-error');
+      ok.hidden = true; err.hidden = true;
+      if (!email || !password) {
+        err.textContent = 'Email and password are required';
+        err.hidden = false;
+        return;
+      }
+      const accounts = store();
+      if (accounts[email]) {
+        err.textContent = 'Account already exists';
+        err.hidden = false;
+        return;
+      }
+      accounts[email] = { password };
+      save(accounts);
+      ok.textContent = 'Account created for ' + email;
+      ok.hidden = false;
+    });
+  </script>
+</body>
+</html>

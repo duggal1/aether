@@ -14,8 +14,8 @@ public struct AetherDropdownOption<Value: Hashable & Sendable>: Identifiable, Se
 
 public struct AetherDropdown<Value: Hashable & Sendable>: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
-    @Namespace private var glassNS
     @State private var open = false
     @State private var highlighted: Value?
     @Binding private var selection: Value
@@ -29,6 +29,10 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
         self.options = options
         self.help = help
         self.label = label
+    }
+
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
     }
 
     private var selectedTitle: String {
@@ -51,7 +55,7 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
                     .foregroundStyle(theme.ink)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                AetherSymbolView(open ? .discloseUp : .discloseDown, tint: theme.muted, size: 10)
+                AetherSymbolView(open ? .discloseUp : .discloseDown, tint: theme.dark ? Color.white.opacity(0.85) : theme.muted, size: 10)
             }
             .padding(.horizontal, 10)
             .frame(minWidth: 160, minHeight: 30)
@@ -63,10 +67,8 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
         .help(help ?? label)
         .accessibilityLabel(label)
         .popover(isPresented: $open) {
-            GlassEffectContainer(spacing: 4) {
-                VStack(alignment: .leading, spacing: 1) {
-                    ForEach(options) { option in optionRow(option) }
-                }
+            VStack(alignment: .leading, spacing: 1) {
+                ForEach(options) { option in optionRow(option) }
             }
             .padding(5)
             .background { AetherPopoverBackground() }
@@ -98,14 +100,11 @@ public struct AetherDropdown<Value: Hashable & Sendable>: View {
             .background {
                 ZStack {
                     if option.value == selection {
-                        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        shape.fill(.clear)
-                            .glassEffect(.regular.tint(theme.dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
-                            .glassEffectID("dropdown.selection", in: glassNS)
-                            .glassEffectTransition(.matchedGeometry)
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(skin.selectionFill)
                     } else if option.value == highlighted {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(theme.dropdownNested)
+                            .fill(skin.hoverFill)
                     }
                 }
             }

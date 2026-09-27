@@ -1,4 +1,5 @@
 import AgentProtocol
+import BrowserEvents
 import BrowserEngine
 import DOM
 import EngineCore
@@ -9,7 +10,7 @@ import Testing
 private let fleetFixtureURL = URL(string: "https://example.test/")!
 
 private let fleetFixtureHTML = """
-  <html><head><title>Fleet</title></head><body>
+  <html><head><title>Fleet</title><style>body{min-height:1200px}</style></head><body>
   <form id="f" action="/q" method="get"><input id="name" name="q" value=""><input type="submit" value="Go"></form>
   <textarea id="bio">hi</textarea>
   <select id="color"><option value="r">Red</option><option value="g">Green</option></select>
@@ -33,8 +34,8 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   let node = try await engine.runtime.query(pageID: loaded.id, selector: "#name")
   #expect(node?.editable == true)
   let log = try await engine.runtime.networkLogEntries(pageID: loaded.id)
-  #expect(log.count == 1)
-  #expect(log.first?.statusCode == 200)
+  // `loadHTML` uses WebKit's loadHTMLString and creates no HTTP response.
+  #expect(log.isEmpty)
   let history = try await engine.runtime.historyEntries(pageID: loaded.id)
   #expect(history.count == 1)
   #expect(history.first?.current == true)
@@ -50,6 +51,39 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   #expect(try await engine.runtime.focusedNode(pageID: loaded.id)?.id == input.id)
   _ = try await engine.runtime.blur(pageID: loaded.id)
   #expect(try await engine.runtime.focusedNode(pageID: loaded.id) == nil)
+}
+
+@Test func agentClickPublishesViewportTargetAndRealClickState() async throws {
+  let (engine, loaded) = try await fleetPage()
+  let button = try #require(try await engine.runtime.query(pageID: loaded.id, selector: "#btn"))
+  _ = try await engine.runtime.evaluate(pageID: loaded.id,
+    source: "document.querySelector('#btn').style.background = '#111'; document.querySelector('#btn').addEventListener('click', () => document.body.dataset.clicked = 'yes'); 'installed'")
+  let stream = await engine.runtime.observeAgentInteractions()
+  var updates = stream.makeAsyncIterator()
+  _ = try await engine.runtime.click(pageID: loaded.id, nodeID: button.id)
+  let movement = await updates.next()
+  let click = await updates.next()
+  #expect(movement?.kind == .move)
+  #expect(movement?.point?.x.isFinite == true)
+  #expect(movement?.point?.y.isFinite == true)
+  #expect(click?.kind == .click)
+  #expect(click?.point == movement?.point)
+  #expect((click?.targetLuminance ?? 1) < 0.15)
+  #expect(try await engine.runtime.evaluate(pageID: loaded.id,
+    source: "document.body.dataset.clicked") .value == "yes")
+}
+
+@Test func agentTypingPublishesFieldPositionWithoutReplacingPageValue() async throws {
+  let (engine, loaded) = try await fleetPage()
+  let input = try #require(try await engine.runtime.query(pageID: loaded.id, selector: "#name"))
+  let stream = await engine.runtime.observeAgentInteractions()
+  var updates = stream.makeAsyncIterator()
+  try await engine.runtime.type(pageID: loaded.id, nodeID: input.id, text: "native value")
+  let movement = await updates.next()
+  let typing = await updates.next()
+  #expect(movement?.kind == .move)
+  #expect(typing?.kind == .typing)
+  #expect(try await engine.runtime.query(pageID: loaded.id, selector: "#name")?.value == "native value")
 }
 
 @Test func scrollAndHitTesting() async throws {
@@ -75,13 +109,20 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   #expect(try await engine.runtime.query(pageID: loaded.id, selector: "#name")?.value == "hello")
   let area = try #require(try await engine.runtime.query(pageID: loaded.id, selector: "#bio"))
   _ = try await engine.runtime.focus(pageID: loaded.id, nodeID: area.id)
-  #expect(try await engine.runtime.pressKey(pageID: loaded.id, key: "Enter") == "hi\n")
+  _ = try await engine.runtime.evaluate(
+    pageID: loaded.id, source: "document.querySelector('#bio').setSelectionRange(2, 2)")
+  var textareaValue = ""
+  do {
+    textareaValue = try await engine.runtime.pressKey(pageID: loaded.id, key: "Enter")
+  } catch {
+    Issue.record("Pressing Enter in a focused textarea failed: \(error)")
+  }
+  #expect(textareaValue == "hi\n")
   let select = try #require(
     try await engine.runtime.query(pageID: loaded.id, selector: "#color"))
   try await engine.runtime.selectOption(pageID: loaded.id, selectNodeID: select.id, value: "g")
-  #expect(
-    try await engine.runtime.query(pageID: loaded.id, selector: "option[selected]")?.name
-      == "Green")
+  #expect(try await engine.runtime.query(pageID: loaded.id, selector: "#color")?.value == "g")
+  #expect(try await engine.runtime.query(pageID: loaded.id, selector: "option:checked")?.name == "Green")
   await #expect(throws: BrowserRuntimeError.self) {
     try await engine.runtime.selectOption(pageID: loaded.id, selectNodeID: select.id, value: "zzz")
   }
@@ -242,4 +283,90 @@ private func fleetPage() async throws -> (NativeBrowserEngine, BrowserPageInfo) 
   let history = await dispatcher.handle(
     AgentRequest(id: "hh", method: .pageHistory, params: ["page": .number(pageID)]))
   #expect(history.result?.array?.count == 1)
+}
+
+@Test func agentFleetWorkspaceLeaseLifecycleAndIsolation() async throws {
+  let engine = NativeBrowserEngine()
+  let firstContext = await engine.runtime.createContext(name: "worker-a")
+  let secondContext = await engine.runtime.createContext(name: "worker-b")
+  let firstProfile = FileManager.default.temporaryDirectory
+    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+  let secondProfile = FileManager.default.temporaryDirectory
+    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+  try await engine.runtime.openProfile(contextID: firstContext.id, directory: firstProfile)
+  try await engine.runtime.openProfile(contextID: secondContext.id, directory: secondProfile)
+  let events = await engine.runtime.observeEvents(filter: .family(.lease))
+  var iterator = events.makeAsyncIterator()
+
+  let lease = try await engine.runtime.acquireWorkspaceLease(
+    contextID: firstContext.id, agentID: "worker-a", durationSeconds: 30,
+    repositoryRoot: "/tmp/aether-repo", worktreePath: "/tmp/aether-repo/.worktrees/worker-a")
+  #expect(lease.state == .active)
+  #expect(lease.repositoryRoot == "/tmp/aether-repo")
+  #expect(lease.workspaceID != UUID())
+  #expect(await iterator.next()?.name == "lease.acquired")
+
+  await #expect(throws: BrowserRuntimeError.self) {
+    try await engine.runtime.acquireWorkspaceLease(
+      contextID: firstContext.id, agentID: "worker-b", durationSeconds: 30)
+  }
+
+  let renewed = try await engine.runtime.renewWorkspaceLease(
+    contextID: firstContext.id, leaseID: lease.leaseID, agentID: "worker-a",
+    durationSeconds: 60)
+  #expect(renewed.expiresAt > lease.expiresAt)
+  #expect(await iterator.next()?.name == "lease.renewed")
+
+  let released = try await engine.runtime.releaseWorkspaceLease(
+    contextID: firstContext.id, leaseID: lease.leaseID, agentID: "worker-a")
+  #expect(released.state == .released)
+  #expect(await iterator.next()?.name == "lease.released")
+
+  let next = try await engine.runtime.acquireWorkspaceLease(
+    contextID: firstContext.id, agentID: "worker-b", durationSeconds: 30)
+  let other = try await engine.runtime.acquireWorkspaceLease(
+    contextID: secondContext.id, agentID: "worker-b", durationSeconds: 30)
+  #expect(next.workspaceID == lease.workspaceID)
+  #expect(other.workspaceID != next.workspaceID)
+  #expect(await engine.runtime.listWorkspaceLeases(contextID: secondContext.id).count == 1)
+
+  _ = try await engine.runtime.cancelWorkspaceLease(
+    contextID: firstContext.id, leaseID: next.leaseID)
+  _ = try await engine.runtime.releaseWorkspaceLease(
+    contextID: secondContext.id, leaseID: other.leaseID, agentID: "worker-b")
+  try await engine.runtime.destroyContext(firstContext.id)
+  try await engine.runtime.destroyContext(secondContext.id)
+  try? FileManager.default.removeItem(at: firstProfile)
+  try? FileManager.default.removeItem(at: secondProfile)
+}
+
+@Test func agentFleetWorkspaceLeaseReacquisitionAfterGracefulDestroy() async throws {
+  let profile = FileManager.default.temporaryDirectory
+    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+  let firstRuntime = BrowserRuntime()
+  let firstContext = await firstRuntime.createContext(name: "recover")
+  try await firstRuntime.openProfile(contextID: firstContext.id, directory: profile)
+  let original = try await firstRuntime.acquireWorkspaceLease(
+    contextID: firstContext.id, agentID: "stable-worker", durationSeconds: 30,
+    branchID: UUID().uuidString)
+  try await firstRuntime.destroyContext(firstContext.id)
+
+  let restartedRuntime = BrowserRuntime()
+  let restoredContext = await restartedRuntime.createContext(name: "recover")
+  try await restartedRuntime.openProfile(contextID: restoredContext.id, directory: profile)
+  let recovered = await restartedRuntime.workspaceLease(contextID: restoredContext.id)
+  // Graceful context destruction persists a release. Crash recovery is covered by
+  // WorkspaceLeaseTests, which reopens an active persisted record without destroying it.
+  #expect(recovered?.state == .released)
+  #expect(recovered?.contextID == restoredContext.id)
+  // ContextID is a process-local counter and can have the same raw value in both runtimes.
+
+  let resumed = try await restartedRuntime.acquireWorkspaceLease(
+    contextID: restoredContext.id, agentID: "stable-worker", durationSeconds: 30)
+  #expect(resumed.workspaceID == original.workspaceID)
+  #expect(resumed.leaseID != original.leaseID)
+  _ = try await restartedRuntime.releaseWorkspaceLease(
+    contextID: restoredContext.id, leaseID: resumed.leaseID, agentID: "stable-worker")
+  try await restartedRuntime.destroyContext(restoredContext.id)
+  try? FileManager.default.removeItem(at: profile)
 }

@@ -1,3 +1,4 @@
+import BrowserEvents
 import CSS
 import ContentBlocker
 import Diagnostics
@@ -104,7 +105,8 @@ public actor BrowserRuntime {
   private let sessionCounter = AtomicCounter()
   private let metricsCollector = MetricsCollector()
   private let scheduler = EngineScheduler()
-  let searchIntelligence = SearchIntelligence()
+  let semanticSignalService: SemanticSignalService
+  let searchIntelligence: SearchIntelligence
   var contexts: [ContextID: ContextRecord] = [:] {
     didSet {
       if let pageStateUpdate { publishPageState(pageStateUpdate) }
@@ -113,30 +115,136 @@ public actor BrowserRuntime {
   }
   var pageStateUpdate: PageID?
   var pageObservers: [UUID: AsyncStream<RuntimePageState>.Continuation] = [:]
+  private var webHoveredNodes: [PageID: InspectedNode] = [:]
+  private var agentInteractionObservers: [UUID: AsyncStream<AgentInteractionUpdate>.Continuation] = [:]
+  private var agentInteractionSequence: UInt64 = 0
+  private var lastAgentInteractionPointByPage: [PageID: Point] = [:]
+  private var cancelledAgentInteractions: Set<PageID> = []
   var observedStates: [PageID: RuntimePageState] = [:]
   var navigationLoads: [PageID: Task<LoadedPage, Error>] = [:]
   var navigationEpochs: [PageID: UUID] = [:]
   var navigationErrors: [PageID: String] = [:]
   var navigationTargets: [PageID: URL] = [:]
+  var semanticSignalsByPage: [PageID: SemanticPageSignals] = [:]
+  var semanticObservationsByPage: [PageID: SemanticPageObservation] = [:]
+  var semanticPageAssessmentTargets: [PageID: String] = [:]
+  var semanticAnalysisTasks: [PageID: Task<Void, Never>] = [:]
+  var semanticScheduledRevisions: [PageID: UInt64] = [:]
+  var semanticTargetURLs: [PageID: String] = [:]
+  var semanticImportanceCache: [PageID: (score: Double, confidence: Double, scoredAt: Double)] = [:]
   private var sessions: [SessionID: SessionRecord] = [:]
   private var maxActivePages = 8
   private var fleetMemoryBudget = 512 * 1024 * 1024
+  var workspaceLeases: [ContextID: WorkspaceLeaseRecord] = [:]
+  let workspaceRuntimeID = UUID()
+  var workspaceLeaseReaper: Task<Void, Never>?
+  /// In-flight work that a workspace lease authorizes. When a lease stops being active
+  /// the runtime revokes these so a revoked workspace cannot keep being driven.
+  var leaseBoundExecutions: [LeaseRevocationToken: LeaseBoundExecution] = [:]
+  var branchContexts: [BranchID: ContextID] = [:]
+  var contextBranches: [ContextID: BranchID] = [:]
 
   var webPages: [PageID: WebKitPage] = [:]
   var webPageTasks: [PageID: Task<WebKitPage, Never>] = [:]
+  var webPagesPreparedForPresentation: Set<PageID> = []
   var webContexts: [ContextID: WebKitContext] = [:]
   var webStates: [PageID: WebPageState] = [:]
+  var pageOwner: [PageID: ContextID] = [:]
   var webProfileIdentifiers: [ContextID: UUID] = [:]
   var webEphemeral: Set<ContextID> = []
   var webEphemeralStores: [ContextID: AnyObject] = [:]
   var webContextRules: [ContextID: AnyObject] = [:]
   var webProxyEndpoints: [ContextID: WebProxyEndpoint] = [:]
+  public let events = BrowserEventBus()
+  // Page events must keep the order the WebKit delegates produced them. Each
+  // delegate fires on the main actor and yields here synchronously; one consumer
+  // task then publishes to the bus in that order. Spawning a task per event (the
+  // obvious alternative) lets actor hops reorder `navigation.finished` ahead of
+  // the `document.titleChanged` that preceded it.
+  let pageEventChannel = AsyncStream<(PageID, BrowserEventKind)>.makeStream(
+    bufferingPolicy: .unbounded)
+  let handoffs = HandoffLedger()
 
   let suggestService: SearchSuggestService
+  let credentialSecrets: any CredentialSecretStoring
 
-  public init(suggestTransport: (any SuggestTransport)? = nil) {
+  public init(
+    suggestTransport: (any SuggestTransport)? = nil,
+    credentialSecrets: any CredentialSecretStoring = KeychainCredentialSecrets()
+  ) {
+    let semanticSignals = SemanticSignalService()
+    semanticSignalService = semanticSignals
+    searchIntelligence = SearchIntelligence(semanticSignals: semanticSignals)
     suggestService = SearchSuggestService(
       transport: suggestTransport ?? URLSessionSuggestTransport())
+    self.credentialSecrets = credentialSecrets
+    let eventStream = pageEventChannel.stream
+    Task { [weak self] in
+      for await (pageID, kind) in eventStream {
+        await self?.publishPageEvent(kind, pageID: pageID)
+      }
+    }
+  }
+
+  public func observeEvents(
+    filter: BrowserEventBus.Filter = .all, replay: Int = 0
+  ) async -> AsyncStream<BrowserEvent> {
+    await events.subscribe(filter: filter, replay: replay)
+  }
+
+  public func observeAgentInteractions() -> AsyncStream<AgentInteractionUpdate> {
+    let id = UUID()
+    return AsyncStream(bufferingPolicy: .bufferingNewest(128)) { continuation in
+      agentInteractionObservers[id] = continuation
+      continuation.onTermination = { [weak self] _ in
+        Task { await self?.removeAgentInteractionObserver(id) }
+      }
+    }
+  }
+
+  public func cancelAgentInteraction(pageID: PageID) {
+    cancelledAgentInteractions.insert(pageID)
+  }
+
+  private func removeAgentInteractionObserver(_ id: UUID) {
+    agentInteractionObservers[id] = nil
+  }
+
+  @discardableResult
+  func publishAgentInteraction(pageID: PageID, kind: AgentInteractionKind,
+                               point: Point? = nil, viewport: Size? = nil,
+                               targetLuminance: Double? = nil) -> Double {
+    agentInteractionSequence &+= 1
+    let movementDuration: Double
+    if (kind == .move || kind == .dragging), let point,
+       let previous = lastAgentInteractionPointByPage[pageID] {
+      let distance = hypot(point.x - previous.x, point.y - previous.y)
+      movementDuration = min(0.12, max(0.025, distance / 6_000))
+    } else {
+      movementDuration = 0
+    }
+    if (kind == .move || kind == .dragging), let point {
+      lastAgentInteractionPointByPage[pageID] = point
+    }
+    let update = AgentInteractionUpdate(sequence: agentInteractionSequence, pageID: pageID,
+      kind: kind, point: point, viewport: viewport, targetLuminance: targetLuminance,
+      movementDuration: movementDuration)
+    for observer in agentInteractionObservers.values { observer.yield(update) }
+    return movementDuration
+  }
+
+  public func recentEvents(
+    limit: Int = 200, filter: BrowserEventBus.Filter = .all, since sequence: UInt64 = 0
+  ) async -> [BrowserEvent] {
+    await events.recent(limit: limit, filter: filter, since: sequence)
+  }
+
+  func publishPageEvent(_ kind: BrowserEventKind, pageID: PageID) async {
+    let context = contextID(containing: pageID)
+    await events.publish(
+      kind,
+      identity: BrowserEventIdentity(
+        context: context, page: pageID, branch: context.flatMap { contextBranches[$0]?.description }))
   }
 
   public func createContext(name: String) -> BrowserContextInfo {
@@ -155,18 +263,40 @@ public actor BrowserRuntime {
     )
     contexts[id] = record
     webProfileIdentifiers[id] = UUID()
+    let publishedID = id
+    let publishedName = record.name
+    Task { [weak self] in
+      await self?.events.publish(
+        .contextCreated(name: publishedName), identity: BrowserEventIdentity(context: publishedID))
+    }
     return BrowserContextInfo(id: id, name: record.name, pageCount: 0)
   }
 
   public func destroyContext(_ id: ContextID) async throws {
+    if var lease = workspaceLeases[id], let profile = contexts[id]?.profile {
+      lease.info.state = .released
+      lease.info.expiresAt = nowSeconds()
+      lease.runtimeID = workspaceRuntimeID
+      try persistWorkspaceLease(lease, profile: profile)
+      workspaceLeases[id] = lease
+    }
     guard let removed = contexts.removeValue(forKey: id) else {
       throw BrowserRuntimeError.contextNotFound(id)
     }
+    if let branch = contextBranches.removeValue(forKey: id) {
+      branchContexts[branch] = nil
+    }
     removed.profile?.close()
+    workspaceLeases[id] = nil
     for pageID in removed.pages.keys {
+      discardSemanticState(for: pageID)
       if let page = webPages.removeValue(forKey: pageID) { await page.close() }
       webStates[pageID] = nil
+      pageOwner[pageID] = nil
+      webPagesPreparedForPresentation.remove(pageID)
     }
+    await events.publish(
+      .contextDestroyed(name: removed.name), identity: BrowserEventIdentity(context: id))
     webContexts[id] = nil
     webProfileIdentifiers[id] = nil
     webEphemeral.remove(id)
@@ -191,6 +321,14 @@ public actor BrowserRuntime {
     let profile = try ProfileStore.open(directory: directory)
     do {
       try await attachProfile(profile, contextID: contextID)
+      try restoreWorkspaceLease(contextID: contextID, profile: profile)
+      if let originData = try profile.getKV(
+        scope: BranchKV.branchScope, key: BranchKV.originKey),
+        let origin = try? JSONDecoder().decode(BranchOriginRecord.self, from: originData)
+      {
+        contextBranches[contextID] = origin.branch
+        branchContexts[origin.branch] = contextID
+      }
     } catch {
       profile.close()
       throw error
@@ -209,26 +347,11 @@ public actor BrowserRuntime {
         sameSite: row.sameSite, hostOnly: row.hostOnly)
     }
     context.network.restoreCookies(cookies)
-    var snapshots: [CacheSnapshot] = []
-    var stale: [String] = []
-    for entry in try profile.loadCacheEntries() {
-      guard let url = URL(string: entry.url),
-        let headersData = entry.headersJSON.data(using: .utf8),
-        let headers = try? JSONDecoder().decode([String: String].self, from: headersData),
-        let body = profile.blobs.read(hash: entry.bodyHash)
-      else {
-        stale.append(entry.url)
-        continue
-      }
-      snapshots.append(
-        CacheSnapshot(
-          response: HTTPResponse(
-            requestID: RequestID(rawValue: 0), url: url, statusCode: entry.status,
-            headers: headers, body: body),
-          storedAt: entry.storedAt))
-    }
-    for url in stale { try? profile.deleteCacheEntry(url: url) }
-    await context.network.restoreCache(snapshots)
+    // Production navigations render in WKWebView, which owns HTTP caching
+    // in its website data store (proper ETag/age revalidation, so a
+    // redesigned site is never served stale). Aether's duplicate response
+    // cache is purged instead of restored: it never serves a page.
+    try profile.dropResponseCache()
     let stored = try profile.loadLocalStorage()
     var partitioned: [String: [String: String]] = [:]
     for row in stored { partitioned[row.origin, default: [:]][row.key] = row.value }
@@ -260,6 +383,7 @@ public actor BrowserRuntime {
         let urls = historyRows.filter { $0.slot == slot.slot }.sorted(by: { $0.index < $1.index })
           .compactMap { URL(string: $0.url) }
         let id = PageID(rawValue: pageCounter.next())
+        pageOwner[id] = contextID
         current.pages[id] = PageRecord(
           id: id, contextID: contextID,
           viewport: normalized(
@@ -272,6 +396,7 @@ public actor BrowserRuntime {
     }
     try loadPersistedDownloads(into: &current)
     contexts[contextID] = current
+    restoreHumanRequests(contextID: contextID)
   }
 
   public func checkpoint(contextID: ContextID) async throws {
@@ -287,30 +412,9 @@ public actor BrowserRuntime {
         expires: cookie.expires, secure: cookie.secure, httpOnly: cookie.httpOnly,
         sameSite: cookie.sameSite, hostOnly: cookie.hostOnly)
     }
-    try profile.saveCookies(cookies)
-    var entries: [CacheEntry] = []
-    var liveHashes = Set<String>()
-    for snapshot in await context.network.snapshotCache() {
-      let body = snapshot.response.body
-      let hash = DiskCache.sha256Hex(body)
-      if !profile.blobs.contains(hash) { try profile.blobs.write(hash: hash, data: body) }
-      liveHashes.insert(hash)
-      let headersData = (try? JSONEncoder().encode(snapshot.response.headers)) ?? Data()
-      entries.append(
-        CacheEntry(
-          url: snapshot.response.url.absoluteString, status: snapshot.response.statusCode,
-          headersJSON: String(data: headersData, encoding: .utf8) ?? "{}",
-          etag: headerValue("etag", in: snapshot.response.headers),
-          storedAt: snapshot.storedAt,
-          maxAge: maxAgeSeconds(headers: snapshot.response.headers),
-          bodyHash: hash, bodySize: body.count))
-    }
-    try profile.saveCacheEntries(entries)
-    try profile.evictBlobs(keeping: liveHashes, maxBytes: profile.blobs.maxBytes)
     let stored = context.storage.snapshotAll().flatMap { origin, values in
       values.map { LocalStorageRow(origin: origin, key: $0.key, value: $0.value) }
     }
-    try profile.saveLocalStorage(stored)
     let name = context.name
     let pages = context.pages.values.sorted { $0.id.rawValue < $1.id.rawValue }
     var historyRows: [HistoryRow] = []
@@ -325,24 +429,41 @@ public actor BrowserRuntime {
           HistoryRow(context: name, slot: slot, index: index, url: url.absoluteString))
       }
     }
-    try profile.saveHistory(historyRows)
-    try profile.saveSessionPages(sessionRows)
     let decisions = await context.permissions.snapshot()
-    try profile.savePermissions(
-      decisions.flatMap { origin, map in
-        map.map {
-          PermissionRow(
-            origin: origin.description, permission: $0.key.rawValue,
-            decision: $0.value.rawValue)
-        }
-      })
-    try profile.saveBookmarks(
-      context.bookmarks.map { bookmark in
-        BookmarkRow(
-          url: bookmark.url, title: bookmark.title,
-          createdAt: Date(timeIntervalSince1970: bookmark.createdAt))
-      })
-    try persistDownloads(context)
+    let permissionRows = decisions.flatMap { origin, map in
+      map.map {
+        PermissionRow(
+          origin: origin.description, permission: $0.key.rawValue,
+          decision: $0.value.rawValue)
+      }
+    }
+    let bookmarkRows = context.bookmarks.map { bookmark in
+      BookmarkRow(
+        url: bookmark.url, title: bookmark.title,
+        createdAt: Date(timeIntervalSince1970: bookmark.createdAt))
+    }
+    let downloadRecords = context.downloads.values.sorted { $0.id.rawValue < $1.id.rawValue }.map {
+      PersistedDownload(
+        id: $0.id.rawValue, url: $0.url.absoluteString, path: $0.path, state: $0.state,
+        bytes: $0.bytes)
+    }
+    // Hashing, blob file I/O, and SQLite commits run off the actor so a
+    // checkpoint never serializes behind the next navigation. Call order
+    // is still FIFO through the actor, and awaiting the value preserves
+    // shutdown durability. The duplicate HTTP response cache is gone:
+    // WKWebView owns page caching with real revalidation.
+    try await Task.detached(priority: .utility) {
+      try profile.saveCheckpointTables(
+        cookies: cookies,
+        localStorage: stored,
+        history: historyRows,
+        sessionPages: sessionRows,
+        permissions: permissionRows,
+        bookmarks: bookmarkRows,
+        cacheEntries: nil)
+      try profile.setKV(
+        scope: "downloads", key: "all", value: try JSONEncoder().encode(downloadRecords))
+    }.value
   }
 
   public func profileUsage(contextID: ContextID) throws -> ProfileUsage {
@@ -378,6 +499,9 @@ public actor BrowserRuntime {
       throw BrowserRuntimeError.invalidNavigation("Bookmarks require an http(s) URL")
     }
     if let index = context.bookmarks.firstIndex(where: { $0.url == url.absoluteString }) {
+      guard context.bookmarks[index].title != title else {
+        return context.bookmarks[index]
+      }
       context.bookmarks[index].title = title
     } else {
       context.bookmarks.append(
@@ -599,8 +723,14 @@ public actor BrowserRuntime {
       dialogs: [:]
     )
     context.pages[id] = page
+    pageStateUpdate = id
     contexts[contextID] = context
-    Task { [weak self] in _ = try? await self?.webPage(id) }
+    pageStateUpdate = nil
+    pageOwner[id] = contextID
+    Task { [weak self] in
+      await self?.publishPageEvent(.pageCreated(url: nil), pageID: id)
+      _ = try? await self?.webPage(id)
+    }
     return info(for: page)
   }
 
@@ -609,8 +739,12 @@ public actor BrowserRuntime {
       throw BrowserRuntimeError.pageNotFound(pageID)
     }
     await stopNavigation(pageID: pageID)
+    await publishPageEvent(.pageClosed(reason: "closed"), pageID: pageID)
+    discardSemanticState(for: pageID)
     if let page = webPages.removeValue(forKey: pageID) { await page.close() }
     webStates[pageID] = nil
+    pageOwner[pageID] = nil
+    webPagesPreparedForPresentation.remove(pageID)
     contexts[contextID]?.pages.removeValue(forKey: pageID)
   }
 
@@ -618,6 +752,8 @@ public actor BrowserRuntime {
     guard let contextID = contextID(containing: pageID), var context = contexts[contextID],
       var page = context.pages[pageID]
     else { throw BrowserRuntimeError.pageNotFound(pageID) }
+    semanticAnalysisTasks.removeValue(forKey: pageID)?.cancel()
+    semanticScheduledRevisions[pageID] = nil
     if let view = webPages.removeValue(forKey: pageID) { await view.close() }
     page.loaded = nil
     page.javascript = nil
@@ -711,12 +847,118 @@ public actor BrowserRuntime {
 
   @discardableResult
   public func click(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
-    try await webPage(pageID).nodeAction(nodeID, body: "n.scrollIntoView({block:'center'}); n.focus(); n.click();")
+    let targetPage = try await webPage(pageID)
+    var target = try await targetPage.interactionTarget(nodeID)
+    var luminance = await targetPage.sampleLuminance(at: target) ?? target.luminance
+    if target.didScroll { publishAgentInteraction(pageID: pageID, kind: .scrolling) }
+    var point = Point(x: target.x, y: target.y)
+    var viewport = Size(width: target.viewportWidth, height: target.viewportHeight)
+    var movementDuration = publishAgentInteraction(pageID: pageID, kind: .move, point: point,
+      viewport: viewport, targetLuminance: luminance)
+    try await Task.sleep(for: .seconds(max(1.0 / 60.0, movementDuration)))
+    let movedNativePointer = await targetPage.moveNativePointer(to: target)
+    if movedNativePointer {
+      publishAgentInteraction(pageID: pageID,
+        kind: target.interactive ? .pointer : .hover, point: point,
+        viewport: viewport, targetLuminance: luminance)
+      let settled = try await targetPage.interactionTarget(nodeID)
+      let correction = hypot(settled.x - target.x, settled.y - target.y)
+      if correction > 0.5 {
+        target = settled
+        luminance = await targetPage.sampleLuminance(at: settled) ?? settled.luminance
+        if settled.didScroll { publishAgentInteraction(pageID: pageID, kind: .scrolling) }
+        point = Point(x: settled.x, y: settled.y)
+        viewport = Size(width: settled.viewportWidth, height: settled.viewportHeight)
+        movementDuration = publishAgentInteraction(pageID: pageID, kind: .move, point: point,
+          viewport: viewport, targetLuminance: luminance)
+        try await Task.sleep(for: .seconds(max(1.0 / 60.0, movementDuration)))
+        _ = await targetPage.moveNativePointer(to: settled)
+        publishAgentInteraction(pageID: pageID,
+          kind: settled.interactive ? .pointer : .hover, point: point,
+          viewport: viewport, targetLuminance: luminance)
+      }
+    }
+    publishAgentInteraction(pageID: pageID, kind: .click, point: point,
+      viewport: viewport, targetLuminance: luminance)
+    try await Task.sleep(for: .seconds(1.0 / 60.0))
+    let nativeClickCompleted = movedNativePointer
+      ? await targetPage.clickNativePointer(at: target) : false
+    if !nativeClickCompleted {
+      try await targetPage.click(nodeID)
+    }
     return try await synchronizedWebInfo(pageID)
   }
 
+  public func drag(pageID: PageID, from start: Point, to end: Point) async throws {
+    guard [start.x, start.y, end.x, end.y].allSatisfy(\.isFinite) else {
+      throw BrowserRuntimeError.invalidState("Invalid drag coordinates")
+    }
+    let page = try await webPage(pageID)
+    let viewport = try await page.viewportSize()
+    guard await page.canSendNativePointer() else {
+      throw BrowserRuntimeError.invalidState("Dragging requires a visible WebKit page")
+    }
+    cancelledAgentInteractions.remove(pageID)
+    guard start.x >= 0, start.y >= 0, end.x >= 0, end.y >= 0,
+          start.x < viewport.width, end.x < viewport.width,
+          start.y < viewport.height, end.y < viewport.height else {
+      throw BrowserRuntimeError.invalidState("Drag coordinates are outside the page viewport")
+    }
+    let origin = await page.dragTarget(start, viewport: viewport)
+    let destination = await page.dragTarget(end, viewport: viewport)
+    let sourceLuminance = await page.sampleLuminance(at: origin) ?? 1
+    let sourceDuration = publishAgentInteraction(pageID: pageID, kind: .move, point: start,
+      viewport: viewport, targetLuminance: sourceLuminance)
+    try await Task.sleep(for: .seconds(max(1.0 / 60.0, sourceDuration)))
+    guard !cancelledAgentInteractions.contains(pageID) else { throw CancellationError() }
+    guard await page.moveNativePointer(to: origin), await page.beginNativeDrag(at: origin) else {
+      throw BrowserRuntimeError.invalidState("Dragging requires a visible WebKit page")
+    }
+    let distance = hypot(end.x - start.x, end.y - start.y)
+    let steps = max(1, min(90, Int(ceil(distance / 24))))
+    var lastTarget = origin
+    do {
+      for step in 1...steps {
+        try Task.checkCancellation()
+        guard !cancelledAgentInteractions.contains(pageID) else { throw CancellationError() }
+        let fraction = Double(step) / Double(steps)
+        let point = Point(x: start.x + (end.x - start.x) * fraction,
+          y: start.y + (end.y - start.y) * fraction)
+        let target = await page.dragTarget(point, viewport: viewport)
+        let luminance = await page.sampleLuminance(at: target) ?? sourceLuminance
+        let duration = publishAgentInteraction(pageID: pageID, kind: .dragging,
+          point: point, viewport: viewport, targetLuminance: luminance)
+        try await Task.sleep(for: .seconds(max(1.0 / 60.0, duration)))
+        guard !cancelledAgentInteractions.contains(pageID) else { throw CancellationError() }
+        guard await page.dragNativePointer(to: target) else {
+          throw BrowserRuntimeError.invalidState("WebKit ended the drag before the target")
+        }
+        lastTarget = target
+      }
+      await page.endNativeDrag(at: lastTarget)
+      cancelledAgentInteractions.remove(pageID)
+      publishAgentInteraction(pageID: pageID, kind: .pointer, point: end,
+        viewport: viewport, targetLuminance: await page.sampleLuminance(at: destination) ?? sourceLuminance)
+    } catch {
+      await page.endNativeDrag(at: lastTarget)
+      throw error
+    }
+  }
+
   public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) async throws {
-    try await webPage(pageID).fill(nodeID, value: text, append: append)
+    let page = try await webPage(pageID)
+    let target = try await page.interactionTarget(nodeID)
+    let luminance = await page.sampleLuminance(at: target) ?? target.luminance
+    if target.didScroll { publishAgentInteraction(pageID: pageID, kind: .scrolling) }
+    let point = Point(x: target.x, y: target.y)
+    let viewport = Size(width: target.viewportWidth, height: target.viewportHeight)
+    let movementDuration = publishAgentInteraction(pageID: pageID, kind: .move, point: point,
+      viewport: viewport, targetLuminance: luminance)
+    try await Task.sleep(for: .seconds(max(1.0 / 60.0, movementDuration)))
+    _ = await page.moveNativePointer(to: target)
+    publishAgentInteraction(pageID: pageID, kind: .typing, point: point,
+      viewport: viewport, targetLuminance: luminance)
+    try await page.fill(nodeID, value: text, append: append)
   }
 
   public func setValue(pageID: PageID, nodeID: NodeID, value: String) async throws {
@@ -776,7 +1018,15 @@ public actor BrowserRuntime {
 
   public func loadHTML(pageID: PageID, html: String, url: URL) async throws -> BrowserPageInfo {
     try await webPage(pageID).loadHTML(html, url: url)
-    return try await synchronizedWebInfo(pageID)
+    let info = try await synchronizedWebInfo(pageID)
+    if let contextID = contextID(containing: pageID), var context = contexts[contextID],
+      var page = context.pages[pageID]
+    {
+      page.lastHTML = html
+      context.pages[pageID] = page
+      contexts[contextID] = context
+    }
+    return info
   }
 
   public func lifecycleState(pageID: PageID) throws -> PageLifecycleState {
@@ -786,14 +1036,19 @@ public actor BrowserRuntime {
   public func setLifecycle(pageID: PageID, state: PageLifecycleState) async throws
     -> BrowserPageInfo
   {
-    let record = try requirePage(pageID)
+    var record = try requirePage(pageID)
     if state == .active || state == .background || state == .suspended {
-      contexts[record.contextID]?.pages[pageID]?.lifecycle = state
+      record.lifecycle = state
+      contexts[record.contextID]?.pages[pageID] = record
       if state == .active { try await restoreWebContent(pageID) }
       return try pageInfo(pageID)
     }
-    if let view = webPages.removeValue(forKey: pageID) { await view.close() }
-    contexts[record.contextID]?.pages[pageID]?.lifecycle = state
+    record.lifecycle = state
+    contexts[record.contextID]?.pages[pageID] = record
+    if state == .discarded {
+      if let view = webPages.removeValue(forKey: pageID) { await view.close() }
+      webStates[pageID] = nil
+    }
     return try pageInfo(pageID)
   }
 
@@ -860,9 +1115,51 @@ public actor BrowserRuntime {
             estimatedBytes: bytes))
       }
     }
-    let plan = FleetScheduler.plan(
-      candidates: candidates, maxActive: maxActivePages, memoryBudgetBytes: fleetMemoryBudget,
-      now: now)
+    for index in candidates.indices {
+      let pageID = PageID(rawValue: candidates[index].page)
+      guard let owner = pageOwner[pageID], !webEphemeral.contains(owner),
+        let cached = semanticImportanceCache[pageID], now - cached.scoredAt < 600,
+        cached.confidence >= 0.55 else { continue }
+      candidates[index].importance += (cached.score / 4.0 - 0.5) * 20
+    }
+    var plan = fleetPlan(candidates, now: now)
+    guard candidates.contains(where: { plan.action(for: $0.page) != .keep }) else { return [:] }
+
+    for index in candidates.indices {
+      let pageID = PageID(rawValue: candidates[index].page)
+      if await hibernationProtection(for: pageID) { candidates[index].pinned = true }
+    }
+    plan = fleetPlan(candidates, now: now)
+
+    if candidates.contains(where: { plan.action(for: $0.page) != .keep }) {
+      let inputs = candidates.compactMap { candidate -> SemanticTabImportanceInput? in
+        let pageID = PageID(rawValue: candidate.page)
+        guard !candidate.pinned,
+          let owner = pageOwner[pageID], !webEphemeral.contains(owner),
+          semanticImportanceCache[pageID].map({ now - $0.scoredAt >= 600 }) ?? true,
+          let record = contexts[owner]?.pages[pageID] else { return nil }
+        return importanceInput(for: record)
+      }
+      if !inputs.isEmpty {
+        let scores = await semanticSignalService.scoreTabImportance(inputs)
+        for result in scores where result.confidence >= 0.55 {
+          guard let rawID = UInt64(result.id) else { continue }
+          let pageID = PageID(rawValue: rawID)
+          semanticImportanceCache[pageID] =
+            (score: result.score, confidence: result.confidence, scoredAt: now)
+          if let index = candidates.firstIndex(where: { $0.page == rawID }) {
+            candidates[index].importance += (result.score / 4.0 - 0.5) * 20
+          }
+          var signals = semanticSignalsByPage[pageID] ?? SemanticPageSignals()
+          signals.tabImportanceScore = result.score
+          signals.tabImportanceConfidence = result.confidence
+          semanticSignalsByPage[pageID] = signals
+          publishPageState(pageID)
+        }
+        plan = fleetPlan(candidates, now: now)
+      }
+    }
+
     var applied: [PageID: PageLifecycleState] = [:]
     for candidate in candidates {
       let pageID = PageID(rawValue: candidate.page)
@@ -882,7 +1179,39 @@ public actor BrowserRuntime {
     return applied
   }
 
-  public func hover(pageID: PageID, nodeID: NodeID) throws -> InspectedNode? {
+  public func hover(pageID: PageID, nodeID: NodeID) async throws -> InspectedNode? {
+    if webPages[pageID] != nil {
+      let page = try await webPage(pageID)
+      let target = try await page.interactionTarget(nodeID)
+      let luminance = await page.sampleLuminance(at: target) ?? target.luminance
+      if target.didScroll { publishAgentInteraction(pageID: pageID, kind: .scrolling) }
+      let point = Point(x: target.x, y: target.y)
+      let viewport = Size(width: target.viewportWidth, height: target.viewportHeight)
+      let movementDuration = publishAgentInteraction(pageID: pageID, kind: .move, point: point,
+        viewport: viewport, targetLuminance: luminance)
+      try await Task.sleep(for: .seconds(max(1.0 / 60.0, movementDuration)))
+      publishAgentInteraction(pageID: pageID,
+        kind: target.interactive ? .pointer : .hover, point: point,
+        viewport: viewport, targetLuminance: luminance)
+      if !(await page.moveNativePointer(to: target)) {
+        let x = target.x
+        let y = target.y
+        _ = try await page.script(page.domScript("""
+        (() => {
+          const node = globalThis.__aetherDOM.get(\(nodeID.index));
+          if (!node || !node.isConnected) throw new Error('Node is no longer attached');
+          for (const type of ['mouseover', 'mouseenter', 'mousemove']) {
+            node.dispatchEvent(new MouseEvent(type, {bubbles:true, cancelable:true, view:window,
+              clientX:\(x), clientY:\(y), buttons:0}));
+          }
+        })()
+        """))
+      }
+      storeHovered(nodeID, pageID: pageID)
+      let inspected = try await page.inspectedNode(nodeID)
+      if let inspected { webHoveredNodes[pageID] = inspected }
+      return inspected
+    }
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard loaded.document.node(nodeID) != nil else {
@@ -898,7 +1227,19 @@ public actor BrowserRuntime {
   }
 
   public func focus(pageID: PageID, nodeID: NodeID) async throws -> BrowserPageInfo {
-    try await webPage(pageID).nodeAction(nodeID, body: "n.focus()")
+    let page = try await webPage(pageID)
+    let target = try await page.interactionTarget(nodeID)
+    let luminance = await page.sampleLuminance(at: target) ?? target.luminance
+    if target.didScroll { publishAgentInteraction(pageID: pageID, kind: .scrolling) }
+    let point = Point(x: target.x, y: target.y)
+    let viewport = Size(width: target.viewportWidth, height: target.viewportHeight)
+    let movementDuration = publishAgentInteraction(pageID: pageID, kind: .move, point: point,
+      viewport: viewport, targetLuminance: luminance)
+    try await Task.sleep(for: .seconds(max(1.0 / 60.0, movementDuration)))
+    _ = await page.moveNativePointer(to: target)
+    publishAgentInteraction(pageID: pageID, kind: .typing, point: point,
+      viewport: viewport, targetLuminance: luminance)
+    try await page.nodeAction(nodeID, body: "n.focus()")
     return try pageInfo(pageID)
   }
 
@@ -908,10 +1249,11 @@ public actor BrowserRuntime {
   }
 
   public func focusedNode(pageID: PageID) async throws -> InspectedNode? {
-    return try await webPage(pageID).query(":focus").first
+    return try await webPage(pageID).focusedNode()
   }
 
   public func hoveredNode(pageID: PageID) throws -> InspectedNode? {
+    if let hovered = webHoveredNodes[pageID] { return hovered }
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let hovered = page.hovered else { return nil }
@@ -919,7 +1261,9 @@ public actor BrowserRuntime {
   }
 
   public func scrollTo(pageID: PageID, x: Double, y: Double) async throws -> Point {
-    return try await webPage(pageID).scroll(x: x, y: y)
+    publishAgentInteraction(pageID: pageID, kind: .scrolling)
+    let result = try await webPage(pageID).scroll(x: x, y: y)
+    return result
   }
 
   public func scrollOffset(pageID: PageID) async throws -> Point {
@@ -928,11 +1272,19 @@ public actor BrowserRuntime {
 
   public func scrollIntoView(pageID: PageID, nodeID: NodeID) async throws -> Point {
     let page = try await webPage(pageID)
+    publishAgentInteraction(pageID: pageID, kind: .scrolling)
     try await page.nodeAction(nodeID, body: "n.scrollIntoView({block:'center'})")
-    return try await page.scrollPosition()
+    let point = try await page.scrollPosition()
+    return point
   }
 
-  public func nodeAtPoint(pageID: PageID, x: Double, y: Double) throws -> InspectedNode? {
+  public func nodeAtPoint(pageID: PageID, x: Double, y: Double) async throws -> InspectedNode? {
+    guard x.isFinite, y.isFinite else {
+      throw BrowserRuntimeError.invalidState("Invalid hit-test coordinates")
+    }
+    if webPages[pageID] != nil {
+      return try await webPage(pageID).nodeAtPoint(x: x, y: y)
+    }
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     let target = Point(x: x + page.scroll.x, y: y + page.scroll.y)
@@ -941,6 +1293,9 @@ public actor BrowserRuntime {
   }
 
   public func pressKey(pageID: PageID, key: String) async throws -> String {
+    if webPages[pageID] != nil {
+      return try await webPage(pageID).pressKey(key)
+    }
     let page = try requirePage(pageID)
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     guard let focused = page.focused,
@@ -996,11 +1351,11 @@ public actor BrowserRuntime {
   }
 
   public func selectOption(pageID: PageID, selectNodeID: NodeID, value: String) async throws {
-    try await webPage(pageID).fill(selectNodeID, value: value, append: false)
+    try await type(pageID: pageID, nodeID: selectNodeID, text: value)
   }
 
   public func fill(pageID: PageID, nodeID: NodeID, value: String) async throws {
-    try await webPage(pageID).fill(nodeID, value: value, append: false)
+    try await type(pageID: pageID, nodeID: nodeID, text: value)
   }
 
   public func submitForm(pageID: PageID, formNodeID: NodeID) async throws -> BrowserPageInfo {
@@ -1015,7 +1370,13 @@ public actor BrowserRuntime {
     }
   }
 
-  public func consoleOutput(pageID: PageID) throws -> [String] {
+  public func consoleOutput(pageID: PageID) async throws -> [String] {
+    _ = try requirePage(pageID)
+    // WebKit-backed pages have no experimental `loaded` record; their console
+    // lines are captured by the injected bridge and read back from the page.
+    if let webPage = try? await webPage(pageID) {
+      return await webPage.consoleLines()
+    }
     let page = try requirePage(pageID)
     guard page.loaded != nil else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     return page.javascript?.consoleOutput ?? []
@@ -1027,6 +1388,12 @@ public actor BrowserRuntime {
 
   public func mainFrame(pageID: PageID) throws -> AgentFrameInfo {
     let page = try requirePage(pageID)
+    if let state = webStates[pageID] {
+      guard state.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
+      return AgentFrameInfo(
+        id: FrameID(rawValue: pageID.rawValue), page: pageID,
+        url: state.url?.absoluteString, title: state.title)
+    }
     guard let loaded = page.loaded else { throw BrowserRuntimeError.pageNotLoaded(pageID) }
     return AgentFrameInfo(
       id: FrameID(rawValue: loaded.document.id.rawValue), page: pageID, url: loaded.url.absoluteString,
@@ -1344,10 +1711,18 @@ public actor BrowserRuntime {
     return info(for: page)
   }
 
-  private func nowSeconds() -> Double { Date().timeIntervalSince1970 }
+  func nowSeconds() -> Double { Date().timeIntervalSince1970 }
+
+  func fleetPlan(_ candidates: [FleetCandidate], now: Double) -> FleetPlan {
+    FleetScheduler.plan(candidates: candidates, maxActive: maxActivePages,
+      memoryBudgetBytes: fleetMemoryBudget, now: now)
+  }
 
   private func estimatedBytes(of page: PageRecord) -> Int {
-    guard let loaded = page.loaded else { return 0 }
+    guard let loaded = page.loaded else {
+      return webPages[page.id] != nil && webStates[page.id]?.loaded == true
+        ? 8 * 1024 * 1024 : 0
+    }
     let imageBytes = loaded.images.values.reduce(0) { $0 + $1.rgba.count }
     return loaded.document.nodeCount * 256 + loaded.displayList.commands.count * 128 + imageBytes
       + loaded.metrics.responseBytes
@@ -1697,7 +2072,13 @@ public actor BrowserRuntime {
   }
 
   func contextID(containing pageID: PageID) -> ContextID? {
-    contexts.first(where: { $0.value.pages[pageID] != nil })?.key
+    if let owner = pageOwner[pageID], contexts[owner]?.pages[pageID] != nil { return owner }
+    guard let found = contexts.first(where: { $0.value.pages[pageID] != nil })?.key else {
+      pageOwner[pageID] = nil
+      return nil
+    }
+    pageOwner[pageID] = found
+    return found
   }
 
   func info(for page: PageRecord) -> BrowserPageInfo {

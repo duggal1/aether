@@ -151,7 +151,8 @@ public final class OmniboxSuggestionModel {
         intelligenceTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            let candidates = (try? await provider.jevCompletions(prefix: prefix, local: [], limit: 3)) ?? []
+            let candidates = (try? await provider.jevCompletions(
+                prefix: prefix, local: window.searchSignals(limit: 48), limit: 3)) ?? []
             guard !Task.isCancelled, let self, token == self.generation else { return }
             self.suggestedSites = candidates.compactMap { candidate in
                 guard candidate.kind == .navigate, let address = candidate.url,

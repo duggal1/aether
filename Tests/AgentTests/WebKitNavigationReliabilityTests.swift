@@ -6,8 +6,15 @@ import Testing
 
 struct WebKitNavigationReliabilityTests {
   private static let serverScript = """
-    import http.server, sys, time, urllib.parse
+    import http.server, os, sys, threading, time, urllib.parse
     port = int(sys.argv[1])
+    def _watch_parent():
+        original = os.getppid()
+        while True:
+            time.sleep(0.5)
+            if os.getppid() != original:
+                os._exit(0)
+    threading.Thread(target=_watch_parent, daemon=True).start()
     class H(http.server.BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass

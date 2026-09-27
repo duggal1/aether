@@ -12,7 +12,7 @@ public struct OmniboxView: View {
     @BrowserState private var progressOpacity = 0.0
     @State private var bookmarkEditorPresented = false
     @State private var bookmarkWasAdded = false
-    @Namespace private var glassNS
+    @State private var bookmarkForPopover: BrowserBookmark?
     let window: BrowserWindowModel
 
     public init(window: BrowserWindowModel) { self.window = window }
@@ -25,6 +25,10 @@ public struct OmniboxView: View {
         chrome ?? (theme.dark ? .dark : .light)
     }
 
+    // Neutral-850 pill ⇒ light ink in dark mode, dark ink in light mode.
+    private var fieldInk: Color { appearance.text }
+    private var fieldSecondary: Color { appearance.icon }
+
     private var selectedBookmark: BrowserBookmark? {
         guard let url = window.selected?.url else { return nil }
         return window.workspace.bookmarks(for: window.activeProfileID).first { $0.url == url }
@@ -33,12 +37,12 @@ public struct OmniboxView: View {
     public var body: some View {
         HStack(alignment: .center, spacing: 8) {
             BrowserIconView(icon: focused ? .search : (window.selected?.isSecure == false ? .warning : .lock),
-                            tint: focused ? appearance.text : appearance.icon)
+                            tint: fieldSecondary)
                 .iconSize(12)
                 .frame(width: 16, height: 20, alignment: .center)
                 .offset(y: -0.3)
             NativeAddressField(text: $draft, focused: $focused,
-                textColor: appearance.text, placeholderColor: appearance.icon,
+                textColor: fieldInk, placeholderColor: fieldSecondary,
                 fullAddress: window.selected?.url ?? "",
                 placeholder: "Search \(window.workspace.preferences.provider.rawValue) or enter URL",
                 focusRequest: window.addressFocusNonce,
@@ -80,7 +84,7 @@ public struct OmniboxView: View {
                     guard focused else { return }
                     window.suggestions.update(prefix: draft, window: window)
                 }
-                .onChange(of: window.selected?.loadState == .loading) { _, loading in
+                .onChange(of: selectedIsLoading) { _, loading in
                     if loading == true { startProgress() } else { finishProgress() }
                 }
                 .onChange(of: window.selectedID) { _, _ in
@@ -89,7 +93,7 @@ public struct OmniboxView: View {
                 .onChange(of: window.selected?.loadProgress) { _, _ in trackRealProgress() }
             if !focused {
                 Button { window.navigateSelected(SearchProvider.googleAI.homepage.absoluteString) } label: {
-                    Text("AI Mode").font(AetherType.body(11)).foregroundStyle(appearance.icon)
+                    Text("AI Mode").font(AetherType.body(11)).foregroundStyle(fieldSecondary)
                 }
                 .buttonStyle(.plain)
                 .aetherPointingCursor()
@@ -99,19 +103,10 @@ public struct OmniboxView: View {
                 .accessibilityIdentifier("aether.google-ai")
             }
             Button {
-                if let url = window.selected?.url {
-                    let rawTitle = window.selected?.title ?? url
-                    let title = (rawTitle.isEmpty || rawTitle == "New Tab")
-                        ? (URL(string: url)?.host ?? url) : rawTitle
-                    bookmarkWasAdded = selectedBookmark == nil
-                    if bookmarkWasAdded {
-                        window.workspace.toggleBookmark(profileID: window.activeProfileID, title: title, url: url)
-                    }
-                    bookmarkEditorPresented = true
-                }
+                presentBookmarkEditor()
             } label: {
                 BrowserIconView(icon: window.workspace.isBookmarked(window.selected?.url, profileID: window.activeProfileID) ? .doubleBookmark : .bookmark,
-                                tint: appearance.icon)
+                                tint: fieldSecondary)
                     .iconSize(13)
                     .frame(width: 26, height: 26)
                     .contentShape(Rectangle())
@@ -123,32 +118,22 @@ public struct OmniboxView: View {
             .help("Bookmark this page")
             .disabled(window.selected?.url == nil || window.workspace.isIncognito(window.activeProfileID))
             .popover(isPresented: $bookmarkEditorPresented, arrowEdge: .bottom) {
-                if let bookmark = selectedBookmark {
+                if let bookmark = bookmarkForPopover {
                     BookmarkEditorView(bookmark: bookmark, isNew: bookmarkWasAdded, workspace: window.workspace) {
                         bookmarkEditorPresented = false
+                        bookmarkForPopover = nil
                     }
                     .environment(\.aetherChromeAppearance, appearance)
                     .preferredColorScheme(appearance.isDark ? .dark : .light)
                     .presentationBackground(.clear)
                 }
             }
-            .onChange(of: window.selectedID) { _, _ in bookmarkEditorPresented = false }
+            .onChange(of: window.selectedID) { _, _ in dismissBookmarkEditor() }
+            .onChange(of: window.selected?.url) { _, _ in dismissBookmarkEditor() }
         }
         .padding(.leading, 12).padding(.trailing, 6)
         .frame(height: 30)
-        .background {
-            let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
-            ZStack {
-                AetherStrongBlurView().clipShape(shape)
-                shape.fill(appearance.isDark
-                    ? Color(.sRGB, red: 0x26 / 255, green: 0x26 / 255, blue: 0x26 / 255, opacity: 0.45)
-                    : Color.white.opacity(0.60))
-                shape.fill(.clear)
-                    .glassEffect(.regular.tint(appearance.isDark ? Color.black.opacity(0.14) : Color.white.opacity(0.16)),
-                                 in: shape)
-                    .glassEffectTransition(.materialize)
-            }
-        }
+        .background { AetherSearchFieldBackground(radius: AetherMetrics.fieldRadius) }
         .modifier(DiaProgressEffect(p: progressP, opacity: progressOpacity, focused: focused,
                                     trio: window.workspace.preferences.progressColor.gradientTrio))
         .animation(AetherMotion.focus(reduced), value: focused)
@@ -180,6 +165,28 @@ public struct OmniboxView: View {
         guard focused, let completion = window.suggestions.completionText else { return }
         draft = completion
         window.suggestions.update(prefix: completion, window: window)
+    }
+
+    private func presentBookmarkEditor() {
+        guard let url = window.selected?.url else { return }
+        let profileID = window.activeProfileID
+        if let existing = selectedBookmark {
+            bookmarkForPopover = existing
+            bookmarkWasAdded = false
+        } else {
+            let rawTitle = window.selected?.title ?? url
+            let title = (rawTitle.isEmpty || rawTitle == "New Tab")
+                ? (URL(string: url)?.host ?? url) : rawTitle
+            window.workspace.toggleBookmark(profileID: profileID, title: title, url: url)
+            bookmarkForPopover = window.workspace.bookmarks(for: profileID).first { $0.url == url }
+            bookmarkWasAdded = true
+        }
+        bookmarkEditorPresented = bookmarkForPopover != nil
+    }
+
+    private func dismissBookmarkEditor() {
+        bookmarkEditorPresented = false
+        bookmarkForPopover = nil
     }
 
     private func commit(_ text: String) {
@@ -243,6 +250,8 @@ public struct OmniboxView: View {
     }
 
     private func isLoadingNow() -> Bool { window.selected?.loadState == .loading }
+
+    private var selectedIsLoading: Bool { isLoadingNow() }
 
     private func startProgress() {
         if reduced {

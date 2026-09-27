@@ -149,8 +149,13 @@ struct PaletteContractTests {
         #expect(AetherMetrics.chromeHeight == 42)
         #expect(AetherMetrics.tabHeight == 40)
         #expect(AetherMetrics.tapTarget == 44)
-        #expect(AetherMetrics.menuRadius == 8)
-        #expect(AetherMetrics.panelRadius == 10)
+        // One shape scale, no aliases: 8 inline controls, 10 fields, 12 cards,
+        // 14 large panels.
+        #expect(AetherMetrics.utilityRadius == 8)
+        #expect(AetherMetrics.fieldRadius == 10)
+        #expect(AetherMetrics.cardRadius == 12)
+        #expect(AetherMetrics.panelRadius == 14)
+        #expect(AetherMetrics.tabRadius == 14)
     }
 }
 

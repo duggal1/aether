@@ -2,12 +2,16 @@ import SwiftUI
 
 public struct BookmarksView: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     @BrowserState private var query = ""
     @BrowserState private var transferError: String?
     @State private var closeHovering = false
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
+
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     private var results: [BrowserBookmark] {
         window.workspace.bookmarks(for: window.activeProfileID)
@@ -31,33 +35,48 @@ public struct BookmarksView: View {
             HStack(spacing: 9) {
                 Text("Bookmarks")
                     .font(AetherType.panelTitle(22)).tracking(AetherTracking.heading)
-                    .foregroundStyle(theme.textStrong)
+                    .foregroundStyle(skin.primaryText)
                 Spacer(minLength: 8)
                 HStack(spacing: 8) {
-                    Button("Import") {
+                    Button {
                         do {
                             if let items = try BookmarkTransfer.importBookmarks() {
                                 window.workspace.importBookmarks(items, into: window.activeProfileID)
                             }
                         } catch { transferError = error.localizedDescription }
+                    } label: {
+                        Text("Import")
                     }
-                    .aetherProminentButton()
-                    .frame(minWidth: 88, minHeight: 30)
-                    Button("Export") {
+                    .buttonStyle(AetherPanelActionButtonStyle())
+                    .focusEffectDisabled()
+                    .aetherPointingCursor()
+                    .help("Import bookmarks from a file")
+                    Button {
                         do {
                             _ = try BookmarkTransfer.export(window.workspace.bookmarks(for: window.activeProfileID),
                                 profileName: window.workspace.name(for: window.activeProfileID))
                         } catch { transferError = error.localizedDescription }
+                    } label: {
+                        HStack(spacing: 7) {
+                            // Native share/export glyph, not a hand-drawn arrow.
+                            Image(systemName: "square.and.arrow.up")
+                                .font(AetherType.symbol(13, weight: .medium))
+                            Text("Export")
+                        }
                     }
-                    .aetherButton()
-                    .frame(minWidth: 88, minHeight: 30)
+                    .buttonStyle(AetherPanelActionButtonStyle())
+                    .focusEffectDisabled()
+                    .aetherPointingCursor()
+                    .help("Export bookmarks to a file")
                 }
                 Button { window.showsBookmarks = false } label: {
                     Image(systemName: "xmark")
                         .font(AetherType.symbol(11))
-                        .foregroundStyle(theme.muted)
+                        .foregroundStyle(skin.secondaryIcon)
                         .frame(width: 28, height: 28)
-                        .background { AetherInteractionSurface(active: closeHovering, radius: 8) }
+                        .background {
+                            AetherInteractionSurface(active: closeHovering, radius: 8)
+                        }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -66,6 +85,7 @@ public struct BookmarksView: View {
                 .onHover { closeHovering = $0 }
                 .help("Close bookmarks")
             }
+            .foregroundStyle(skin.panelActionInk)
 
             AetherField("Search bookmarks", text: $query, icon: .search)
             if let transferError {
@@ -114,6 +134,7 @@ public struct BookmarksView: View {
 
 private struct BookmarkFolderSection: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var expanded = true
     let folder: String
@@ -121,26 +142,32 @@ private struct BookmarkFolderSection: View {
     let open: (BrowserBookmark) -> Void
     let delete: (UUID) -> Void
 
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             Button {
                 withAnimation(AetherMotion.popover(reduced)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 9) {
-                    Image(systemName: "folder")
-                        .font(AetherType.symbol(16))
-                        .foregroundStyle(AetherPalette.folderColor)
+                    // Neutral chrome glyph, never the accent blue: the folder
+                    // marks a group, it is not a selected state, and a saturated
+                    // blue in a monochrome list reads as a link.
+                    BrowserIconView(icon: .folder, tint: skin.primaryIcon)
+                        .iconSize(16)
                         .frame(width: 19)
                     Text(folder)
                         .font(AetherType.emphasis(13))
-                        .foregroundStyle(theme.textStrong)
+                        .foregroundStyle(skin.primaryText)
                     Text("\(marks.count)")
                         .font(AetherType.caption(12))
-                        .foregroundStyle(theme.muted)
+                        .foregroundStyle(skin.metadataText)
                     Spacer()
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
                         .font(AetherType.symbol(12))
-                        .foregroundStyle(theme.muted)
+                        .foregroundStyle(skin.secondaryIcon)
                 }
                 .padding(.horizontal, 11)
                 .frame(height: 37)
@@ -163,12 +190,17 @@ private struct BookmarkFolderSection: View {
 
 private struct BookmarkEntry: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @State private var hovering = false
     @FocusState private var deleteFocused: Bool
     let mark: BrowserBookmark
     let open: () -> Void
     let delete: () -> Void
+
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -177,15 +209,15 @@ private struct BookmarkEntry: View {
                     DomainIcon(mark.url, size: 22)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(mark.title).font(AetherType.emphasis(13))
-                            .foregroundStyle(theme.textStrong).lineLimit(1)
+                            .foregroundStyle(skin.primaryText).lineLimit(1)
                         Text(mark.url).font(AetherType.caption(11))
-                            .foregroundStyle(theme.muted).lineLimit(1)
+                            .foregroundStyle(skin.metadataText).lineLimit(1)
                             .truncationMode(.middle)
                     }
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
                         .font(AetherType.symbol(12))
-                        .foregroundStyle(theme.muted)
+                        .foregroundStyle(skin.secondaryIcon)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -196,7 +228,7 @@ private struct BookmarkEntry: View {
             Button(action: delete) {
                 Image(systemName: "xmark")
                     .font(AetherType.symbol(12))
-                    .foregroundStyle(theme.muted)
+                    .foregroundStyle(skin.secondaryIcon)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
@@ -209,7 +241,7 @@ private struct BookmarkEntry: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 52)
-        .background(hovering ? theme.hover : Color.clear,
+        .background(hovering ? skin.hoverFill : Color.clear,
                     in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .animation(AetherMotion.hover(reduced), value: hovering)
         .onHover { hovering = $0 }

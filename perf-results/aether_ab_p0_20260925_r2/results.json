@@ -1,0 +1,886 @@
+{
+  "summary": {
+    "before": {
+      "app_launch": {
+        "appReadyMs": {
+          "count": 0,
+          "medianMs": null,
+          "p95Ms": null,
+          "worstMs": null
+        }
+      },
+      "cold_navigation": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 28.6,
+          "p95Ms": 33.1,
+          "worstMs": 33.1
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1334.4,
+          "p95Ms": 1358.8,
+          "worstMs": 1358.8
+        },
+        "toFCPMs": {
+          "count": 1,
+          "medianMs": 881.6,
+          "p95Ms": 881.6,
+          "worstMs": 881.6
+        },
+        "paintToReadyMs": {
+          "count": 1,
+          "medianMs": 52.1,
+          "p95Ms": 52.1,
+          "worstMs": 52.1
+        }
+      },
+      "warm_navigation": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 10.2,
+          "p95Ms": 10.2,
+          "worstMs": 10.2
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1825.9,
+          "p95Ms": 2516.9,
+          "worstMs": 2516.9
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 1637.9,
+          "p95Ms": 2269.3,
+          "worstMs": 2269.3
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 247.7,
+          "p95Ms": 352.8,
+          "worstMs": 352.8
+        }
+      },
+      "back": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 17.5,
+          "p95Ms": 60.2,
+          "worstMs": 60.2
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 955.5,
+          "p95Ms": 1026.6,
+          "worstMs": 1026.6
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 737.1,
+          "p95Ms": 915.3,
+          "worstMs": 915.3
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 174.9,
+          "p95Ms": 331.8,
+          "worstMs": 331.8
+        }
+      },
+      "forward": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 15.3,
+          "p95Ms": 37.5,
+          "worstMs": 37.5
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 73.5,
+          "p95Ms": 1266.3,
+          "worstMs": 1266.3
+        },
+        "toFCPMs": {
+          "count": 1,
+          "medianMs": 1113.2,
+          "p95Ms": 1113.2,
+          "worstMs": 1113.2
+        },
+        "paintToReadyMs": {
+          "count": 1,
+          "medianMs": 153.2,
+          "p95Ms": 153.2,
+          "worstMs": 153.2
+        }
+      },
+      "new_tab": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 20.7,
+          "p95Ms": 21.6,
+          "worstMs": 21.6
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1822.0,
+          "p95Ms": 1955.6,
+          "worstMs": 1955.6
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 988.1,
+          "p95Ms": 1742.4,
+          "worstMs": 1742.4
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 213.2,
+          "p95Ms": 834.0,
+          "worstMs": 834.0
+        }
+      }
+    },
+    "after": {
+      "app_launch": {
+        "appReadyMs": {
+          "count": 0,
+          "medianMs": null,
+          "p95Ms": null,
+          "worstMs": null
+        }
+      },
+      "cold_navigation": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 17.5,
+          "p95Ms": 23.3,
+          "worstMs": 23.3
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1597.9,
+          "p95Ms": 1918.0,
+          "worstMs": 1918.0
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 1507.8,
+          "p95Ms": 1729.9,
+          "worstMs": 1729.9
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 90.1,
+          "p95Ms": 188.2,
+          "worstMs": 188.2
+        }
+      },
+      "warm_navigation": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 15.9,
+          "p95Ms": 18.4,
+          "worstMs": 18.4
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1221.7,
+          "p95Ms": 1445.7,
+          "worstMs": 1445.7
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 1143.8,
+          "p95Ms": 1211.1,
+          "worstMs": 1211.1
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 82.4,
+          "p95Ms": 234.6,
+          "worstMs": 234.6
+        }
+      },
+      "back": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 16.6,
+          "p95Ms": 23.5,
+          "worstMs": 23.5
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1265.9,
+          "p95Ms": 2779.2,
+          "worstMs": 2779.2
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 1226.3,
+          "p95Ms": 2775.0,
+          "worstMs": 2775.0
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 39.6,
+          "p95Ms": 43.1,
+          "worstMs": 43.1
+        }
+      },
+      "forward": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 10.2,
+          "p95Ms": 11.1,
+          "worstMs": 11.1
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1102.5,
+          "p95Ms": 1278.8,
+          "worstMs": 1278.8
+        },
+        "toFCPMs": {
+          "count": 3,
+          "medianMs": 970.4,
+          "p95Ms": 1081.9,
+          "worstMs": 1081.9
+        },
+        "paintToReadyMs": {
+          "count": 3,
+          "medianMs": 197.0,
+          "p95Ms": 208.7,
+          "worstMs": 208.7
+        }
+      },
+      "new_tab": {
+        "dispatchMs": {
+          "count": 3,
+          "medianMs": 15.6,
+          "p95Ms": 19.1,
+          "worstMs": 19.1
+        },
+        "toReadyMs": {
+          "count": 3,
+          "medianMs": 1069.8,
+          "p95Ms": 1746.2,
+          "worstMs": 1746.2
+        },
+        "toFCPMs": {
+          "count": 2,
+          "medianMs": 1103.7,
+          "p95Ms": 1702.1,
+          "worstMs": 1702.1
+        },
+        "paintToReadyMs": {
+          "count": 2,
+          "medianMs": 283.9,
+          "p95Ms": 523.6,
+          "worstMs": 523.6
+        }
+      }
+    }
+  },
+  "steps": [
+    {
+      "binary": "before",
+      "repeat": 1,
+      "action": "app_launch",
+      "appReadyMs": 562.4,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 33.1,
+      "toReadyMs": 933.7,
+      "toFCPMs": 881.6,
+      "paintToReadyMs": 52.1,
+      "fcpDocumentMs": 328,
+      "loadEventEndMs": null,
+      "action": "cold_navigation",
+      "tabID": "A2707F31-681B-43D3-853A-AE4E3D1995F2",
+      "binary": "before",
+      "repeat": 1,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 9.1,
+      "toReadyMs": 1825.9,
+      "toFCPMs": 1637.9,
+      "paintToReadyMs": 188.1,
+      "fcpDocumentMs": 1598,
+      "loadEventEndMs": null,
+      "action": "warm_navigation",
+      "tabID": "A2707F31-681B-43D3-853A-AE4E3D1995F2",
+      "binary": "before",
+      "repeat": 1,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 11.3,
+      "toReadyMs": 1026.6,
+      "toFCPMs": 694.8,
+      "paintToReadyMs": 331.8,
+      "fcpDocumentMs": 609,
+      "loadEventEndMs": null,
+      "action": "back",
+      "tabID": "A2707F31-681B-43D3-853A-AE4E3D1995F2",
+      "binary": "before",
+      "repeat": 1,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 37.5,
+      "toReadyMs": 1266.3,
+      "toFCPMs": 1113.2,
+      "paintToReadyMs": 153.2,
+      "fcpDocumentMs": 1009,
+      "loadEventEndMs": null,
+      "action": "forward",
+      "tabID": "A2707F31-681B-43D3-853A-AE4E3D1995F2",
+      "binary": "before",
+      "repeat": 1,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 21.6,
+      "toReadyMs": 916.1,
+      "toFCPMs": 839.8,
+      "paintToReadyMs": 76.5,
+      "fcpDocumentMs": 149,
+      "loadEventEndMs": null,
+      "action": "new_tab",
+      "tabID": "64345FF5-E560-428E-B593-DA312AB45B82",
+      "binary": "before",
+      "repeat": 1,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "binary": "before",
+      "repeat": 1,
+      "appReadyElapsedMs": null,
+      "peakAppRSSMiB": 122.8,
+      "peakAppCPUPercent": 89.2
+    },
+    {
+      "binary": "after",
+      "repeat": 1,
+      "action": "app_launch",
+      "appReadyMs": 1167.8,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 16.9,
+      "toReadyMs": 986.1,
+      "toFCPMs": 905.3,
+      "paintToReadyMs": 80.8,
+      "fcpDocumentMs": 169,
+      "loadEventEndMs": null,
+      "action": "cold_navigation",
+      "tabID": "88B4F9A8-0D31-4FFC-9A8B-C46A308782EE",
+      "binary": "after",
+      "repeat": 1,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 15.9,
+      "toReadyMs": 1445.7,
+      "toFCPMs": 1211.1,
+      "paintToReadyMs": 234.6,
+      "fcpDocumentMs": 1152,
+      "loadEventEndMs": null,
+      "action": "warm_navigation",
+      "tabID": "88B4F9A8-0D31-4FFC-9A8B-C46A308782EE",
+      "binary": "after",
+      "repeat": 1,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 23.5,
+      "toReadyMs": 1265.9,
+      "toFCPMs": 1226.3,
+      "paintToReadyMs": 39.6,
+      "fcpDocumentMs": 1094,
+      "loadEventEndMs": null,
+      "action": "back",
+      "tabID": "88B4F9A8-0D31-4FFC-9A8B-C46A308782EE",
+      "binary": "after",
+      "repeat": 1,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 10.2,
+      "toReadyMs": 1101.3,
+      "toFCPMs": 970.4,
+      "paintToReadyMs": 130.9,
+      "fcpDocumentMs": 934,
+      "loadEventEndMs": null,
+      "action": "forward",
+      "tabID": "88B4F9A8-0D31-4FFC-9A8B-C46A308782EE",
+      "binary": "after",
+      "repeat": 1,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 19.1,
+      "toReadyMs": 1746.2,
+      "toFCPMs": 1702.1,
+      "paintToReadyMs": 44.2,
+      "fcpDocumentMs": 1284,
+      "loadEventEndMs": null,
+      "action": "new_tab",
+      "tabID": "12AEA1A2-B9FD-4853-9E35-E35D5AAF1AD6",
+      "binary": "after",
+      "repeat": 1,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "binary": "after",
+      "repeat": 1,
+      "appReadyElapsedMs": null,
+      "peakAppRSSMiB": 119.5,
+      "peakAppCPUPercent": 77.4
+    },
+    {
+      "binary": "before",
+      "repeat": 2,
+      "action": "app_launch",
+      "appReadyMs": 621.4,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 28.6,
+      "toReadyMs": 1334.4,
+      "toFCPMs": null,
+      "paintToReadyMs": null,
+      "fcpDocumentMs": null,
+      "loadEventEndMs": 525,
+      "action": "cold_navigation",
+      "tabID": "AF3D33FC-2C46-43FC-8B53-47F9B3302069",
+      "binary": "before",
+      "repeat": 2,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 10.2,
+      "toReadyMs": 2516.9,
+      "toFCPMs": 2269.3,
+      "paintToReadyMs": 247.7,
+      "fcpDocumentMs": 2135,
+      "loadEventEndMs": null,
+      "action": "warm_navigation",
+      "tabID": "AF3D33FC-2C46-43FC-8B53-47F9B3302069",
+      "binary": "before",
+      "repeat": 2,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 17.5,
+      "toReadyMs": 955.5,
+      "toFCPMs": 915.3,
+      "paintToReadyMs": 40.3,
+      "fcpDocumentMs": 784,
+      "loadEventEndMs": null,
+      "action": "back",
+      "tabID": "AF3D33FC-2C46-43FC-8B53-47F9B3302069",
+      "binary": "before",
+      "repeat": 2,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "YouTube",
+      "dispatchMs": 11.8,
+      "toReadyMs": 73.5,
+      "toFCPMs": null,
+      "paintToReadyMs": null,
+      "fcpDocumentMs": 784,
+      "loadEventEndMs": 841,
+      "action": "forward",
+      "tabID": "AF3D33FC-2C46-43FC-8B53-47F9B3302069",
+      "binary": "before",
+      "repeat": 2,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 15.1,
+      "toReadyMs": 1822.0,
+      "toFCPMs": 988.1,
+      "paintToReadyMs": 834.0,
+      "fcpDocumentMs": 206,
+      "loadEventEndMs": null,
+      "action": "new_tab",
+      "tabID": "6A43664F-BD58-4046-979D-98702E6B02A3",
+      "binary": "before",
+      "repeat": 2,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "binary": "before",
+      "repeat": 2,
+      "appReadyElapsedMs": null,
+      "peakAppRSSMiB": 129.6,
+      "peakAppCPUPercent": 95.3
+    },
+    {
+      "binary": "after",
+      "repeat": 2,
+      "action": "app_launch",
+      "appReadyMs": 1464.8,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 23.3,
+      "toReadyMs": 1918.0,
+      "toFCPMs": 1729.9,
+      "paintToReadyMs": 188.2,
+      "fcpDocumentMs": 879,
+      "loadEventEndMs": null,
+      "action": "cold_navigation",
+      "tabID": "41932C1B-D7C3-4E99-8629-906B28A5863D",
+      "binary": "after",
+      "repeat": 2,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 14.9,
+      "toReadyMs": 1221.7,
+      "toFCPMs": 1143.8,
+      "paintToReadyMs": 77.9,
+      "fcpDocumentMs": 1096,
+      "loadEventEndMs": null,
+      "action": "warm_navigation",
+      "tabID": "41932C1B-D7C3-4E99-8629-906B28A5863D",
+      "binary": "after",
+      "repeat": 2,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 9.6,
+      "toReadyMs": 2779.2,
+      "toFCPMs": 2775.0,
+      "paintToReadyMs": 4.2,
+      "fcpDocumentMs": 2737,
+      "loadEventEndMs": 2661,
+      "action": "back",
+      "tabID": "41932C1B-D7C3-4E99-8629-906B28A5863D",
+      "binary": "after",
+      "repeat": 2,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 9.6,
+      "toReadyMs": 1102.5,
+      "toFCPMs": 893.8,
+      "paintToReadyMs": 208.7,
+      "fcpDocumentMs": 865,
+      "loadEventEndMs": null,
+      "action": "forward",
+      "tabID": "41932C1B-D7C3-4E99-8629-906B28A5863D",
+      "binary": "after",
+      "repeat": 2,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 15.6,
+      "toReadyMs": 1028.8,
+      "toFCPMs": 505.3,
+      "paintToReadyMs": 523.6,
+      "fcpDocumentMs": 104,
+      "loadEventEndMs": 623,
+      "action": "new_tab",
+      "tabID": "3F7F6AA4-66C1-471E-83E4-7CD57C271F6F",
+      "binary": "after",
+      "repeat": 2,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "binary": "after",
+      "repeat": 2,
+      "appReadyElapsedMs": null,
+      "peakAppRSSMiB": 116.1,
+      "peakAppCPUPercent": 90.3
+    },
+    {
+      "binary": "before",
+      "repeat": 3,
+      "action": "app_launch",
+      "appReadyMs": 836.4,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 22.7,
+      "toReadyMs": 1358.8,
+      "toFCPMs": null,
+      "paintToReadyMs": null,
+      "fcpDocumentMs": null,
+      "loadEventEndMs": 716,
+      "action": "cold_navigation",
+      "tabID": "7B9E514F-0A38-492A-B856-67E2FD2DFE60",
+      "binary": "before",
+      "repeat": 3,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 10.2,
+      "toReadyMs": 1268.0,
+      "toFCPMs": 915.2,
+      "paintToReadyMs": 352.8,
+      "fcpDocumentMs": 879,
+      "loadEventEndMs": 1198,
+      "action": "warm_navigation",
+      "tabID": "7B9E514F-0A38-492A-B856-67E2FD2DFE60",
+      "binary": "before",
+      "repeat": 3,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 60.2,
+      "toReadyMs": 912.0,
+      "toFCPMs": 737.1,
+      "paintToReadyMs": 174.9,
+      "fcpDocumentMs": 636,
+      "loadEventEndMs": 638,
+      "action": "back",
+      "tabID": "7B9E514F-0A38-492A-B856-67E2FD2DFE60",
+      "binary": "before",
+      "repeat": 3,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "YouTube",
+      "dispatchMs": 15.3,
+      "toReadyMs": 52.5,
+      "toFCPMs": null,
+      "paintToReadyMs": null,
+      "fcpDocumentMs": 636,
+      "loadEventEndMs": 638,
+      "action": "forward",
+      "tabID": "7B9E514F-0A38-492A-B856-67E2FD2DFE60",
+      "binary": "before",
+      "repeat": 3,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 20.7,
+      "toReadyMs": 1955.6,
+      "toFCPMs": 1742.4,
+      "paintToReadyMs": 213.2,
+      "fcpDocumentMs": 1271,
+      "loadEventEndMs": 1433,
+      "action": "new_tab",
+      "tabID": "636CAD21-2621-44F1-9158-1C18D3A32288",
+      "binary": "before",
+      "repeat": 3,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "binary": "before",
+      "repeat": 3,
+      "appReadyElapsedMs": null,
+      "peakAppRSSMiB": 123.8,
+      "peakAppCPUPercent": 94.7
+    },
+    {
+      "binary": "after",
+      "repeat": 3,
+      "action": "app_launch",
+      "appReadyMs": 1242.5,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 17.5,
+      "toReadyMs": 1597.9,
+      "toFCPMs": 1507.8,
+      "paintToReadyMs": 90.1,
+      "fcpDocumentMs": 857,
+      "loadEventEndMs": null,
+      "action": "cold_navigation",
+      "tabID": "40CB6C8F-36FE-453D-A036-02CD0AB13F0F",
+      "binary": "after",
+      "repeat": 3,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 18.4,
+      "toReadyMs": 1094.2,
+      "toFCPMs": 1011.8,
+      "paintToReadyMs": 82.4,
+      "fcpDocumentMs": 875,
+      "loadEventEndMs": null,
+      "action": "warm_navigation",
+      "tabID": "40CB6C8F-36FE-453D-A036-02CD0AB13F0F",
+      "binary": "after",
+      "repeat": 3,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 16.6,
+      "toReadyMs": 1107.7,
+      "toFCPMs": 1064.6,
+      "paintToReadyMs": 43.1,
+      "fcpDocumentMs": 784,
+      "loadEventEndMs": 782,
+      "action": "back",
+      "tabID": "40CB6C8F-36FE-453D-A036-02CD0AB13F0F",
+      "binary": "after",
+      "repeat": 3,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/results?search_query=webkit",
+      "title": "https://www.youtube.com/results?search_query=webkit",
+      "dispatchMs": 11.1,
+      "toReadyMs": 1278.8,
+      "toFCPMs": 1081.9,
+      "paintToReadyMs": 197.0,
+      "fcpDocumentMs": 1048,
+      "loadEventEndMs": 1212,
+      "action": "forward",
+      "tabID": "40CB6C8F-36FE-453D-A036-02CD0AB13F0F",
+      "binary": "after",
+      "repeat": 3,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    },
+    {
+      "status": "ok",
+      "url": "https://www.youtube.com/",
+      "title": "YouTube",
+      "dispatchMs": 15.1,
+      "toReadyMs": 1069.8,
+      "toFCPMs": null,
+      "paintToReadyMs": null,
+      "fcpDocumentMs": null,
+      "loadEventEndMs": 514,
+      "action": "new_tab",
+      "tabID": "D2D74B41-69FE-4F08-8A4F-65CDDC1680F4",
+      "binary": "after",
+      "repeat": 3,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    },
+    {
+      "binary": "after",
+      "repeat": 3,
+      "appReadyElapsedMs": null,
+      "peakAppRSSMiB": 115.9,
+      "peakAppCPUPercent": 77.1
+    }
+  ]
+}

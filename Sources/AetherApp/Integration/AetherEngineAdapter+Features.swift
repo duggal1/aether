@@ -51,7 +51,11 @@ extension AetherEngineAdapter: BrowserInspectionProviding, BrowserReaderProvidin
 
   func markdown(pageID: String) async throws -> String {
     let state = try await snapshot(pageID: pageID)
-    return "# \(state.title)\n\n" + (try await engine.runtime.webDocumentText(pageID: page(pageID)))
+    let body = try await engine.runtime.webReaderMarkdown(pageID: page(pageID))
+    guard !body.isEmpty else {
+      return "# \(state.title)\n\n" + (try await engine.runtime.webDocumentText(pageID: page(pageID)))
+    }
+    return "# \(state.title)\n\n" + body
   }
 
   func downloads(profileID: UUID) async throws -> [BrowserDownloadRecord] {
@@ -79,5 +83,19 @@ extension AetherEngineAdapter: BrowserSessionStateProviding {
     guard let id = try? page(pageID) else { return .notLoaded }
     let state = await engine.runtime.sessionAuthState(pageID: id)
     return EngineSessionState(rawValue: state.rawValue) ?? .notLoaded
+  }
+}
+
+extension AetherEngineAdapter: BrowserWebInspectorProviding {
+  func toggleWebInspector(pageID: String) async throws {
+    try await engine.runtime.toggleInspector(pageID: page(pageID))
+  }
+
+  func showWebConsole(pageID: String) async throws {
+    try await engine.runtime.showConsole(pageID: page(pageID))
+  }
+
+  func pickWebElement(pageID: String) async throws {
+    try await engine.runtime.inspectElement(pageID: page(pageID))
   }
 }

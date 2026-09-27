@@ -41,6 +41,9 @@ enum WebKitDOMScript {
       let next = 1;
       const ids = new WeakMap();
       const nodes = new Map();
+      let mutationVersion = 0;
+      const observer = new MutationObserver(records => { mutationVersion += records.length; });
+      observer.observe(document, {childList:true, subtree:true, characterData:true, attributes:true});
       const id = n => {
         if (!n) return null;
         if (!ids.has(n)) { ids.set(n, next); nodes.set(next++, new WeakRef(n)); }
@@ -65,10 +68,15 @@ enum WebKitDOMScript {
           enabled:!el?.matches(':disabled'),editable:!!el?.matches('input,textarea,select,[contenteditable=true]'),
           bounds:rect ? {origin:{x:rect.x+scrollX,y:rect.y+scrollY},size:{width:rect.width,height:rect.height}} : null};
       };
-      globalThis.__aetherDOM = {generation:\(generation),describe,get:i => nodes.get(i)?.deref(),snapshot:(max) => {
+      globalThis.__aetherDOM = {generation:\(generation),describe,get:i => nodes.get(i)?.deref(),
+        mutationVersion:() => mutationVersion,snapshot:(max) => {
         const limit = max > 0 ? Math.min(max, 20000) : 20000;
         const walker = document.createTreeWalker(document,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT);
-        const result = [];
+        const documentID = id(document);
+        const result = [{index:documentID,generation:\(generation),parent:null,
+          children:[id(document.documentElement)],kind:'document',tag:null,text:null,
+          attributes:{},role:'generic',name:'',value:null,href:null,visible:true,
+          enabled:true,editable:false,bounds:null}];
         while (walker.nextNode() && result.length < limit) {
           if (walker.currentNode.parentElement?.closest('script,style,noscript')) continue;
           result.push(describe(walker.currentNode));

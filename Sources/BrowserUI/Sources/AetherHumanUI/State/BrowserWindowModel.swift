@@ -1,8 +1,12 @@
+import AppKit
+import EngineRuntime
 import Foundation
+import WebKit
 import Observation
 
 @MainActor @Observable
 public final class BrowserWindowModel: Identifiable {
+    public private(set) static weak var front: BrowserWindowModel?
     public let id = UUID()
     public let workspace: BrowserWorkspace
     public let surfaces = PageSurfaceRegistry()
@@ -15,6 +19,11 @@ public final class BrowserWindowModel: Identifiable {
     public var showsBookmarks = false
     public var showsProfileMenu = false
     public var showsMoreMenu = false
+    /// The extensions drawer beside the space switcher. Its own state, so the
+    /// list can be open while nothing else is.
+    public var showsExtensionsMenu = false
+    /// What Jev has judged about the page in front.
+    public var showsJevSignals = false
     public var showsNewProfile = false
     public var showsRenameProfile = false
     public var showsDownloads = false
@@ -22,16 +31,43 @@ public final class BrowserWindowModel: Identifiable {
     public var showsReader = false
     public var showsFind = false
     public var showsSettings = false
+    // MARK: - Search-port chrome state
+    public var showsTabSwitcher = false
+    public var showsBookmarksBarOverride: Bool? = nil
+    public var showsWelcome = false
+    public var showsSiteCard = false
+    public var peekURL: String? = nil
+    public var peekTitle: String = ""
+    public var renamingTabID: UUID? = nil
+    public var siteZoom: [String: Double] = [:]
+    public var showsVeils = false
     public var findQuery = ""
     public var addressFocusNonce = 0
     public let suggestions = OmniboxSuggestionModel()
     public var alert: String?
+    public var hoveredLink: String?
+    public private(set) var agentInteraction: AgentInteractionUpdate?
+    public var linkPreviewOnRight = false
+    public var credentialSaveOffer: AetherCredential?
+    @ObservationIgnored var pageInteractionRelays: [String: PageInteractionRelay] = [:]
+    @ObservationIgnored private var mouseNavigationMonitor: Any?
+    @ObservationIgnored private var tabShortcutMonitor: Any?
+    @ObservationIgnored private var agentInteractionObservation: Task<Void, Never>?
+    @ObservationIgnored private var agentInteractionClearTask: Task<Void, Never>?
+    @ObservationIgnored private var humanPointerMonitor: Any?
+    @ObservationIgnored weak var nativeWindow: NSWindow?
+    @ObservationIgnored private let floater = Float()
+    @ObservationIgnored private let credentialPopover = AetherCredentialPopover()
+    @ObservationIgnored private var pendingCredentialSaves: [String: AetherCredential] = [:]
+    public private(set) var floatingPageID: String?
     public private(set) var glow = AetherNavigationGlowState()
     @ObservationIgnored private var navigationTasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored private var navigationEpochs: [UUID: UInt64] = [:]
     @ObservationIgnored private var observation: Task<Void, Never>?
+    @ObservationIgnored private var enginePageIndex: [String: BrowserTab] = [:]
     @ObservationIgnored private var restorationStarted = false
     @ObservationIgnored private var lastNavigationURLs: [String: String] = [:]
+    @ObservationIgnored private var sleepTimer: Timer?
     public private(set) var closedTabs: [ClosedTab] = []
     public private(set) var tabsByProfile: [UUID: [BrowserTab]] = [:]
     public private(set) var selectionByProfile: [UUID: UUID] = [:]
@@ -48,18 +84,154 @@ public final class BrowserWindowModel: Identifiable {
         tabsByProfile[activeProfileID] = [first]
         selectionByProfile[activeProfileID] = first.id
         workspace.addWindow(self)
+        AetherExtensions.shared.attach(self)
+        mouseNavigationMonitor = NSEvent.addLocalMonitorForEvents(matching: .otherMouseDown) { [weak self] event in
+            guard let self, event.buttonNumber == 3 || event.buttonNumber == 4,
+                  let pageID = self.selected?.enginePageID,
+                  let webView = self.workspace.engine.surface(pageID: pageID),
+                  event.window === webView.window,
+                  webView.bounds.contains(webView.convert(event.locationInWindow, from: nil)) else { return event }
+            if event.buttonNumber == 3 { self.perform(.back) }
+            else { self.perform(.forward) }
+            return nil
+        }
+        tabShortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.window === self.nativeWindow else { return event }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
+            if flags == .command, key == "s", !Self.responderIsInPage(event.window?.firstResponder) {
+                self.toggleSidebar()
+                return nil
+            }
+            guard flags == .command,
+                  let number = Self.topRowDigitKeys[event.keyCode] else { return event }
+            self.selectTab(number: number)
+            return nil
+        }
+        humanPointerMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
+            guard let self, event.window === self.nativeWindow else { return event }
+            self.takeHumanControl()
+            return event
+        }
+        if let observing = workspace.engine as? any BrowserAgentInteractionObserving {
+            agentInteractionObservation = Task { [weak self] in
+                let updates = await observing.agentInteractionUpdates()
+                for await update in updates {
+                    guard let self, !Task.isCancelled else { return }
+                    guard self.selected?.enginePageID == update.pageID.description else { continue }
+                    let point = update.point ?? self.agentInteraction?.point
+                    let viewport = update.viewport ?? self.agentInteraction?.viewport
+                    let luminance = update.targetLuminance ?? self.agentInteraction?.targetLuminance
+                    self.agentInteraction = AgentInteractionUpdate(sequence: update.sequence,
+                        pageID: update.pageID, kind: update.kind, point: point, viewport: viewport,
+                        targetLuminance: luminance, movementDuration: update.movementDuration)
+                    if update.kind != .idle {
+                        NSCursor.setHiddenUntilMouseMoves(true)
+                    } else {
+                        self.agentInteractionClearTask?.cancel()
+                        self.agentInteractionClearTask = Task { [weak self] in
+                            try? await Task.sleep(for: .milliseconds(280))
+                            guard !Task.isCancelled, let self,
+                                  self.agentInteraction?.sequence == update.sequence else { return }
+                            self.agentInteraction = nil
+                        }
+                    }
+                }
+            }
+        }
         AetherLatencyProbe.mark("model.created")
+        // Search-port: watchForSleep — every minute, sleep tabs idle 30 min.
+        let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.sleepIdleTabs() }
+        }
+        timer.tolerance = 15
+        RunLoop.main.add(timer, forMode: .common)
+        sleepTimer = timer
         if let observing = workspace.engine as? any BrowserPageObserving {
             let updates = observing.pageUpdates()
             observation = Task { [weak self] in
                 for await state in updates {
                     guard let self, !Task.isCancelled else { return }
-                    if let tab = self.tabsByProfile.values.lazy.flatMap({ $0 })
-                        .first(where: { $0.enginePageID == state.id }) {
+                    if let tab = self.tab(forEnginePage: state.id) {
                         self.apply(state, to: tab)
                     }
                 }
             }
+        }
+    }
+    deinit {
+        if let mouseNavigationMonitor { NSEvent.removeMonitor(mouseNavigationMonitor) }
+        if let tabShortcutMonitor { NSEvent.removeMonitor(tabShortcutMonitor) }
+        if let humanPointerMonitor { NSEvent.removeMonitor(humanPointerMonitor) }
+        agentInteractionObservation?.cancel()
+        agentInteractionClearTask?.cancel()
+        sleepTimer?.invalidate()
+    }
+    private static let topRowDigitKeys: [UInt16: Int] = [
+        18: 1, 19: 2, 20: 3, 21: 4, 23: 5, 22: 6, 26: 7, 28: 8, 25: 9
+    ]
+    private static func responderIsInPage(_ responder: NSResponder?) -> Bool {
+        var view = responder as? NSView
+        while let current = view {
+            if current is AetherPageView { return true }
+            view = current.superview
+        }
+        return false
+    }
+    private var liftedAway = false
+
+    public func becameKeyWindow() { Self.front = self }
+
+    public func clearAgentCursor() {
+        agentInteractionClearTask?.cancel()
+        agentInteraction = nil
+        NSCursor.setHiddenUntilMouseMoves(false)
+    }
+
+    public func takeHumanControl() {
+        let pageID = agentInteraction?.pageID.description ?? selected?.enginePageID
+        clearAgentCursor()
+        guard let pageID,
+              let observing = workspace.engine as? any BrowserAgentInteractionObserving else { return }
+        Task { await observing.cancelAgentInteraction(pageID: pageID) }
+    }
+
+    public func takeHumanControl(from pageID: String) {
+        clearAgentCursor()
+        guard let observing = workspace.engine as? any BrowserAgentInteractionObserving else { return }
+        Task { await observing.cancelAgentInteraction(pageID: pageID) }
+    }
+
+    public func applicationWillResignActive() {
+        takeHumanControl()
+        guard Self.front === self, workspace.preferences.floatVideoWhenSwitchingApps else { return }
+        liftedAway = floatingPageID == nil
+        if let selected { floatVideo(from: selected, requireSelection: true, quietly: true) }
+    }
+
+    public func applicationDidBecomeActive() {
+        defer { liftedAway = false }
+        if liftedAway, let floatingPageID, selected?.enginePageID == floatingPageID { landVideo() }
+    }
+
+    private static func isKnownVideoSite(_ rawURL: String?) -> Bool {
+        guard let rawURL, let url = URL(string: rawURL), let host = url.host?.lowercased() else { return false }
+        let sites: [(String, String?)] = [
+            ("youtube.com", nil), ("youtu.be", nil), ("netflix.com", nil),
+            ("primevideo.com", nil), ("amazon.com", "/gp/video"), ("amazon.fr", "/gp/video"),
+            ("amazon.co.uk", "/gp/video"), ("amazon.de", "/gp/video"),
+            ("disneyplus.com", nil), ("tv.apple.com", nil), ("twitch.tv", nil),
+            ("vimeo.com", nil), ("dailymotion.com", nil), ("max.com", nil), ("hbomax.com", nil),
+            ("canalplus.com", nil), ("mycanal.fr", nil), ("arte.tv", nil), ("france.tv", nil),
+            ("tf1.fr", nil), ("6play.fr", nil), ("crunchyroll.com", nil), ("plex.tv", nil),
+            ("peacocktv.com", nil), ("hulu.com", nil), ("paramountplus.com", nil),
+            ("molotov.tv", nil), ("ocs.fr", nil), ("mubi.com", nil), ("criterionchannel.com", nil),
+            ("ted.com", nil), ("nebula.tv", nil), ("curiositystream.com", nil)
+        ]
+        return sites.contains { site, path in
+            guard host == site || host.hasSuffix("." + site) else { return false }
+            return path.map { url.path.lowercased().hasPrefix($0) } ?? true
         }
     }
     public func restoreProfile() async {
@@ -74,6 +246,7 @@ public final class BrowserWindowModel: Identifiable {
             let tabs = restored.map { state in
                 let tab = BrowserTab(profileID: profile)
                 tab.enginePageID = state.id
+                enginePageIndex[state.id] = tab
                 apply(state, to: tab)
                 return tab
             }
@@ -97,6 +270,7 @@ public final class BrowserWindowModel: Identifiable {
         var grouped: [UUID: [BrowserTab]] = [:]
         for saved in record.tabs where known.contains(saved.profileID) {
             let tab = BrowserTab(id: saved.id, profileID: saved.profileID, title: saved.title, url: saved.url)
+            tab.customTitle = saved.customTitle
             tab.isPinned = saved.isPinned
             if saved.url != nil {
                 tab.loadState = .ready
@@ -124,27 +298,265 @@ public final class BrowserWindowModel: Identifiable {
 
     public func select(_ id: UUID) {
         guard tabs.contains(where: { $0.id == id }) else { return }
+        guard id != selectedID else {
+            if let tab = tabs.first(where: { $0.id == id }) { tab.lastActiveAt = Date() }
+            return
+        }
+        let incoming = tabs.first(where: { $0.id == id })
+        if incoming?.enginePageID == floatingPageID { landVideo() }
+        else if workspace.preferences.floatVideoWhenSwitchingTabs, let leaving = selected {
+            floatVideo(from: leaving, requireSelection: false, quietly: true)
+        }
+        credentialPopover.close()
+        hoveredLink = nil
         closeMenus()
         selectionByProfile[activeProfileID] = id
-        if let tab = tabs.first(where: { $0.id == id }), tab.needsRestoreLoad, let url = tab.url {
-            tab.needsRestoreLoad = false
-            navigate(tab, text: url)
+        AetherExtensions.shared.sync(self)
+        if let tab = tabs.first(where: { $0.id == id }) {
+            tab.lastActiveAt = Date()
+            // Search-port: wake sleeping tab on select.
+            if tab.isSleeping {
+                tab.isSleeping = false
+                tab.needsRestoreLoad = true
+            }
+            if tab.needsRestoreLoad, let url = tab.url {
+                tab.needsRestoreLoad = false
+                navigate(tab, text: url)
+            }
         }
         workspace.scheduleSessionSave()
     }
-    @discardableResult public func newTab(url: String? = nil) -> BrowserTab {
+    /// Search-port: pinned squares — Cmd+W puts down (unpins) instead of closing.
+    public func closeOrPutDown(_ id: UUID) {
+        guard let tab = tabs.first(where: { $0.id == id }) else { return }
+        if tab.isPinned { tab.isPinned = false; workspace.scheduleSessionSave(); return }
+        close(id)
+    }
+    public func zoomForHost(_ host: String?) -> Double { siteZoom[host?.lowercased() ?? ""] ?? 1.0 }
+    public func setZoom(_ value: Double, host: String?) {
+        guard let host = host?.lowercased(), !host.isEmpty else { return }
+        let clamped = min(3.0, max(0.25, value))
+        if abs(clamped - 1.0) < 0.01 { siteZoom.removeValue(forKey: host) }
+        else { siteZoom[host] = clamped }
+    }
+    public func selectTab(number: Int) {
+        guard number >= 1, !tabs.isEmpty else { return }
+        let index = number == 9 ? tabs.count - 1 : number - 1
+        guard tabs.indices.contains(index) else { return }
+        select(tabs[index].id)
+    }
+
+    public func copyMarkdownLink(for tab: BrowserTab? = nil) {
+        guard let tab = tab ?? selected, let raw = tab.url,
+              let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased() ?? "") else { return }
+        let title = (tab.title.isEmpty ? url.host ?? raw : tab.title)
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "[", with: "\\[")
+            .replacingOccurrences(of: "]", with: "\\]")
+        let destination = url.absoluteString.replacingOccurrences(of: ">", with: "%3E")
+        let board = NSPasteboard.general
+        board.clearContents()
+        board.setString("[\(title)](<\(destination)>)", forType: .string)
+    }
+
+    public func sharePage(for tab: BrowserTab? = nil) {
+        guard let tab = tab ?? selected, let raw = tab.url,
+              let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased() ?? ""),
+              let view = NSApp.keyWindow?.contentView else { return }
+        let anchor = NSRect(x: view.bounds.maxX - 16, y: view.bounds.maxY - 16, width: 1, height: 1)
+        NSSharingServicePicker(items: [url]).show(relativeTo: anchor, of: view, preferredEdge: .minY)
+    }
+
+    public func toggleMute(_ tab: BrowserTab? = nil) {
+        guard let tab = tab ?? selected else { return }
+        tab.isMuted.toggle()
+        if !tab.isMuted { tab.muteAppliedURL = nil }
+        applyAudioMute(tab)
+        if tab.isMuted { tab.muteAppliedURL = tab.url }
+    }
+
+    /// The palette for the bubble that hangs off a password field.
+    ///
+    /// It sits on the page, not on the desktop, so it resolves from the page's
+    /// own tone: a saved-password bubble on a white login page used to render as
+    /// a black box for exactly the reason the cards did.
+    private func credentialSurface(for tab: BrowserTab) -> AetherSurfaceStyle {
+        let systemDark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return AetherSurfaceResolver.style(tab.surfaceAppearance ?? .lightWebsite, darkHomepage: systemDark)
+    }
+
+    public func receiveCredentialEvent(_ event: AetherCredentialEvent, pageID: String, pageView: AetherPageView) {
+        guard let tab = tab(forEnginePage: pageID) else { return }
+        guard !workspace.isIncognito(tab.profileID) else {
+            pendingCredentialSaves[pageID] = nil
+            credentialPopover.close()
+            return
+        }
+        switch event {
+        case let .focus(origin, username, rect, passwordField, passwordCreation):
+            guard selected?.enginePageID == pageID,
+                  AetherCredentialVault.origin(for: pageView.url?.absoluteString ?? "") == origin,
+                  Self.allowsCredentialOrigin(origin) else { return }
+            guard let provider = workspace.engine as? any BrowserCredentialVaultProviding else { return }
+            Task { [weak self, weak pageView] in
+                do {
+                    let choices = try await provider.savedCredentials(profileID: tab.profileID, origin: origin)
+                        .filter { username.isEmpty || $0.username == username }
+                    guard let self, let pageView,
+                          self.selected?.enginePageID == pageID,
+                          !self.workspace.isIncognito(tab.profileID),
+                          AetherCredentialVault.origin(for: pageView.url?.absoluteString ?? "") == origin else { return }
+                    let zoom = pageView.pageZoom
+                    let anchor = CGRect(x: rect.minX * zoom,
+                                        y: pageView.bounds.height - (rect.maxY * zoom),
+                                        width: max(1, rect.width * zoom), height: max(1, rect.height * zoom))
+                    self.credentialPopover.show(in: pageView, pageRect: anchor, choices: choices,
+                                                canGenerate: passwordField && passwordCreation,
+                                                surface: self.credentialSurface(for: tab),
+                                                choose: { credential in
+                        Task {
+                            guard !self.workspace.isIncognito(credential.profileID),
+                                  self.selected?.enginePageID == pageID else { return }
+                            do {
+                                try await provider.fillCredential(
+                                    pageID: pageID, credentialID: credential.id,
+                                    fillUsername: !passwordField)
+                            } catch {
+                                self.alert = error.localizedDescription
+                            }
+                        }
+                    }, generate: { [weak pageView] in
+                        let generated = AetherCredentialVault.generatePassword()
+                        guard !generated.isEmpty else { return }
+                        pageView?.fillGeneratedPassword(generated)
+                    })
+                } catch {
+                    guard let self else { return }
+                    self.alert = error.localizedDescription
+                }
+            }
+        case let .submitted(origin, username, password):
+            guard AetherCredentialVault.origin(for: origin) == origin,
+                  Self.allowsCredentialOrigin(origin), !password.isEmpty else { return }
+            pendingCredentialSaves[pageID] = AetherCredential(profileID: tab.profileID,
+                                                               origin: origin,
+                                                               username: username,
+                                                               password: password)
+        case let .settled(origin):
+            guard let candidate = pendingCredentialSaves[pageID], candidate.origin == origin else { return }
+            pendingCredentialSaves[pageID] = nil
+            credentialSaveOffer = candidate
+        }
+    }
+
+    public func acceptCredentialSave() {
+        guard let credential = credentialSaveOffer,
+              !workspace.isIncognito(credential.profileID) else {
+            credentialSaveOffer = nil
+            return
+        }
+        credentialSaveOffer = nil
+        guard let provider = workspace.engine as? any BrowserCredentialVaultProviding else {
+            alert = "Aether couldn't connect to its credential store."
+            return
+        }
+        Task {
+            do {
+                try await provider.saveCredential(
+                    profileID: credential.profileID, origin: credential.origin,
+                    username: credential.username, password: credential.password)
+            } catch { alert = error.localizedDescription }
+        }
+    }
+
+    public func dismissCredentialSave() { credentialSaveOffer = nil }
+
+    private static func allowsCredentialOrigin(_ origin: String) -> Bool {
+        guard let url = URL(string: origin), let scheme = url.scheme?.lowercased() else { return false }
+        if scheme == "https" { return true }
+        guard scheme == "http", let host = url.host?.lowercased() else { return false }
+        return host == "localhost" || host == "127.0.0.1" || host == "::1" || host.hasSuffix(".localhost")
+    }
+
+    private func applyAudioMute(_ tab: BrowserTab) {
+        guard let pageID = tab.enginePageID,
+              let webView = workspace.engine.surface(pageID: pageID) as? WKWebView else { return }
+        webView.evaluateJavaScript(WebKitTabAudio.command(muted: tab.isMuted)) { _, _ in }
+    }
+
+    @discardableResult public func newTab(url: String? = nil, select: Bool = true) -> BrowserTab {
         closeMenus()
         let tab = BrowserTab(profileID: activeProfileID)
+        tab.lastActiveAt = Date()
         tabsByProfile[activeProfileID, default: []].append(tab)
-        selectionByProfile[activeProfileID] = tab.id
+        if select { selectionByProfile[activeProfileID] = tab.id }
         if let url { navigate(tab, text: url) }
+        AetherExtensions.shared.sync(self)
         workspace.scheduleSessionSave()
         return tab
     }
+    // MARK: - Search-port: tab extras (rename, open-beside, private, sleep)
+    public func renameTab(_ id: UUID, to name: String) {
+        guard let tab = tabsByProfile[activeProfileID]?.first(where: { $0.id == id }) else { return }
+        tab.customTitle = name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120).description
+        workspace.scheduleSessionSave()
+    }
+    @discardableResult public func openBeside(url: String, select: Bool = true) -> BrowserTab {
+        closeMenus()
+        let tab = BrowserTab(profileID: activeProfileID)
+        tab.lastActiveAt = Date()
+        var list = tabsByProfile[activeProfileID, default: []]
+        if let i = list.firstIndex(where: { $0.id == selectedID }) { list.insert(tab, at: i + 1) }
+        else { list.append(tab) }
+        tabsByProfile[activeProfileID] = list
+        if select { selectionByProfile[activeProfileID] = tab.id }
+        navigate(tab, text: url)
+        AetherExtensions.shared.sync(self)
+        workspace.scheduleSessionSave()
+        return tab
+    }
+    @discardableResult public func newPrivateTab(url: String? = nil) -> BrowserTab {
+        closeMenus()
+        let tab = BrowserTab(profileID: activeProfileID)
+        tab.isPrivateTab = true
+        tab.lastActiveAt = Date()
+        tabsByProfile[activeProfileID, default: []].append(tab)
+        selectionByProfile[activeProfileID] = tab.id
+        if let url { navigate(tab, text: url) }
+        AetherExtensions.shared.sync(self)
+        workspace.scheduleSessionSave()
+        return tab
+    }
+    public func sleepTab(_ id: UUID) {
+        guard workspace.preferences.sleepTabsEnabled,
+              let tab = tabsByProfile[activeProfileID]?.first(where: { $0.id == id }),
+              tab.id != selectedID, !tab.isPinned, !tab.isSleeping,
+              tab.enginePageID != nil, tab.url != nil else { return }
+        if tab.isMuted { return }
+        if floatingPageID == tab.enginePageID { return }
+        if let page = tab.enginePageID {
+            pageInteractionRelays.removeValue(forKey: page)
+            surfaces.release(page); forgetEnginePage(page)
+            Task { await workspace.engine.close(pageID: page) }
+            tab.enginePageID = nil
+        }
+        tab.isSleeping = true
+        tab.needsRestoreLoad = true
+        workspace.scheduleSessionSave()
+    }
+    public func sleepIdleTabs(olderThan interval: TimeInterval = 30 * 60) {
+        guard workspace.preferences.sleepTabsEnabled else { return }
+        let now = Date()
+        for tab in tabs where now.timeIntervalSince(tab.lastActiveAt) >= interval {
+            sleepTab(tab.id)
+        }
+    }
     public func switchProfile(_ id: UUID) {
         guard workspace.profiles.contains(where: { $0.id == id }) else { return }
+        credentialPopover.close()
         let leavingIncognito = isIncognito && activeProfileID != id
         activeProfileID = id
+        AetherExtensions.shared.sync(self)
         if tabsByProfile[id, default: []].isEmpty { _ = newTab() }
         isIncognito = workspace.isIncognito(id)
         workspace.scheduleSessionSave()
@@ -176,7 +588,7 @@ public final class BrowserWindowModel: Identifiable {
     public func removeProfile(_ id: UUID, switchTo next: UUID) {
         for tab in tabsByProfile[id] ?? [] {
             navigationTasks.removeValue(forKey: tab.id)?.cancel()
-            if let page = tab.enginePageID { surfaces.release(page); Task { await workspace.engine.close(pageID: page) } }
+            if let page = tab.enginePageID { surfaces.release(page); forgetEnginePage(page); Task { await workspace.engine.close(pageID: page) } }
         }
         tabsByProfile.removeValue(forKey: id)
         selectionByProfile.removeValue(forKey: id)
@@ -186,6 +598,7 @@ public final class BrowserWindowModel: Identifiable {
     public func close(_ id: UUID) {
         guard let current = tabs.firstIndex(where: { $0.id == id }) else { return }
         let tab = tabs[current]
+        if floatingPageID == tab.enginePageID { landVideo() }
         navigationTasks.removeValue(forKey: id)?.cancel()
         if case .newTab = tab.loadState {
         } else if case .search = tab.loadState {
@@ -193,8 +606,12 @@ public final class BrowserWindowModel: Identifiable {
             closedTabs.insert(ClosedTab(title: tab.title.isEmpty ? url : tab.title, url: tab.url, profileID: tab.profileID), at: 0)
             if closedTabs.count > 30 { closedTabs.removeLast() }
         }
-        if let page = tab.enginePageID { surfaces.release(page); Task { await workspace.engine.close(pageID: page) } }
+        if let page = tab.enginePageID {
+            pageInteractionRelays.removeValue(forKey: page)
+            surfaces.release(page); forgetEnginePage(page); Task { await workspace.engine.close(pageID: page) }
+        }
         tabsByProfile[activeProfileID]?.remove(at: current)
+        AetherExtensions.shared.sync(self)
         if selectedID == id {
             let remaining = tabs
             selectionByProfile[activeProfileID] = remaining.isEmpty ? nil : remaining[min(current, remaining.count - 1)].id
@@ -215,6 +632,7 @@ public final class BrowserWindowModel: Identifiable {
         let moved = items.remove(at: from)
         items.insert(moved, at: min(to, items.count))
         tabsByProfile[activeProfileID] = items
+        AetherExtensions.shared.sync(self)
         workspace.scheduleSessionSave()
     }
     public func duplicate(_ id: UUID) {
@@ -251,7 +669,8 @@ public final class BrowserWindowModel: Identifiable {
         guard let destination = direct ?? remembered ?? AddressResolver.resolve(
             text, provider: workspace.preferences.provider,
             locality: workspace.preferences.searchLocality,
-            localityTerms: workspace.preferences.localityQueryTerms) else { return }
+            localityTerms: workspace.preferences.localityQueryTerms,
+            customTemplate: workspace.preferences.customSearchTemplate) else { return }
         if tab.loadState == .loading, tab.pendingURL == destination.absoluteString { return }
         AetherLatencyProbe.mark("ui.resolve.end")
         tab.url = destination.absoluteString
@@ -276,9 +695,16 @@ public final class BrowserWindowModel: Identifiable {
                         return
                     }
                     tab.enginePageID = page
+                    enginePageIndex[page] = tab
+                    AetherExtensions.shared.sync(self)
                 }
                 guard self.isCurrent(epoch, tab: tab) else { return }
                 AetherLatencyProbe.mark("ui.page.created")
+                if tab.id == self.selectedID,
+                   let activating = workspace.engine as? any BrowserPageActivating {
+                    try await activating.activate(pageID: page)
+                }
+                guard self.isCurrent(epoch, tab: tab) else { return }
                 try await workspace.engine.navigate(pageID: page, url: destination)
                 AetherLatencyProbe.mark("ui.navigate.dispatched")
                 guard self.isCurrent(epoch, tab: tab) else { return }
@@ -289,6 +715,62 @@ public final class BrowserWindowModel: Identifiable {
             }
         }
     }
+
+    public func navigateExtension(_ tab: BrowserTab, to destination: URL) {
+        guard ["https", "http", "chrome-extension"].contains(destination.scheme?.lowercased() ?? ""),
+              destination.user == nil,
+              tabsByProfile[tab.profileID]?.contains(where: { $0.id == tab.id }) == true else { return }
+        tab.url = destination.absoluteString
+        tab.pendingURL = destination.absoluteString
+        tab.contentReady = false
+        tab.paintReady = false
+        tab.siteSurface = nil
+        tab.sitePrefersDark = nil
+        tab.loadState = .loading
+        workspace.scheduleSessionSave()
+        if tab.id == selectedID { beginNavigationGlow() }
+        let epoch = beginNavigationEpoch(for: tab)
+        navigationTasks[tab.id]?.cancel()
+        navigationTasks[tab.id] = Task {
+            do {
+                let page: String
+                if let existing = tab.enginePageID {
+                    page = existing
+                } else {
+                    page = try await workspace.engine.createPage(profileID: tab.profileID)
+                    guard !Task.isCancelled,
+                          tabsByProfile[tab.profileID]?.contains(where: { $0.id == tab.id }) == true else {
+                        await workspace.engine.close(pageID: page)
+                        return
+                    }
+                    tab.enginePageID = page
+                    enginePageIndex[page] = tab
+                    AetherExtensions.shared.sync(self)
+                }
+                guard isCurrent(epoch, tab: tab) else { return }
+                if tab.id == selectedID,
+                   let activating = workspace.engine as? any BrowserPageActivating {
+                    try await activating.activate(pageID: page)
+                }
+                guard isCurrent(epoch, tab: tab) else { return }
+                try await workspace.engine.navigate(pageID: page, url: destination)
+                guard isCurrent(epoch, tab: tab) else { return }
+                try await refresh(tab)
+            } catch {
+                fail(tab, error: error, epoch: epoch)
+            }
+        }
+    }
+
+    private func tab(forEnginePage id: String) -> BrowserTab? {
+        if let tab = enginePageIndex[id], tab.enginePageID == id { return tab }
+        guard let tab = tabsByProfile.values.lazy.flatMap({ $0 })
+            .first(where: { $0.enginePageID == id }) else { return nil }
+        enginePageIndex[id] = tab
+        return tab
+    }
+
+    private func forgetEnginePage(_ id: String) { enginePageIndex.removeValue(forKey: id) }
 
     @discardableResult private func beginNavigationEpoch(for tab: BrowserTab) -> UInt64 {
         let epoch = (navigationEpochs[tab.id] ?? 0) + 1
@@ -361,6 +843,11 @@ public final class BrowserWindowModel: Identifiable {
         let state = try await workspace.engine.snapshot(pageID: page)
         apply(state, to: tab)
     }
+    public func joinMeeting() {
+        guard let pageID = selected?.enginePageID,
+              let actions = workspace.engine as? any BrowserNativeSemanticActions else { return }
+        Task { await actions.joinMeeting(pageID: pageID) }
+    }
     public func beginNavigationGlow() {
         glow.begin()
     }
@@ -370,67 +857,87 @@ public final class BrowserWindowModel: Identifiable {
         glow.settle()
     }
     private func apply(_ state: EnginePageSnapshot, to tab: BrowserTab) {
+        let oldTitle = tab.title
+        let oldURL = tab.url
+        let oldLoading = tab.isLoading
+        defer {
+            if oldTitle != tab.title || oldURL != tab.url || oldLoading != tab.isLoading {
+                AetherExtensions.shared.sync(self)
+            }
+        }
+        let semanticSignals = state.closed ? nil : state.semanticSignals
+        if tab.semanticSignals != semanticSignals { tab.semanticSignals = semanticSignals }
         if case .search = tab.loadState { return }
+        if state.isLoading, tab.loadState != .loading { tab.muteAppliedURL = nil }
         if state.closed {
+            if let page = tab.enginePageID { forgetEnginePage(page) }
             tab.enginePageID = nil
             tab.pendingURL = nil
             tab.loadState = .failed("The engine page was closed.")
             if tab.id == selectedID { finishGlow(true) }
             return
         }
-        tab.title = state.title.isEmpty ? (state.url ?? "New Tab") : state.title
-        tab.canGoBack = state.canGoBack
-        tab.canGoForward = state.canGoForward
-        tab.isSecure = state.isSecure
-        tab.loadProgress = state.progress
-        tab.isLoading = state.isLoading
-        tab.contentReady = state.contentReady
-        tab.paintReady = state.paintReady
+        let title = state.title.isEmpty ? (state.url ?? "New Tab") : state.title
+        if tab.title != title { tab.title = title }
+        if tab.canGoBack != state.canGoBack { tab.canGoBack = state.canGoBack }
+        if tab.canGoForward != state.canGoForward { tab.canGoForward = state.canGoForward }
+        if tab.isSecure != state.isSecure { tab.isSecure = state.isSecure }
+        if tab.loadProgress != state.progress { tab.loadProgress = state.progress }
+        if tab.isLoading != state.isLoading { tab.isLoading = state.isLoading }
+        if tab.contentReady != state.contentReady { tab.contentReady = state.contentReady }
+        if tab.paintReady != state.paintReady { tab.paintReady = state.paintReady }
         // An error only replaces the page when there is no usable document yet.
         // A rendered page must never be swapped for a stale or unrelated error
         // overlay.
         if let error = state.error, !state.contentReady {
-            tab.loadState = .failed(error)
+            if tab.loadState != .failed(error) { tab.loadState = .failed(error) }
             if tab.id == selectedID { finishGlow(true) }
             return
         }
         if !state.contentReady {
             if !state.isLoading {
-                tab.pendingURL = nil
-                tab.url = nil
-                tab.title = "New Tab"
-                tab.loadProgress = 0
-                tab.loadState = .newTab
+                if tab.pendingURL != nil { tab.pendingURL = nil }
+                if tab.url != nil { tab.url = nil }
+                if tab.title != "New Tab" { tab.title = "New Tab" }
+                if tab.loadProgress != 0 { tab.loadProgress = 0 }
+                if tab.loadState != .newTab { tab.loadState = .newTab }
                 if tab.id == selectedID {
                     glow.settle()
                 }
                 return
             }
-            tab.loadState = .loading
+            if tab.loadState != .loading { tab.loadState = .loading }
             if tab.pendingURL == nil {
                 if tab.url != state.url { tab.siteSurface = nil; tab.sitePrefersDark = nil }
-                tab.url = state.url
+                if tab.url != state.url { tab.url = state.url }
             }
             if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
             return
         }
-        tab.pendingURL = nil
+        if tab.pendingURL != nil { tab.pendingURL = nil }
         if tab.url != state.url { tab.siteSurface = nil; tab.sitePrefersDark = nil }
-        tab.url = state.url
+        if tab.url != state.url { tab.url = state.url }
         // Two signals end the progress indicator, both from the page itself:
         // the first paint (content is on screen while subresources continue)
         // and WebKit's own end of loading. A document that never reports paint
         // therefore stops loading when its load ends instead of hanging.
         let contentVisible = tab.paintReady || !state.isLoading
         guard contentVisible else {
-            tab.loadState = .loading
+            if tab.loadState != .loading { tab.loadState = .loading }
             if tab.id == selectedID, glow.phase == .started { glow.awaitContent() }
             return
         }
-        tab.loadState = .ready
+        if tab.loadState != .ready { tab.loadState = .ready }
+        if tab.isMuted, tab.muteAppliedURL != state.url {
+            applyAudioMute(tab)
+            tab.muteAppliedURL = state.url
+        }
         if tab.id == selectedID { finishGlow(false) }
+        applySiteCustomizations(tab)
         if let url = state.url, lastNavigationURLs[state.id] != url {
             lastNavigationURLs[state.id] = url
+            // Search-port: private tabs never touch history.
+            guard !tab.isPrivateTab else { return }
             let visitID = workspace.recordVisit(profileID: tab.profileID, title: tab.title, url: url)
             if !workspace.isIncognito(tab.profileID),
                let provider = workspace.engine as? any BrowserPageTextProviding {
@@ -442,6 +949,29 @@ public final class BrowserWindowModel: Identifiable {
                 }
             }
         }
+    }
+    /// Search-port: per-site veil CSS + per-site zoom, applied live when ready.
+    private func applySiteCustomizations(_ tab: BrowserTab) {
+        guard let pageID = tab.enginePageID,
+              let raw = tab.url, let url = URL(string: raw) else { return }
+        let host = url.host?.lowercased()
+        let zoom = zoomForHost(host)
+        if abs(zoom - 1.0) > 0.01,
+           let webView = workspace.engine.surface(pageID: pageID) as? WKWebView {
+            webView.setValue(zoom, forKey: "pageZoom")
+        }
+        let css = VeilStore.shared.css(on: host.flatMap { $0.hasPrefix("www.") ? String($0.dropFirst(4)) : $0 })
+        guard !css.isEmpty,
+              let webView = workspace.engine.surface(pageID: pageID) as? WKWebView else { return }
+        let escaped = css.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "`", with: "\\`")
+        webView.evaluateJavaScript("""
+        (() => {
+          const id = '__aetherVeils';
+          let el = document.getElementById(id);
+          if (!el) { el = document.createElement('style'); el.id = id; document.documentElement.appendChild(el); }
+          el.textContent = `\(escaped)`;
+        })();
+        """, completionHandler: nil)
     }
     public func closeWindow() {
         observation?.cancel()
@@ -484,9 +1014,37 @@ public final class BrowserWindowModel: Identifiable {
     public func setArrangement(_ mode: TabArrangement) { workspace.preferences.arrangement = mode }
     public func toggleArrangement() { setArrangement(arrangement == .top ? .sidebar : .top) }
 
+    public func toggleHistoryPanel() {
+        let shouldShow = !showsHistory
+        showsTabSearch = false
+        showsBookmarks = false
+        showsHistory = shouldShow
+    }
+
+    public func toggleBookmarksPanel() {
+        let shouldShow = !showsBookmarks
+        showsTabSearch = false
+        showsHistory = false
+        showsBookmarks = shouldShow
+    }
+
+    public func showHistoryPanel() {
+        showsTabSearch = false
+        showsBookmarks = false
+        showsHistory = true
+    }
+
+    public func showBookmarksPanel() {
+        showsTabSearch = false
+        showsHistory = false
+        showsBookmarks = true
+    }
+
     public func closeMenus() {
         showsProfileMenu = false
         showsMoreMenu = false
+        showsExtensionsMenu = false
+        showsJevSignals = false
     }
     public func toggleSidebar() {
         if arrangement != .sidebar {
@@ -495,6 +1053,57 @@ public final class BrowserWindowModel: Identifiable {
             return
         }
         sidebarCollapsed.toggle()
+    }
+
+    public func toggleFloatingVideo() {
+        if floatingPageID != nil { landVideo(); return }
+        guard let selected else { return }
+        floatVideo(from: selected, requireSelection: true, quietly: false)
+    }
+
+    private func floatVideo(from tab: BrowserTab, requireSelection: Bool, quietly: Bool) {
+        guard let pageID = tab.enginePageID,
+              let webView = workspace.engine.surface(pageID: pageID) as? WKWebView,
+              floatingPageID == nil,
+              !quietly || Self.isKnownVideoSite(tab.url) else { return }
+        webView.evaluateJavaScript(Isolate.on) { [weak self, weak webView] result, _ in
+            guard let self, let webView, result as? String == "floating",
+                  self.floatingPageID == nil, self.tab(forEnginePage: pageID) != nil,
+                  !requireSelection || self.selected?.enginePageID == pageID else { return }
+            self.floatingPageID = pageID
+            self.floater.onClose = { [weak self] in self?.landVideo() }
+            self.floater.onReturn = { [weak self] in
+                guard let self else { return }
+                self.landVideo()
+                if let tab = self.tab(forEnginePage: pageID) { self.select(tab.id) }
+                NSApp.activate(ignoringOtherApps: true)
+                self.nativeWindow?.makeKeyAndOrderFront(nil)
+            }
+            self.floater.onSkip = { [weak webView] seconds in
+                webView?.evaluateJavaScript(Isolate.skip(seconds)) { _, _ in }
+            }
+            self.floater.onPlayPause = { [weak webView] answer in
+                webView?.evaluateJavaScript(Isolate.toggle) { result, _ in
+                    answer(result as? Bool ?? true)
+                }
+            }
+            self.floater.onProgress = { [weak webView] answer in
+                webView?.evaluateJavaScript(Isolate.where_) { result, _ in
+                    let values = result as? [Any] ?? []
+                    answer(values.first as? Double ?? 0, values.dropFirst().first as? Bool ?? true)
+                }
+            }
+            self.floater.lift(webView)
+        }
+    }
+
+    public func landVideo() {
+        guard let pageID = floatingPageID else { return }
+        if let webView = workspace.engine.surface(pageID: pageID) as? WKWebView {
+            webView.evaluateJavaScript(Isolate.off) { _, _ in }
+        }
+        floater.drop()
+        floatingPageID = nil
     }
 }
 

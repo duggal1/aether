@@ -63,6 +63,10 @@ public final class NativeBrowserEngine: Sendable {
     try await runtime.click(pageID: pageID, nodeID: nodeID)
   }
 
+  public func drag(pageID: PageID, from start: Point, to end: Point) async throws {
+    try await runtime.drag(pageID: pageID, from: start, to: end)
+  }
+
   public func type(pageID: PageID, nodeID: NodeID, text: String, append: Bool = false) async throws
   {
     try await runtime.type(pageID: pageID, nodeID: nodeID, text: text, append: append)
@@ -143,6 +147,40 @@ public final class NativeBrowserEngine: Sendable {
     PageID: PageLifecycleState
   ] {
     try await runtime.sweepFleet(maxActive: maxActive, memoryBudgetBytes: memoryBudgetBytes)
+  }
+
+  public func acquireWorkspaceLease(
+    contextID: ContextID, agentID: String, durationSeconds: Double = 300,
+    branchID: String? = nil, repositoryRoot: String? = nil, worktreePath: String? = nil
+  ) async throws -> BrowserWorkspaceLease {
+    try await runtime.acquireWorkspaceLease(
+      contextID: contextID, agentID: agentID, durationSeconds: durationSeconds,
+      branchID: branchID, repositoryRoot: repositoryRoot, worktreePath: worktreePath)
+  }
+
+  public func renewWorkspaceLease(
+    contextID: ContextID, leaseID: UUID, agentID: String, durationSeconds: Double = 300
+  ) async throws -> BrowserWorkspaceLease {
+    try await runtime.renewWorkspaceLease(
+      contextID: contextID, leaseID: leaseID, agentID: agentID,
+      durationSeconds: durationSeconds)
+  }
+
+  public func releaseWorkspaceLease(
+    contextID: ContextID, leaseID: UUID, agentID: String
+  ) async throws -> BrowserWorkspaceLease {
+    try await runtime.releaseWorkspaceLease(
+      contextID: contextID, leaseID: leaseID, agentID: agentID)
+  }
+
+  public func cancelWorkspaceLease(
+    contextID: ContextID, leaseID: UUID
+  ) async throws -> BrowserWorkspaceLease {
+    try await runtime.cancelWorkspaceLease(contextID: contextID, leaseID: leaseID)
+  }
+
+  public func listWorkspaceLeases(contextID: ContextID? = nil) async -> [BrowserWorkspaceLease] {
+    await runtime.listWorkspaceLeases(contextID: contextID)
   }
 
   public func hover(pageID: PageID, nodeID: NodeID) async throws -> InspectedNode? {

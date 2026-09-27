@@ -43,11 +43,13 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
     case reader
     case inspect
     case downloadFolder
+    case downloadTray
     case kbdCommand
     case kbdShift
     case kbdOption
     case kbdControl
     case kbdTab
+    case arrowReturn
 
     var space: CGFloat {
         switch self {
@@ -58,7 +60,7 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
              .filter, .filterHorizontal, .filterVertical,
              .kbdCommand, .kbdShift, .kbdOption, .kbdControl, .kbdTab,
              .bookmark, .bookmarkSelected, .gear, .history, .download,
-             .reader, .inspect, .downloadFolder:
+             .reader, .inspect, .downloadFolder, .downloadTray:
             24
         default:
             256
@@ -74,7 +76,7 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
              .filter, .filterHorizontal, .filterVertical,
              .kbdCommand, .kbdShift, .kbdOption, .kbdControl, .kbdTab,
              .bookmark, .gear, .history, .download,
-             .reader, .inspect, .downloadFolder:
+             .reader, .inspect, .downloadFolder, .downloadTray:
             true
         default:
             false
@@ -96,7 +98,7 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
              .engine, .gps, .zipCode, .nearby, .server, .serverOffline, .serverCrash,
              .cloud, .cloudDownload, .tabsGrid,
              .filter, .filterHorizontal, .filterVertical,
-             .reader, .inspect, .downloadFolder,
+             .reader, .inspect, .downloadFolder, .downloadTray,
              .kbdCommand, .kbdShift, .kbdOption, .kbdControl, .kbdTab:
             .round
         default:
@@ -110,7 +112,7 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
              .engine, .gps, .zipCode, .nearby, .server, .serverOffline, .serverCrash,
              .cloud, .cloudDownload, .tabsGrid,
              .filter, .filterHorizontal, .filterVertical,
-             .reader, .inspect, .downloadFolder,
+             .reader, .inspect, .downloadFolder, .downloadTray,
              .kbdCommand, .kbdShift, .kbdOption, .kbdControl, .kbdTab:
             .round
         default:
@@ -296,6 +298,14 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
                 "M12 3V15",
                 "M15 13C15 13 12.7905 16 12 16C11.2094 16 9 13 9 13",
             ]
+        case .downloadTray:
+            // Download-into-tray: arrow dropping into an open box. Requested
+            // as the Install action prefix; stroke 1.5 / round caps match the
+            // family so it renders like a native glyph, not a pasted SVG.
+            return [
+                "M16.0001 12C16.0001 12 13.0542 16 12.0001 16C10.946 16 8.00012 12 8.00012 12M12.0001 15.5L12.0001 3",
+                "M17.0001 8C19.2093 8 21.0001 9.79086 21.0001 12V14.5C21.0001 16.8346 21.0001 18.0019 20.5278 18.8856C20.1549 19.5833 19.5834 20.1547 18.8857 20.5277C18.0021 21 16.8348 21 14.5001 21H9.50052C7.16551 21 5.99801 21 5.11426 20.5275C4.41677 20.1546 3.84547 19.5834 3.47258 18.8859C3.00012 18.0021 3.00012 16.8346 3.00012 14.4996V11.999C3.00067 9.79114 4.78999 8.00125 6.99785 8H7.00012",
+            ]
         case .kbdCommand:
             return [
                 "M9 9V6.25a2.75 2.75 0 1 0-2.75 2.75H9Zm0 0h6m-6 0v6m6-6V6.25a2.75 2.75 0 1 1 2.75 2.75H15Zm-6 6H6.25a2.75 2.75 0 1 0 2.75 2.75V15Zm6 0h2.75A2.75 2.75 0 1 1 15 17.75V15Z",
@@ -338,6 +348,7 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
         case .terminalDownRight: AetherCustomIconPaths.terminalDownRight(&p)
         case .terminalUpRight: AetherCustomIconPaths.terminalUpRight(&p)
         case .terminalCornerUpRight: AetherCustomIconPaths.terminalCornerUpRight(&p)
+        case .arrowReturn: AetherCustomIconPaths.arrowReturn(&p)
         case .globe: AetherCustomIconPaths.globe(&p)
         case .globeNoLogo: AetherCustomIconPaths.globeNoLogo(&p)
         case .file: AetherCustomIconPaths.file(&p)
@@ -354,7 +365,7 @@ public enum AetherCustomIcon: String, CaseIterable, Sendable {
              .engine, .gps, .zipCode, .nearby, .server, .serverOffline, .serverCrash,
              .cloud, .cloudDownload, .tabsGrid, .zap,
              .filter, .filterHorizontal, .filterVertical,
-             .reader, .inspect, .downloadFolder,
+             .reader, .inspect, .downloadFolder, .downloadTray,
              .kbdCommand, .kbdShift, .kbdOption, .kbdControl, .kbdTab:
             break
         }

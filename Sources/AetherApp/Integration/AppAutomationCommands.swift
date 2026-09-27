@@ -21,6 +21,9 @@ final class AppAutomationCommands {
           "windows": .array(workspace.windows.map { window in
             .object(["id": .string(window.id.uuidString),
               "selected": window.selectedID.map { .string($0.uuidString) } ?? .null,
+              "hoveredLink": window.hoveredLink.map(JSONValue.string) ?? .null,
+              "floatingPage": window.floatingPageID.map(JSONValue.string) ?? .null,
+              "sidebarCollapsed": .bool(window.sidebarCollapsed),
               "tabs": .array(window.tabs.map(project))])
           }),
           "nativeWindows": .array(NSApp?.windows.filter { $0.canBecomeMain }.map { window in
@@ -110,6 +113,8 @@ final class AppAutomationCommands {
       case "app.back": window.select(tab.id); window.perform(.back)
       case "app.forward": window.select(tab.id); window.perform(.forward)
       case "app.reload": window.select(tab.id); window.perform(.reload)
+      case "app.float": window.select(tab.id); window.toggleFloatingVideo()
+      case "app.copyMarkdown": window.copyMarkdownLink(for: tab)
       default: throw CommandError("Unknown app method: \(request.method)")
       }
       return AgentResponse(id: request.id, result: project(tab))

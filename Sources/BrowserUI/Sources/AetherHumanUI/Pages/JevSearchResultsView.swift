@@ -184,7 +184,10 @@ public struct JevSearchResultsView: View {
         outcome = nil
         failure = nil
         do {
-            let result = try await provider.jevSearch(query: query, local: [])
+            // The pipeline judges local candidates against the query; handed an
+            // empty list it could only ever return web results, so the whole
+            // local tier of the ranking was unreachable in the app.
+            let result = try await provider.jevSearch(query: query, local: window.searchSignals())
             guard !Task.isCancelled else { return }
             outcome = result
         } catch {

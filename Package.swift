@@ -6,15 +6,18 @@ let package = Package(
   platforms: [.macOS("27.0")],
   products: [
     .library(name: "BrowserEngine", targets: ["BrowserEngine"]),
+    .library(name: "BrowserVerification", targets: ["BrowserVerification"]),
+    .library(name: "AgentMCP", targets: ["AgentMCP"]),
     .library(name: "AetherHumanUI", targets: ["AetherHumanUI"]),
     .executable(name: "AetherApp", targets: ["AetherApp"]),
     .executable(name: "browserctl", targets: ["browserctl"]),
+    .executable(name: "aether-mcp", targets: ["aether-mcp"]),
     .executable(name: "browserd", targets: ["browserd"]),
     .executable(name: "enginebench", targets: ["enginebench"]),
   ],
   targets: [
     .target(
-      name: "AetherHumanUI", path: "Sources/BrowserUI/Sources",
+      name: "AetherHumanUI", dependencies: ["EngineRuntime"], path: "Sources/BrowserUI/Sources",
       exclude: ["AetherHumanUI/Resources", "AetherHumanPreview"],
       sources: ["AetherHumanUI", "icons"],
       resources: [.copy("AetherHumanUI/Resources/Fonts")],
@@ -47,6 +50,7 @@ let package = Package(
     .target(name: "ContentBlocker"),
     .target(name: "Scheduler", dependencies: ["EngineCore"]),
     .target(name: "Diagnostics", dependencies: ["EngineCore"]),
+    .target(name: "BrowserEvents", dependencies: ["EngineCore"]),
     .target(
       name: "Navigation",
       dependencies: [
@@ -54,7 +58,9 @@ let package = Package(
         "Storage", "JavaScript", "WebAPI", "Diagnostics", "Images", "WebSecurity",
         "AetherNetworkHardening", "ContentBlocker",
       ]),
-    .target(name: "AgentProtocol", dependencies: ["EngineCore"]),
+    .target(name: "AgentProtocol", dependencies: ["EngineCore", "BrowserVerification"]),
+    .target(name: "AgentMCP", dependencies: ["AgentProtocol"]),
+    .target(name: "BrowserVerification", dependencies: ["EngineCore"]),
     .target(name: "AetherCapture", path: "Sources/NativeCapture/Sources/AetherCapture"),
     .target(
       name: "EngineRuntime",
@@ -62,16 +68,23 @@ let package = Package(
         "EngineCore", "DOM", "Navigation", "Graphics", "Storage", "Scheduler", "Diagnostics",
         "Networking", "JavaScript", "Style", "Layout", "Display", "WebSecurity", "Persistence",
         "CSS", "WebAPI", "AetherCapture", "Media", "ContentBlocker", "JevSearch",
+        "BrowserEvents",
+        "BrowserVerification",
       ]),
     .target(
       name: "BrowserEngine",
       dependencies: [
         "EngineCore", "DOM", "AgentProtocol", "EngineRuntime", "Graphics", "Diagnostics",
-        "AetherCapture", "Media", "JevSearch",
+        "AetherCapture", "Media", "JevSearch", "BrowserEvents",
+        "BrowserVerification",
       ]),
     .executableTarget(
       name: "browserctl",
-      dependencies: ["BrowserEngine", "AgentProtocol", "EngineRuntime", "AetherCapture"]),
+      dependencies: ["BrowserEngine", "AgentProtocol", "EngineRuntime", "AetherCapture", "BrowserVerification"]),
+    .executableTarget(
+      name: "aether-mcp",
+      dependencies: ["AgentMCP", "AgentProtocol"],
+      path: "Sources/aether-mcp"),
     .executableTarget(name: "browserd", dependencies: ["BrowserEngine", "AgentProtocol"]),
     .executableTarget(
       name: "enginebench",
@@ -88,13 +101,18 @@ let package = Package(
       name: "AgentTests",
       dependencies: [
         "BrowserEngine", "AgentProtocol", "EngineCore", "EngineRuntime", "DOM", "AetherCapture",
+        "BrowserEvents",
+        "BrowserVerification",
       ]),
+    .testTarget(name: "BrowserVerificationTests", dependencies: ["BrowserVerification", "EngineCore"]),
+    .testTarget(name: "AgentMCPTests", dependencies: ["AgentMCP", "AgentProtocol"]),
     .testTarget(
       name: "PerformanceTests", dependencies: ["HTML", "CSS", "Style", "Layout", "Text", "DOM"]),
     .testTarget(name: "JavaScriptTests", dependencies: ["JavaScript", "HTML", "DOM", "Storage"]),
     .testTarget(name: "WebAPITests", dependencies: ["WebAPI", "JavaScript", "Networking"]),
     .testTarget(name: "StorageTests", dependencies: ["Storage", "EngineCore"]),
     .testTarget(name: "EngineCoreTests", dependencies: ["EngineCore"]),
+    .testTarget(name: "BrowserEventsTests", dependencies: ["BrowserEvents", "EngineCore"]),
     .testTarget(name: "PersistenceTests", dependencies: ["Persistence"]),
     .testTarget(name: "JevSearchTests", dependencies: ["JevSearch"]),
     .testTarget(name: "SecurityTests", dependencies: ["WebSecurity"]),

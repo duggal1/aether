@@ -73,12 +73,10 @@ public struct AetherSection<Content: View>: View {
                 .font(AetherType.emphasis(12))
                 .foregroundStyle(theme.muted)
                 .padding(.leading, 2)
-            GlassEffectContainer(spacing: 4) {
-                VStack(spacing: 0) { content }
-            }
-            .background { AetherSettingsCardBackground() }
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .animation(AetherMotion.container(reduced), value: title)
+            VStack(spacing: 0) { content }
+                .background { AetherSettingsCardBackground() }
+                .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.cardRadius, style: .continuous))
+                .animation(AetherMotion.container(reduced), value: title)
             if let footer {
                 Text(footer)
                     .font(AetherType.caption(12))

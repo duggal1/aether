@@ -2,15 +2,16 @@ import SwiftUI
 
 public struct AetherCommandPalette: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @BrowserState private var query = ""
     @FocusState private var fieldFocused: Bool
-    @Namespace private var glassNS
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
-    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     private var trimmed: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     private func matches(_ title: String, _ subtitle: String?) -> Bool {
@@ -32,8 +33,7 @@ public struct AetherCommandPalette: View {
     }
 
     public var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             searchField
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
@@ -42,7 +42,7 @@ public struct AetherCommandPalette: View {
                             emptyRow("No matching tabs")
                         } else {
                             ForEach(tabMatches) { tab in
-                                row(tab.title, tab.url, url: tab.url, selected: tab.id == window.selectedID, namespace: glassNS) {
+                                row(tab.title, tab.url, url: tab.url, selected: tab.id == window.selectedID) {
                                     window.select(tab.id)
                                     close()
                                 }
@@ -83,10 +83,9 @@ public struct AetherCommandPalette: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background { AetherOverlayScrollerTuning() }
             }
-            Rectangle().fill(appearance.secondary.opacity(0.18)).frame(height: 1)
-            row("History", nil, symbol: .history, chevron: true) { close(); window.showsHistory = true }
-            row("Bookmarks", nil, symbol: .bookmarks, chevron: true) { close(); window.showsBookmarks = true }
-        }
+            Rectangle().fill(skin.separator).frame(height: 1)
+            row("History", nil, symbol: .history, chevron: true) { close(); window.showHistoryPanel() }
+            row("Bookmarks", nil, symbol: .bookmarks, chevron: true) { close(); window.showBookmarksPanel() }
         }
         .padding(8)
         .frame(width: 322)
@@ -94,30 +93,34 @@ public struct AetherCommandPalette: View {
         .background {
             AetherPopoverBackground()
         }
-        .aetherGlassShadow(dark: appearance.isDark)
+        .aetherGlassShadow(dark: skin.isDark)
         .onAppear { fieldFocused = true }
         .onExitCommand { close() }
     }
 
     private var searchField: some View {
         HStack(spacing: 9) {
-            BrowserIconView(icon: .search, tint: appearance.secondary).iconSize(16)
-            TextField("Search", text: $query, prompt: Text("Search").foregroundStyle(appearance.secondary))
+            BrowserIconView(icon: .search, tint: skin.secondaryIcon).iconSize(16)
+            TextField("Search", text: $query, prompt: Text("Search").foregroundStyle(skin.metadataText))
                 .textFieldStyle(.plain)
                 .font(AetherType.body(16))
-                .foregroundStyle(appearance.text)
+                .foregroundStyle(skin.primaryText)
                 .focused($fieldFocused)
             HStack(spacing: 2) {
-                AetherCustomIconView(.kbdShift, tint: appearance.secondary, size: 9)
-                AetherCustomIconView(.kbdCommand, tint: appearance.secondary, size: 9)
+                AetherCustomIconView(.kbdShift, tint: skin.metadataText, size: 9)
+                AetherCustomIconView(.kbdCommand, tint: skin.metadataText, size: 9)
                 Text("A")
-                    .font(AetherType.caption(10)).foregroundStyle(appearance.secondary)
+                    .font(AetherType.caption(10)).foregroundStyle(skin.metadataText)
             }
             .tracking(0.5)
         }
         .padding(.horizontal, 11)
         .frame(height: 42)
-        
+        .background {
+            // A translucent well on the frosted card. An opaque near-black bar
+            // here is a rectangle pasted onto glass, not part of the surface.
+            AetherSurfaceFieldBackground(radius: AetherMetrics.fieldRadius)
+        }
         .accessibilityLabel("Search tabs, history and bookmarks")
     }
 
@@ -125,40 +128,42 @@ public struct AetherCommandPalette: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(AetherType.sectionHeader(12))
-                .foregroundStyle(appearance.secondary)
+                .foregroundStyle(skin.secondaryText)
                 .padding(.leading, 9).padding(.vertical, 4)
             content()
         }
     }
 
     @ViewBuilder private func emptyRow(_ text: String) -> some View {
-        Text(text).font(AetherType.body(12)).foregroundStyle(appearance.secondary).padding(12)
+        Text(text).font(AetherType.body(12)).foregroundStyle(skin.metadataText).padding(12)
     }
 
     @ViewBuilder private func row(_ title: String, _ subtitle: String?, url: String? = nil, symbol: AetherSymbol? = nil,
-                                  selected: Bool = false, chevron: Bool = false, namespace: Namespace.ID? = nil, action: @escaping () -> Void) -> some View {
+                                  selected: Bool = false, chevron: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            CommandPaletteRowSurface(selected: selected, appearance: appearance, namespace: namespace) {
+            CommandPaletteRowSurface(selected: selected, skin: skin) {
             HStack(spacing: 10) {
                 if let url {
                     DomainIcon(url, size: 16)
                 } else if let symbol {
-                    AetherSymbolView(symbol, tint: appearance.secondary, size: 16)
+                    AetherSymbolView(symbol, tint: skin.secondaryIcon, size: 16)
                 } else {
                     DomainIcon(nil, size: 16)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(AetherType.body(13)).lineLimit(1)
-                    if let subtitle { Text(subtitle).font(AetherType.caption(11)).foregroundStyle(appearance.secondary).lineLimit(1) }
+                    Text(title).font(AetherType.body(13)).foregroundStyle(skin.primaryText).lineLimit(1)
+                    if let subtitle {
+                        Text(subtitle).font(AetherType.caption(11))
+                            .foregroundStyle(skin.metadataText).lineLimit(1)
+                    }
                 }
                 Spacer(minLength: 4)
                 if selected {
-                    AetherSymbolView(.confirm, tint: appearance.secondary, size: 11)
+                    AetherSymbolView(.confirm, tint: skin.secondaryIcon, size: 11)
                 } else if chevron {
-                    AetherSymbolView(.forward, tint: appearance.secondary, size: 10)
+                    AetherSymbolView(.forward, tint: skin.secondaryIcon, size: 10)
                 }
             }
-            .foregroundStyle(appearance.text)
             .padding(.horizontal, 9)
             .frame(height: subtitle == nil ? 40 : 52)
             .contentShape(Rectangle())
@@ -175,14 +180,12 @@ private struct CommandPaletteRowSurface<Content: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @State private var hovering = false
     let selected: Bool
-    let appearance: AetherChromeAppearance
-    let namespace: Namespace.ID?
+    let skin: AetherSurfaceStyle
     let content: Content
 
-    init(selected: Bool, appearance: AetherChromeAppearance, namespace: Namespace.ID? = nil, @ViewBuilder content: () -> Content) {
+    init(selected: Bool, skin: AetherSurfaceStyle, @ViewBuilder content: () -> Content) {
         self.selected = selected
-        self.appearance = appearance
-        self.namespace = namespace
+        self.skin = skin
         self.content = content()
     }
 
@@ -190,32 +193,32 @@ private struct CommandPaletteRowSurface<Content: View>: View {
         content
             .background {
                 ZStack {
-                    if selected, let namespace {
-                        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        shape.fill(.clear)
-                            .glassEffect(.regular.tint(appearance.isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.20)), in: shape)
-                            .glassEffectID("palette.selection", in: namespace)
-                            .glassEffectTransition(.matchedGeometry)
-                    } else if selected || hovering {
+                    if selected {
+                        // A subtle translucent highlight over the blur, never a
+                        // flat grey slab.
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(selected ? appearance.selectedActive : appearance.hover)
+                            .fill(skin.selectionFill)
+                    } else if hovering {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(skin.hoverFill)
                     }
                 }
             }
             .onHover { hovering = $0 }
+            .animation(AetherMotion.selection(reduced), value: selected)
             .animation(AetherMotion.hover(reduced), value: hovering)
     }
 }
 
 private struct AetherPaletteRowStyle: ButtonStyle {
-    @Environment(\.aetherTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reducedMotion
     let reduced: Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background { AetherFocusedFill(radius: 8) }
             .focusEffectDisabled()
-            .pointerStyle(.link)
+            .modifier(AetherPointingCursor())
             .scaleEffect(configuration.isPressed && !reduced ? AetherMotion.pressScale : 1)
-            .animation(AetherMotion.press(reduced), value: configuration.isPressed)
+            .animation(AetherMotion.press(reduced || reducedMotion), value: configuration.isPressed)
     }
 }

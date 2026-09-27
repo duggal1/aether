@@ -825,8 +825,7 @@ enum AetherCustomIconPaths {
         p.addCurve(to: CGPoint(x: 12, y: 15), control1: CGPoint(x: 13.962, y: 15.533), control2: CGPoint(x: 13.044, y: 15))
         p.addCurve(to: CGPoint(x: 9.5, y: 16.341), control1: CGPoint(x: 10.957, y: 15), control2: CGPoint(x: 10.038, y: 15.533))
     }
-    static func incognitoBody(_ p: inout Path) {
-        p.move(to: CGPoint(x: 3, y: 12))
+    static func incognitoBody(_ p: inout Path) {        p.move(to: CGPoint(x: 3, y: 12))
         p.addLine(to: CGPoint(x: 4.662, y: 5.703))
         p.addCurve(to: CGPoint(x: 4.854, y: 5.022), control1: CGPoint(x: 4.759, y: 5.336), control2: CGPoint(x: 4.807, y: 5.152))
         p.addCurve(to: CGPoint(x: 9.373, y: 3.552), control1: CGPoint(x: 5.535, y: 3.126), control2: CGPoint(x: 7.763, y: 2.401))
@@ -839,6 +838,25 @@ enum AetherCustomIconPaths {
         p.addCurve(to: CGPoint(x: 19.338, y: 5.703), control1: CGPoint(x: 19.193, y: 5.152), control2: CGPoint(x: 19.241, y: 5.336))
         p.addLine(to: CGPoint(x: 21, y: 12))
         p.addLine(to: CGPoint(x: 3, y: 12))
+        p.closeSubpath()
+    }
+    // Arrow-return (save/commit): user-supplied 256-grid silhouette, arcs
+    // approximated with quad curves (indistinguishable at UI sizes).
+    static func arrowReturn(_ p: inout Path) {
+        p.move(to: CGPoint(x: 200, y: 32))
+        p.addLine(to: CGPoint(x: 200, y: 176))
+        p.addQuadCurve(to: CGPoint(x: 192, y: 184), control: CGPoint(x: 200, y: 184))
+        p.addLine(to: CGPoint(x: 67.31, y: 184))
+        p.addLine(to: CGPoint(x: 101.66, y: 218.34))
+        p.addQuadCurve(to: CGPoint(x: 90.34, y: 229.66), control: CGPoint(x: 101.66, y: 229.66))
+        p.addLine(to: CGPoint(x: 42.34, y: 181.66))
+        p.addQuadCurve(to: CGPoint(x: 42.34, y: 170.34), control: CGPoint(x: 39.99, y: 176))
+        p.addLine(to: CGPoint(x: 90.34, y: 122.34))
+        p.addQuadCurve(to: CGPoint(x: 101.66, y: 133.66), control: CGPoint(x: 101.66, y: 122.34))
+        p.addLine(to: CGPoint(x: 67.31, y: 168))
+        p.addLine(to: CGPoint(x: 184, y: 168))
+        p.addLine(to: CGPoint(x: 184, y: 32))
+        p.addQuadCurve(to: CGPoint(x: 200, y: 32), control: CGPoint(x: 192, y: 24))
         p.closeSubpath()
     }
 }

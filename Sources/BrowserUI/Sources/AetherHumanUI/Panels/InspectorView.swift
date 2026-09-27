@@ -3,6 +3,7 @@ import SwiftUI
 
 public struct InspectorView: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.dismiss) private var dismiss
     @BrowserState private var inspected: BrowserInspectionSnapshot?
     @BrowserState private var selected: String?
@@ -20,15 +21,29 @@ public struct InspectorView: View {
 
     public init(window: BrowserWindowModel) { self.window = window }
 
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
-                Text("Inspector").font(AetherType.panelTitle(19)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
+                Text("Inspector").font(AetherType.panelTitle(19)).tracking(AetherTracking.heading)
+                    .foregroundStyle(skin.primaryText)
                 Spacer(minLength: 8)
                 if let inspected {
-                    Button("Copy HTML") { copy(inspected.documentHTML) }.aetherButton()
-                    Button("Copy CSS") { copy(inspected.availableCSS) }.aetherButton()
-                    Button("Export") { export(inspected.documentHTML, name: "aether-document.html") }.aetherButton()
+                    Button("Copy HTML") { copy(inspected.documentHTML) }
+                        .buttonStyle(AetherPanelActionButtonStyle())
+                        .focusEffectDisabled()
+                        .aetherPointingCursor()
+                    Button("Copy CSS") { copy(inspected.availableCSS) }
+                        .buttonStyle(AetherPanelActionButtonStyle())
+                        .focusEffectDisabled()
+                        .aetherPointingCursor()
+                    Button("Export") { export(inspected.documentHTML, name: "aether-document.html") }
+                        .buttonStyle(AetherPanelActionButtonStyle())
+                        .focusEffectDisabled()
+                        .aetherPointingCursor()
                 }
                 ChromeButton(.close, help: "Close") { dismiss() }
             }
@@ -54,11 +69,11 @@ public struct InspectorView: View {
                                     }
                                 } label: {
                                     Text(node.summary).font(AetherType.data(11)).lineLimit(1)
-                                        .foregroundStyle(theme.ink)
+                                        .foregroundStyle(skin.primaryText)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .padding(.leading, CGFloat(min(node.depth, 12)) * 14 + 10)
                                         .frame(height: 25)
-                                        .background(selected == node.id ? theme.hover : .clear,
+                                        .background(selected == node.id ? skin.hoverFill : .clear,
                                                      in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
@@ -85,6 +100,7 @@ public struct InspectorView: View {
         .frame(width: 820, height: 560)
         .background { AetherSheetBackground() }
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+        .aetherSurfaceAppear()
         .task {
             guard let page = window.selected?.enginePageID,
                   let port = window.workspace.engine as? any BrowserInspectionProviding else { return }

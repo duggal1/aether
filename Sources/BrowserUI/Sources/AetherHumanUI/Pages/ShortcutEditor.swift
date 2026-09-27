@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ShortcutEditor: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     @Environment(\.dismiss) private var dismiss
     @BrowserState private var name: String
@@ -16,22 +17,28 @@ public struct ShortcutEditor: View {
         _url = State(initialValue: shortcut?.url ?? "")
     }
 
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
+
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
             heading
             fields
             actions
         }
-        .padding(18)
+        .padding(22)
         .frame(width: 380)
         .background { AetherSheetBackground() }
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+        .presentationBackground(.clear)
+        .aetherSurfaceAppear()
     }
 
     private var heading: some View {
         Text(shortcut == nil ? "Add Shortcut" : "Edit Shortcut")
             .font(AetherType.panelTitle(20)).tracking(AetherTracking.heading)
-            .foregroundStyle(theme.heading)
+            .foregroundStyle(skin.primaryText)
     }
 
     private var fields: some View {
@@ -47,21 +54,34 @@ public struct ShortcutEditor: View {
         Text(text)
             .font(AetherType.sectionHeader(10))
             .tracking(0.4)
-            .foregroundStyle(theme.soft)
+            .foregroundStyle(skin.secondaryText)
     }
 
     private var actions: some View {
         HStack(spacing: 8) {
             Spacer()
             Button("Cancel") { dismiss() }
-                .aetherButton()
-            Button("Save") { save() }
-                .aetherProminentButton()
-                .keyboardShortcut(.defaultAction)
+                .buttonStyle(AetherModalActionButtonStyle(role: .secondary))
                 .focusEffectDisabled()
-                .disabled(!canSave)
+                .aetherPointingCursor()
+            Button { save() } label: {
+                HStack(spacing: 7) {
+                    AetherCustomIconView(.arrowReturn, tint: saveInk, size: 13)
+                    Text("Save")
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(AetherModalActionButtonStyle(role: .confirm))
+            .focusEffectDisabled()
+            .aetherPointingCursor()
+            .keyboardShortcut(.defaultAction)
+            .disabled(!canSave)
         }
     }
+
+    // Ink for the primary action's icon: the inverse of the button fill, which
+    // is the anchor the shape itself is in (dark button on light, light on dark).
+    private var saveInk: Color { theme.background }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && AddressResolver.resolve(url) != nil

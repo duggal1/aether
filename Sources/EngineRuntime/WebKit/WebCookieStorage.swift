@@ -18,6 +18,20 @@ struct WebCookieInput: Sendable {
   let path: String
   let secure: Bool
   let httpOnly: Bool
+  let expires: Date?
+
+  init(
+    name: String, value: String, domain: String, path: String, secure: Bool,
+    httpOnly: Bool, expires: Date? = nil
+  ) {
+    self.name = name
+    self.value = value
+    self.domain = domain
+    self.path = path
+    self.secure = secure
+    self.httpOnly = httpOnly
+    self.expires = expires
+  }
 }
 
 @MainActor
@@ -36,7 +50,9 @@ enum WebKitCookieBridge {
       .name: input.name, .value: input.value, .domain: input.domain, .path: input.path,
       .secure: input.secure ? "TRUE" : "FALSE",
     ]
-    guard let cookie = HTTPCookie(properties: properties) else {
+    var cookieProperties = properties
+    if let expires = input.expires { cookieProperties[.expires] = expires }
+    guard let cookie = HTTPCookie(properties: cookieProperties) else {
       throw BrowserRuntimeError.invalidState("Cookie was rejected by WebKit")
     }
     await context.store.httpCookieStore.setCookie(cookie)
@@ -114,7 +130,7 @@ extension BrowserRuntime {
       context,
       input: WebCookieInput(
         name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path,
-        secure: cookie.secure, httpOnly: cookie.httpOnly))
+        secure: cookie.secure, httpOnly: cookie.httpOnly, expires: nil))
   }
 
   public func removeCookie(contextID: ContextID, name: String, domain: String, path: String = "/")

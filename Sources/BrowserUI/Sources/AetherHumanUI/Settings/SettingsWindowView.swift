@@ -13,6 +13,13 @@ public struct SettingsWindowView: View {
 
     private var theme: AetherTheme { AetherTheme(settingsScheme) }
 
+    /// Cards read this: the blur recipe + white text in dark mode, resolved
+    /// from the settings window's own scheme — never the page behind it.
+    private var surfaceStyle: AetherSurfaceStyle {
+        AetherSurfaceResolver.style(settingsScheme == .dark ? .darkWebsite : .lightWebsite,
+                                    darkHomepage: settingsScheme == .dark)
+    }
+
     public var body: some View {
         HStack(spacing: 0) {
             SettingsSidebarView(selection: $selection)
@@ -56,13 +63,20 @@ public struct SettingsWindowView: View {
             .background(Color.clear)
         }
         .frame(width: 800, height: 550)
-        .background { AetherSettingsWindowBackground() }
+        .background { SettingsWindowBlurBackground() }
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+        // Transparent sheet so the behind-window frost has the dimmed browser
+        // to refract — an opaque sheet window is what flattened every blur.
+        .presentationBackground(.clear)
         .toggleStyle(.switch)
         .controlSize(.regular)
         .aetherTypography()
         .environment(\.colorScheme, settingsScheme)
         .environment(\.aetherTheme, theme)
+        // The settings window's card and sidebar follow its own resolved scheme,
+        // never the scheme of the page that happens to be open behind it.
+        .environment(\.aetherChromeAppearance, settingsScheme == .dark ? .dark : .light)
+        .environment(\.aetherSurfaceStyle, surfaceStyle)
         .preferredColorScheme(workspace.preferences.appearance.colorScheme)
         .animation(AetherMotion.container(reduced), value: selection)
     }
@@ -72,6 +86,7 @@ public struct SettingsWindowView: View {
         case .general: GeneralSettingsView(workspace: workspace)
         case .tabs: TabsSettingsView(workspace: workspace)
         case .profiles: ProfilesSettingsView(workspace: workspace)
+        case .extensions: ExtensionsSettingsView(workspace: workspace)
         case .search: SearchSettingsView(workspace: workspace)
         case .searchIntelligence: SearchIntelligenceSettingsView(workspace: workspace)
         case .privacy: PrivacySettingsView(workspace: workspace)
@@ -79,9 +94,6 @@ public struct SettingsWindowView: View {
         case .downloads: DownloadsSettingsView(workspace: workspace)
         case .appearance: AppearanceSettingsView(workspace: workspace)
         case .shortcuts: ShortcutsSettingsView()
-        case .advanced: AdvancedSettingsView(workspace: workspace)
-        case .networkPrivacy: NetworkSettingsView(workspace: workspace)
-        case .searchLocation: SearchLocationSettingsView(workspace: workspace)
         }
     }
 }

@@ -1,4 +1,5 @@
 import AppKit
+import EngineRuntime
 import Foundation
 
 public struct EnginePageSnapshot: Sendable {
@@ -14,12 +15,13 @@ public struct EnginePageSnapshot: Sendable {
     public let isSecure: Bool
     public let error: String?
     public let closed: Bool
+    public let semanticSignals: BrowserSemanticSignals?
     public init(id: String, url: String?, title: String, canGoBack: Bool, canGoForward: Bool,
-                isLoading: Bool = false, contentReady: Bool = false, paintReady: Bool = false, progress: Double = 0, isSecure: Bool = true, error: String? = nil, closed: Bool = false) {
+                isLoading: Bool = false, contentReady: Bool = false, paintReady: Bool = false, progress: Double = 0, isSecure: Bool = true, error: String? = nil, closed: Bool = false, semanticSignals: BrowserSemanticSignals? = nil) {
         self.id = id; self.url = url; self.title = title
         self.canGoBack = canGoBack; self.canGoForward = canGoForward
         self.isLoading = isLoading; self.contentReady = contentReady; self.paintReady = paintReady; self.progress = progress; self.isSecure = isSecure
-        self.error = error; self.closed = closed
+        self.error = error; self.closed = closed; self.semanticSignals = semanticSignals
     }
 }
 
@@ -69,6 +71,17 @@ public struct BrowserPrivacyPolicy: Equatable, Sendable {
 }
 
 @MainActor
+public protocol BrowserAgentInteractionObserving: AnyObject {
+    func agentInteractionUpdates() async -> AsyncStream<AgentInteractionUpdate>
+    func cancelAgentInteraction(pageID: String) async
+}
+
+@MainActor
 public protocol BrowserPageActivating: AnyObject {
     func activate(pageID: String) async throws
+}
+
+@MainActor
+public protocol BrowserNativeSemanticActions: AnyObject {
+    func joinMeeting(pageID: String) async
 }

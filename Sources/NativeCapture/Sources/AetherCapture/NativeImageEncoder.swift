@@ -14,8 +14,11 @@ public protocol AetherImageEncoder: Sendable {
     func encode(_ raster: AetherRaster, preferred: CaptureFormat, quality: Double) throws -> EncodedImage
 }
 
-/// Apple ImageIO only. WebP is attempted IF the OS reports an encoder.
-/// Some macOS releases can decode WebP without being able to encode it.
+/// Apple ImageIO only: whatever the Mac natively encodes is what gets saved.
+/// WebP is used only when it was asked for AND the OS reports an encoder —
+/// some macOS releases decode WebP without being able to encode it. The
+/// fallback order is JPEG then PNG, both universally available through
+/// ImageIO, so a capture always lands an image instead of an error.
 /// The returned extension ALWAYS matches the successfully encoded bytes.
 public struct NativeImageEncoder: AetherImageEncoder {
     public init() {}
@@ -25,11 +28,25 @@ public struct NativeImageEncoder: AetherImageEncoder {
         let destinations = CGImageDestinationCopyTypeIdentifiers() as! [String]
         let webpID = destinations.first(where: { $0.lowercased().contains("webp") })
         var attempts: [(CaptureFormat, String)] = []
-        if preferred == .webp, let webpID { attempts.append((.webp, webpID)) }
-        if preferred == .png, destinations.contains("public.png") {
-            attempts.append((.png, "public.png"))
+        func offer(_ format: CaptureFormat, _ identifier: String) {
+            guard destinations.contains(identifier),
+                  !attempts.contains(where: { $0.0 == format })
+            else { return }
+            attempts.append((format, identifier))
         }
-        if destinations.contains("public.jpeg") { attempts.append((.jpeg, "public.jpeg")) }
+        // What was asked for goes first, when the OS can do it.
+        switch preferred {
+        case .webp:
+            if let webpID { attempts.append((.webp, webpID)) }
+        case .png:
+            offer(.png, "public.png")
+        case .jpeg:
+            offer(.jpeg, "public.jpeg")
+        }
+        // Then whatever macOS natively encodes, in a stable order.
+        offer(.jpeg, "public.jpeg")
+        offer(.png, "public.png")
+        if let webpID { offer(.webp, webpID) }
         let provider = CGDataProvider(data: raster.rgba as CFData)
         guard let provider, let space = CGColorSpace(name: CGColorSpace.sRGB),
               let image = CGImage(

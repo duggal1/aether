@@ -123,7 +123,9 @@ enum OmniboxSuggestionBuilder {
             return OmniboxSuggestion(kind: .open, title: "Open \(host)", url: rememberedSite.absoluteString,
                                      matched: prefix.count, score: .infinity)
         }
-        return OmniboxSuggestion(kind: .open, title: "Search for “\(prefix)”",
+        // The row names the engine that will actually answer, so the browser
+        // and the engine that ran can never disagree.
+        return OmniboxSuggestion(kind: .open, title: "Search \(provider.searchName) for “\(prefix)”",
                                  completion: prefix, matched: prefix.count, score: .infinity)
     }
 

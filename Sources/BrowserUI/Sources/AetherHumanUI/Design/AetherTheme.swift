@@ -12,16 +12,31 @@ public enum AetherAppearance: String, CaseIterable, Codable, Identifiable {
         case .dark: .dark
         }
     }
+
+    /// Chrome override for the browser window. `.system` leaves the chrome
+    /// adaptive: it resolves from the page it sits on, which is what keeps the
+    /// window calm in both schemes.
+    public var chromeOverride: AetherChromeAppearance? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
 }
 
 public struct AetherTheme {
     public let dark: Bool
     public init(_ scheme: ColorScheme) { dark = scheme == .dark }
+    public init(_ appearance: AetherAppearance, system: ColorScheme) {
+        dark = (appearance.colorScheme ?? system) == .dark
+    }
     public var background: Color { AetherPalette.background(dark) }
     public var chrome: Color { AetherPalette.chrome(dark) }
     public var card: Color { AetherPalette.card(dark) }
     public var hover: Color { AetherPalette.hover(dark) }
     public var selected: Color { AetherPalette.selected(dark) }
+    public var sidebarSelection: Color { AetherPalette.sidebarSelection(dark) }
     public var text: Color { AetherPalette.text(dark) }
     public var textStrong: Color { AetherPalette.textStrong(dark) }
     public var muted: Color { AetherPalette.muted(dark) }
@@ -80,10 +95,35 @@ extension EnvironmentValues {
 }
 
 public struct AetherThemeScope<Content: View>: View {
+    // Read the ambient scheme so `.system` resolves to the real appearance
+    // instead of a hard-coded dark. This scope's job is coherence — scheme and
+    // `aetherTheme` can never disagree — not enforcing a dark app.
+    @Environment(\.colorScheme) private var systemScheme
+    let appearance: AetherAppearance
+    let content: Content
+    public init(_ appearance: AetherAppearance = .system, @ViewBuilder content: () -> Content) {
+        self.appearance = appearance
+        self.content = content()
+    }
+    public var body: some View {
+        let scheme = appearance.colorScheme ?? systemScheme
+        content
+            .environment(\.colorScheme, scheme)
+            .environment(\.aetherTheme, AetherTheme(scheme))
+    }
+}
+
+/// Modal surfaces — sheets and dialogs — belong to the window, not to the page
+/// underneath them. They take the window's resolved scheme and hand the same
+/// value to the chrome resolver, so a dialog's card, its text and its fields can
+/// never end up on opposite sides of the light/dark line.
+public struct AetherDialogScope<Content: View>: View {
     @Environment(\.colorScheme) private var scheme
     let content: Content
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
     public var body: some View {
-        content.environment(\.aetherTheme, AetherTheme(scheme))
+        content
+            .environment(\.aetherTheme, AetherTheme(scheme))
+            .environment(\.aetherChromeAppearance, scheme == .dark ? .dark : .light)
     }
 }

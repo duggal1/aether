@@ -3,11 +3,13 @@ import DOM
 import EngineCore
 import Foundation
 import JavaScript
+import JevSearch
 
 public struct RuntimePageState: Equatable, Sendable {
   public let page: BrowserPageInfo
   public let navigation: NavigationID?
   public let revision: UInt64
+  public let semanticRevision: UInt64
   public let scroll: Point
   public let loading: Bool
   public let contentReady: Bool
@@ -16,6 +18,7 @@ public struct RuntimePageState: Equatable, Sendable {
   public let target: URL?
   public let error: String?
   public let closed: Bool
+  public let semanticSignals: SemanticPageSignals?
 }
 
 public struct RuntimePageFrame: Sendable {
@@ -33,6 +36,8 @@ extension BrowserRuntime {
     pageObservers[token] = pair.continuation
     for context in contexts.values {
       for page in context.pages.values {
+        let initial = state(for: page)
+        scheduleSemanticAnalysis(initial)
         let value = state(for: page)
         observedStates[page.id] = value
         pair.continuation.yield(value)
@@ -56,16 +61,21 @@ extension BrowserRuntime {
   func state(for page: PageRecord, closed: Bool = false) -> RuntimePageState {
     if let state = webStates[page.id] {
       return RuntimePageState(page: info(for: page), navigation: nil, revision: state.sequence,
+        semanticRevision: (UInt64(state.documentGeneration) << 32)
+          | (state.semanticMutationRevision & 0xffff_ffff),
         scroll: page.scroll, loading: state.loading, contentReady: state.contentReady,
         painted: state.painted, progress: state.progress,
-        target: state.url, error: state.error, closed: closed)
+        target: state.url, error: state.error, closed: closed,
+        semanticSignals: closed ? nil : semanticSignalsByPage[page.id])
     }
     return RuntimePageState(page: info(for: page), navigation: page.loaded?.navigationID,
-      revision: page.loaded?.document.mutationVersion ?? 0, scroll: page.scroll,
+      revision: page.loaded?.document.mutationVersion ?? 0,
+      semanticRevision: page.loaded?.document.mutationVersion ?? 0, scroll: page.scroll,
       loading: navigationLoads[page.id] != nil, contentReady: page.loaded != nil, painted: false,
       progress: 0,
       target: navigationTargets[page.id],
-      error: navigationErrors[page.id], closed: closed)
+      error: navigationErrors[page.id], closed: closed,
+      semanticSignals: closed ? nil : semanticSignalsByPage[page.id])
   }
 
   func publishPageStates() {
@@ -74,17 +84,21 @@ extension BrowserRuntime {
     for context in contexts.values {
       for page in context.pages.values {
         let value = state(for: page)
-        current[page.id] = value
-        if observedStates[page.id] != value {
-          for observer in pageObservers.values { observer.yield(value) }
+        scheduleSemanticAnalysis(value)
+        let currentValue = state(for: page)
+        current[page.id] = currentValue
+        if observedStates[page.id] != currentValue {
+          for observer in pageObservers.values { observer.yield(currentValue) }
         }
       }
     }
     for (id, previous) in observedStates where current[id] == nil {
+      discardSemanticState(for: id)
       let closed = RuntimePageState(page: previous.page, navigation: previous.navigation,
-        revision: previous.revision, scroll: previous.scroll, loading: false, contentReady: false,
+        revision: previous.revision, semanticRevision: previous.semanticRevision,
+        scroll: previous.scroll, loading: false, contentReady: false,
         painted: false, progress: 0,
-        target: nil, error: nil, closed: true)
+        target: nil, error: nil, closed: true, semanticSignals: nil)
       for observer in pageObservers.values { observer.yield(closed) }
     }
     observedStates = current
@@ -93,6 +107,8 @@ extension BrowserRuntime {
   func publishPageState(_ id: PageID) {
     guard !pageObservers.isEmpty, let context = contextID(containing: id),
       let page = contexts[context]?.pages[id] else { return }
+    let beforeScheduling = state(for: page)
+    scheduleSemanticAnalysis(beforeScheduling)
     let value = state(for: page)
     guard observedStates[id] != value else { return }
     observedStates[id] = value

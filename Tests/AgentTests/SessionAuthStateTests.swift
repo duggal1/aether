@@ -51,13 +51,15 @@ struct SessionAuthStateTests {
         await runtime.setWebStateForTests(
             id,
             WebPageState(
-                sequence: 1, url: URL(string: "https://accounts.example.com/login"),
+                sequence: 1, documentGeneration: 1,
+                url: URL(string: "https://accounts.example.com/login"),
                 title: "Sign in", viewport: Size(width: 800, height: 600),
                 history: [
                     URL(string: "https://mail.example.com/")!,
                     URL(string: "https://accounts.example.com/login")!,
-                ], historyIndex: 1, loading: false, loaded: true, contentReady: true, progress: 1,
-                statusCode: 200, error: nil))
+                ], historyIndex: 1, loading: false, loaded: true, contentReady: true, painted: true,
+                progress: 1, statusCode: 200, error: nil,
+                semanticMutationRevision: 0))
         #expect(await runtime.sessionAuthState(pageID: id) == .reauthenticationRequired)
     }
 
@@ -67,10 +69,11 @@ struct SessionAuthStateTests {
         await runtime.setWebStateForTests(
             id,
             WebPageState(
-                sequence: 1, url: nil, title: "", viewport: Size(width: 800, height: 600),
+                sequence: 1, documentGeneration: 1,
+                url: nil, title: "", viewport: Size(width: 800, height: 600),
                 history: [], historyIndex: -1, loading: false, loaded: false, contentReady: false,
-                progress: 0,
-                statusCode: 0, error: "timeout"))
+                painted: false, progress: 0,
+                statusCode: 0, error: "timeout", semanticMutationRevision: 0))
         #expect(await runtime.sessionAuthState(pageID: id) == .failed)
     }
 }

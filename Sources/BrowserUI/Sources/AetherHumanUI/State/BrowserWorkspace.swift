@@ -253,13 +253,15 @@ public final class BrowserWorkspace {
     public func addShortcut(name: String, url: String) {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
               let destination = AddressResolver.resolve(url, provider: preferences.provider,
-                  locality: preferences.searchLocality, localityTerms: preferences.localityQueryTerms), destination.scheme == "https" || destination.scheme == "http" else { return }
+                  locality: preferences.searchLocality, localityTerms: preferences.localityQueryTerms,
+                  customTemplate: preferences.customSearchTemplate), destination.scheme == "https" || destination.scheme == "http" else { return }
         shortcuts.append(BrowserShortcut(name: name, url: destination.absoluteString, isPinned: false)); persist()
     }
     public func editShortcut(_ id: UUID, name: String, url: String) {
         guard let i = shortcuts.firstIndex(where: { $0.id == id }),
               let resolved = AddressResolver.resolve(url, provider: preferences.provider,
-                  locality: preferences.searchLocality, localityTerms: preferences.localityQueryTerms) else { return }
+                  locality: preferences.searchLocality, localityTerms: preferences.localityQueryTerms,
+                  customTemplate: preferences.customSearchTemplate) else { return }
         shortcuts[i].name = name; shortcuts[i].url = resolved.absoluteString; persist()
     }
     public func removeShortcut(_ id: UUID) { shortcuts.removeAll { $0.id == id }; persist() }
@@ -269,10 +271,10 @@ public final class BrowserWorkspace {
                                      bookmarks: bookmarks.filter { !incognitoIDs.contains($0.profileID) },
                                      visits: visits.filter { !incognitoIDs.contains($0.profileID) },
                                      shortcuts: shortcuts, defaultProfileID: defaultProfileID)
-        let session = sessionArchive()
         persistenceQueue.async {
-            BrowserPersistence.save(archive, session: session)
+            BrowserPersistence.save(archive)
         }
+        scheduleSessionSave()
         if let provider = engine as? any BrowserLibraryProviding {
             let libraries = profiles.filter { !$0.isIncognito }.map { profile in
                 (profile.id, BrowserProfileLibrary(bookmarks: bookmarks.filter { $0.profileID == profile.id },

@@ -84,6 +84,29 @@ public struct BrowserProfileLibrary: Codable, Sendable {
     func deleteProxyCredential(endpointID: String) throws
 }
 
+public struct BrowserCredentialSummary: Identifiable, Sendable, Equatable {
+    public let id: String
+    public let profileID: UUID
+    public let origin: String
+    public let username: String
+    public let label: String
+
+    public init(id: String, profileID: UUID, origin: String, username: String, label: String) {
+        self.id = id
+        self.profileID = profileID
+        self.origin = origin
+        self.username = username
+        self.label = label
+    }
+}
+
+@MainActor public protocol BrowserCredentialVaultProviding: AnyObject {
+    func savedCredentials(profileID: UUID, origin: String?) async throws -> [BrowserCredentialSummary]
+    func saveCredential(profileID: UUID, origin: String, username: String, password: String) async throws
+    func deleteCredential(profileID: UUID, credentialID: String) async throws
+    func fillCredential(pageID: String, credentialID: String, fillUsername: Bool) async throws
+}
+
 public enum PasskeyAuthorizationState: String, Sendable, Equatable, CaseIterable {
     case authorized
     case denied
@@ -141,4 +164,12 @@ public enum EngineSessionState: String, Sendable, Equatable, CaseIterable {
 
 @MainActor public protocol BrowserSessionStateProviding: AnyObject {
     func sessionState(pageID: String) async -> EngineSessionState
+}
+
+/// WebKit's own inspector on the live page — the same one the right-click
+/// menu's Inspect Element opens, from the menu bar and its keys.
+@MainActor public protocol BrowserWebInspectorProviding: AnyObject {
+    func toggleWebInspector(pageID: String) async throws
+    func showWebConsole(pageID: String) async throws
+    func pickWebElement(pageID: String) async throws
 }

@@ -1,0 +1,180 @@
+[latency]       0.0ms epoch=1790336926901 app.init.start
+[latency]      24.3ms epoch=1790336926925 app.init.end
+sandbox_extension_issue_file_to_process failed for /tmp/aether-perf-before-20260925.app: 1 (Operation not permitted)
+[latency]     123.8ms epoch=1790336927025 cmd.received app.status
+[latency]     205.4ms epoch=1790336927106 model.created
+[latency]     328.9ms epoch=1790336927230 app.delegate.launched
+[latency]     424.6ms epoch=1790336927326 cmd.received app.status
+[latency]     445.0ms epoch=1790336927346 cmd.received app.open
+[latency]     445.1ms epoch=1790336927346 ui.navigate.enter
+[latency]     445.1ms epoch=1790336927346 ui.resolve.end
+[latency]     507.1ms epoch=1790336927408 adapter.createPage.start
+[latency]     507.2ms epoch=1790336927408 cmd.received app.tabs
+[webkit-nav] epoch=1790336927409 webPage.miss id=1
+[webkit-nav] epoch=1790336927415 webPage.miss id=1
+[webkit-nav] epoch=1790336927458 view-alloc 2.9ms
+[latency]     558.8ms epoch=1790336927460 cmd.received app.metrics
+[webkit-nav] epoch=1790336927460 webPage.ready id=1
+[latency]     565.6ms epoch=1790336927467 adapter.createPage.end
+[latency]     565.8ms epoch=1790336927467 ui.page.created
+[latency]     607.6ms epoch=1790336927509 adapter.navigate.start
+[webkit-nav] epoch=1790336927543 [scope=1 begin url=https://www.youtube.com/]
+[latency]     641.9ms epoch=1790336927543 cmd.received app.tabs
+[webkit-nav] epoch=1790336927579 [scope=1 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.youtube.com/]
+[latency]     726.7ms epoch=1790336927628 cmd.received app.tabs
+[webkit-nav] epoch=1790336927639 [scope=1 didStartProvisional tracked=true retired=false url=https://www.youtube.com/]
+[latency]     744.6ms epoch=1790336927646 cmd.received app.metrics
+[latency]     825.9ms epoch=1790336927727 cmd.received app.tabs
+[latency]     836.6ms epoch=1790336927738 cmd.received app.metrics
+[latency]     905.1ms epoch=1790336927806 cmd.received app.tabs
+[latency]     917.4ms epoch=1790336927818 cmd.received app.metrics
+[latency]     982.9ms epoch=1790336927884 cmd.received app.tabs
+[webkit-nav] epoch=1790336927887 [scope=1 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790336927891 [scope=1 didCommit tracked=true url=https://www.youtube.com/ t=0.349s]
+[webkit-nav] epoch=1790336927892 navigate total=382.6ms settle=commit commitToReturn=0.3ms
+[latency]     991.1ms epoch=1790336927892 adapter.navigate.commit
+[latency]     991.2ms epoch=1790336927892 ui.navigate.dispatched
+[latency]     994.0ms epoch=1790336927895 cmd.received app.metrics
+[latency]    1077.5ms epoch=1790336927979 cmd.received app.tabs
+[latency]    1086.9ms epoch=1790336927988 cmd.received app.metrics
+[latency]    1169.4ms epoch=1790336928071 cmd.received app.tabs
+[latency]    1180.1ms epoch=1790336928081 cmd.received app.metrics
+[latency]    1249.4ms epoch=1790336928151 cmd.received app.tabs
+[latency]    1259.3ms epoch=1790336928160 cmd.received app.metrics
+[webkit-nav] epoch=1790336928196 [scope=1 decideAction scheme=https mainFrame=false type=-1 mainNavTracked=nil url=https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den%26next%3D%252Fsignin_passive%26feature%3Dpassive&hl=en]
+[webkit-nav] epoch=1790336928213 [scope=1 paint observed gen=1 t=0.670s]
+[latency]    1348.6ms epoch=1790336928250 cmd.received app.tabs
+[latency]    1358.6ms epoch=1790336928260 cmd.received app.metrics
+[latency]    1367.9ms epoch=1790336928269 cmd.received app.navigate
+[latency]    1368.0ms epoch=1790336928269 ui.navigate.enter
+[latency]    1368.0ms epoch=1790336928269 ui.resolve.end
+[latency]    1383.5ms epoch=1790336928285 ui.page.created
+[latency]    1383.7ms epoch=1790336928285 cmd.received app.tabs
+[latency]    1384.1ms epoch=1790336928285 adapter.navigate.start
+[webkit-nav] epoch=1790336928285 [scope=1 stop waiters=0]
+[webkit-nav] epoch=1790336928286 [scope=2 begin url=https://www.youtube.com/results?search_query=webkit]
+[webkit-nav] epoch=1790336928299 [scope=2 didFail tracked=false domain=NSURLErrorDomain code=-999 class=benign committed=nil t=0.014s]
+[webkit-nav] epoch=1790336928300 [scope=2 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.youtube.com/results?search_query=webkit]
+[latency]    1400.3ms epoch=1790336928301 cmd.received app.metrics
+[webkit-nav] epoch=1790336928313 [scope=2 didStartProvisional tracked=true retired=false url=https://www.youtube.com/results?search_query=webkit]
+[latency]    1482.7ms epoch=1790336928384 cmd.received app.tabs
+[latency]    1492.1ms epoch=1790336928393 cmd.received app.metrics
+[latency]    1555.1ms epoch=1790336928456 cmd.received app.tabs
+[latency]    1565.5ms epoch=1790336928467 cmd.received app.metrics
+[latency]    1628.8ms epoch=1790336928530 cmd.received app.tabs
+[latency]    1639.1ms epoch=1790336928540 cmd.received app.metrics
+[webkit-nav] epoch=1790336928541 [scope=2 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790336928545 [scope=2 didCommit tracked=true url=https://www.youtube.com/results?search_query=webkit t=0.259s]
+[webkit-nav] epoch=1790336928547 navigate total=260.8ms settle=commit commitToReturn=2.1ms
+[latency]    1645.9ms epoch=1790336928547 adapter.navigate.commit
+[latency]    1646.0ms epoch=1790336928547 ui.navigate.dispatched
+[latency]    1707.5ms epoch=1790336928609 cmd.received app.tabs
+[latency]    1720.6ms epoch=1790336928622 cmd.received app.metrics
+[latency]    1795.1ms epoch=1790336928696 cmd.received app.tabs
+[latency]    1807.8ms epoch=1790336928709 cmd.received app.metrics
+[latency]    1879.5ms epoch=1790336928781 cmd.received app.tabs
+[latency]    1891.9ms epoch=1790336928793 cmd.received app.metrics
+[latency]    1962.6ms epoch=1790336928864 cmd.received app.tabs
+[latency]    1976.5ms epoch=1790336928878 cmd.received app.metrics
+[latency]    2056.8ms epoch=1790336928958 cmd.received app.tabs
+[latency]    2113.5ms epoch=1790336929015 cmd.received app.metrics
+[latency]    2181.1ms epoch=1790336929082 cmd.received app.tabs
+[latency]    2280.7ms epoch=1790336929182 cmd.received app.metrics
+[latency]    2453.3ms epoch=1790336929354 cmd.received app.tabs
+[latency]    2470.5ms epoch=1790336929372 cmd.received app.metrics
+[webkit-nav] epoch=1790336929822 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790336929954 [scope=2 paint observed gen=2 t=1.668s]
+[latency]    3111.6ms epoch=1790336930013 cmd.received app.tabs
+[webkit-nav] epoch=1790336930014 [scope=2 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[latency]    3125.1ms epoch=1790336930026 cmd.received app.metrics
+[latency]    3196.0ms epoch=1790336930097 cmd.received app.back
+[webkit-nav] epoch=1790336930102 [scope=2 didFinish tracked=true url=https://www.youtube.com/results?search_query=webkit t=1.817s]
+[webkit-nav] epoch=1790336930107 [scope=3 begin url=https://www.youtube.com/]
+[latency]    3227.3ms epoch=1790336930128 cmd.received app.tabs
+[latency]    3239.5ms epoch=1790336930141 cmd.received app.metrics
+[webkit-nav] epoch=1790336930149 [scope=3 decideAction scheme=https mainFrame=true type=2 mainNavTracked=tracked url=https://www.youtube.com/]
+[webkit-nav] epoch=1790336930174 [scope=3 didStartProvisional tracked=true retired=false url=https://www.youtube.com/]
+[latency]    3322.8ms epoch=1790336930224 cmd.received app.tabs
+[latency]    3339.5ms epoch=1790336930241 cmd.received app.metrics
+[webkit-nav] epoch=1790336930562 [scope=3 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790336930725 [scope=3 didCommit tracked=true url=https://www.youtube.com/ t=0.617s]
+[latency]    3824.1ms epoch=1790336930725 cmd.received app.tabs
+[latency]    3895.6ms epoch=1790336930797 cmd.received app.metrics
+[webkit-nav] epoch=1790336930933 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790336930954 [scope=3 paint observed gen=3 t=0.846s]
+[webkit-nav] epoch=1790336930997 [scope=3 decideAction scheme=about mainFrame=false type=-1 mainNavTracked=nil url=about:blank]
+[latency]    4140.9ms epoch=1790336931042 cmd.received app.tabs
+[latency]    4157.3ms epoch=1790336931058 cmd.received app.metrics
+[webkit-nav] epoch=1790336931108 [scope=3 didFinish tracked=true url=https://www.youtube.com/ t=1.001s]
+[latency]    4240.3ms epoch=1790336931141 cmd.received app.forward
+[webkit-nav] epoch=1790336931151 [scope=4 begin url=https://www.youtube.com/results?search_query=webkit]
+[latency]    4279.0ms epoch=1790336931180 cmd.received app.tabs
+[latency]    4296.2ms epoch=1790336931197 cmd.received app.metrics
+[webkit-nav] epoch=1790336931207 [scope=4 decideAction scheme=https mainFrame=true type=2 mainNavTracked=tracked url=https://www.youtube.com/results?search_query=webkit]
+[webkit-nav] epoch=1790336931219 [scope=4 didStartProvisional tracked=true retired=false url=https://www.youtube.com/results?search_query=webkit]
+[latency]    4374.6ms epoch=1790336931276 cmd.received app.tabs
+[latency]    4387.6ms epoch=1790336931289 cmd.received app.metrics
+[latency]    4458.4ms epoch=1790336931360 cmd.received app.tabs
+[latency]    4469.1ms epoch=1790336931370 cmd.received app.metrics
+[webkit-nav] epoch=1790336931376 [scope=4 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790336931388 [scope=4 didCommit tracked=true url=https://www.youtube.com/results?search_query=webkit t=0.237s]
+[latency]    4532.0ms epoch=1790336931433 cmd.received app.tabs
+[latency]    4541.6ms epoch=1790336931443 cmd.received app.metrics
+[latency]    4611.3ms epoch=1790336931512 cmd.received app.tabs
+[latency]    4620.5ms epoch=1790336931522 cmd.received app.metrics
+[latency]    4684.0ms epoch=1790336931585 cmd.received app.tabs
+[latency]    4696.9ms epoch=1790336931598 cmd.received app.metrics
+[latency]    4764.7ms epoch=1790336931666 cmd.received app.tabs
+[latency]    4773.9ms epoch=1790336931675 cmd.received app.metrics
+[latency]    4842.5ms epoch=1790336931744 cmd.received app.tabs
+[latency]    4851.6ms epoch=1790336931753 cmd.received app.metrics
+[latency]    4921.2ms epoch=1790336931822 cmd.received app.tabs
+[latency]    4930.1ms epoch=1790336931831 cmd.received app.metrics
+[latency]    4990.9ms epoch=1790336931892 cmd.received app.tabs
+[latency]    5000.0ms epoch=1790336931901 cmd.received app.metrics
+[latency]    5069.5ms epoch=1790336931971 cmd.received app.tabs
+[latency]    5078.4ms epoch=1790336931980 cmd.received app.metrics
+[latency]    5138.3ms epoch=1790336932039 cmd.received app.tabs
+[latency]    5147.4ms epoch=1790336932048 cmd.received app.metrics
+[latency]    5218.1ms epoch=1790336932119 cmd.received app.tabs
+[latency]    5229.9ms epoch=1790336932131 cmd.received app.metrics
+[webkit-nav] epoch=1790336932219 [scope=4 decideAction scheme=about mainFrame=false type=2 mainNavTracked=nil url=about:blank]
+[webkit-nav] epoch=1790336932246 [scope=4 paint observed gen=4 t=1.095s]
+[latency]    5409.7ms epoch=1790336932311 cmd.received app.tabs
+[latency]    5424.7ms epoch=1790336932326 cmd.received app.metrics
+[latency]    5499.2ms epoch=1790336932400 cmd.received app.open
+[latency]    5499.4ms epoch=1790336932400 ui.navigate.enter
+[latency]    5499.4ms epoch=1790336932400 ui.resolve.end
+[webkit-nav] epoch=1790336932472 [scope=4 decideAction scheme=about mainFrame=false type=2 mainNavTracked=nil url=about:blank]
+[latency]    5571.1ms epoch=1790336932472 adapter.createPage.start
+[latency]    5571.1ms epoch=1790336932472 cmd.received app.tabs
+[webkit-nav] epoch=1790336932473 webPage.miss id=2
+[webkit-nav] epoch=1790336932501 view-alloc 26.6ms
+[webkit-nav] epoch=1790336932502 webPage.ready id=2
+[latency]    5614.6ms epoch=1790336932516 cmd.received app.metrics
+[latency]    5615.9ms epoch=1790336932517 adapter.createPage.end
+[latency]    5616.1ms epoch=1790336932517 ui.page.created
+[latency]    5645.7ms epoch=1790336932547 adapter.navigate.start
+[webkit-nav] epoch=1790336932624 [scope=1 begin url=https://www.youtube.com/]
+[latency]    5723.4ms epoch=1790336932624 cmd.received app.tabs
+[latency]    5819.1ms epoch=1790336932720 cmd.received app.tabs
+[latency]    5833.9ms epoch=1790336932735 cmd.received app.metrics
+[webkit-nav] epoch=1790336932791 [scope=1 decideAction scheme=https mainFrame=true type=-1 mainNavTracked=tracked url=https://www.youtube.com/]
+[webkit-nav] epoch=1790336932810 [scope=1 didStartProvisional tracked=true retired=false url=https://www.youtube.com/]
+[latency]    5955.0ms epoch=1790336932856 cmd.received app.tabs
+[latency]    5965.5ms epoch=1790336932867 cmd.received app.metrics
+[latency]    6118.0ms epoch=1790336933019 cmd.received app.tabs
+[latency]    6141.0ms epoch=1790336933042 cmd.received app.metrics
+[webkit-nav] epoch=1790336933076 [scope=1 decideResponse mainFrame=true authoritative=true mime=text/html policy=allow]
+[webkit-nav] epoch=1790336933080 [scope=1 didCommit tracked=true url=https://www.youtube.com/ t=0.456s]
+[webkit-nav] epoch=1790336933083 navigate total=519.5ms settle=commit commitToReturn=1.1ms
+[latency]    6182.6ms epoch=1790336933084 adapter.navigate.commit
+[latency]    6182.9ms epoch=1790336933084 ui.navigate.dispatched
+[webkit-nav] epoch=1790336933095 [scope=4 didFinish tracked=true url=https://www.youtube.com/results?search_query=webkit t=1.944s]
+[latency]    6211.6ms epoch=1790336933113 cmd.received app.tabs
+[latency]    6222.5ms epoch=1790336933124 cmd.received app.metrics
+[latency]    6292.1ms epoch=1790336933193 cmd.received app.tabs
+[latency]    6304.3ms epoch=1790336933205 cmd.received app.metrics
+[webkit-nav] epoch=1790336933222 [scope=1 paint observed gen=1 t=0.598s]
+[latency]    6383.4ms epoch=1790336933284 cmd.received app.tabs
+[latency]    6392.9ms epoch=1790336933294 cmd.received app.metrics

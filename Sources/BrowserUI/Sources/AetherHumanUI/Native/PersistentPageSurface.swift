@@ -1,5 +1,7 @@
 import AppKit
+import EngineRuntime
 import SwiftUI
+import WebKit
 
 @MainActor
 public final class PageSurfaceRegistry {
@@ -20,8 +22,10 @@ public struct PersistentPageSurface: NSViewRepresentable {
     public let pageID: String
     public let engine: any BrowserEnginePort
     public let registry: PageSurfaceRegistry
-    public init(pageID: String, engine: any BrowserEnginePort, registry: PageSurfaceRegistry) {
-        self.pageID = pageID; self.engine = engine; self.registry = registry
+    public let window: BrowserWindowModel
+    public init(pageID: String, engine: any BrowserEnginePort, registry: PageSurfaceRegistry,
+                window: BrowserWindowModel) {
+        self.pageID = pageID; self.engine = engine; self.registry = registry; self.window = window
     }
     public func makeNSView(context: Context) -> NSView {
         let container = NSView()
@@ -30,6 +34,33 @@ public struct PersistentPageSurface: NSViewRepresentable {
     }
     public func updateNSView(_ container: NSView, context: Context) {
         guard let realSurface = registry.surface(for: pageID, engine: engine) else { return }
+        if window.floatingPageID == pageID { return }
+        if let webView = realSurface as? WKWebView, window.pageInteractionRelays[pageID] == nil {
+            window.pageInteractionRelays[pageID] = PageInteractionRelay.install(on: webView, pageID: pageID, window: window)
+            if let pageView = webView as? AetherPageView {
+                pageView.searchName = { [weak window] in window?.workspace.preferences.provider.searchName }
+                pageView.onSearch = { [weak window] selection in window?.navigateSelected(selection) }
+                pageView.onUnclaimedShortcut = { [weak window] key in
+                    if key == "s" { window?.toggleSidebar() }
+                    else if key == "f" { window?.showsFind = true }
+                }
+                pageView.onCredentialEvent = { [weak window, weak pageView] event in
+                    guard let pageView else { return }
+                    window?.receiveCredentialEvent(event, pageID: pageID, pageView: pageView)
+                }
+                pageView.contextMenuBuilder = { [weak window, weak pageView] context, menu, webView in
+                    guard let window, let pageView else { return }
+                    // The selection has to be asked for by an item that owns the
+                    // page view, because reading it is asynchronous and the
+                    // click that opened the menu is what clears it.
+                    let search = context.hasSelection
+                        ? pageView.makeSearchItem(title: "Search with \(window.workspace.preferences.provider.searchName)")
+                        : nil
+                    AetherContextMenu.fill(menu, context: context, window: window,
+                                           webView: webView, searchItem: search)
+                }
+            }
+        }
         let appearance = colorScheme == .dark ? NSAppearance.Name.darkAqua : .aqua
         if realSurface.appearance?.name != appearance { realSurface.appearance = NSAppearance(named: appearance) }
         if realSurface.superview !== container {
@@ -70,7 +101,10 @@ struct AetherOverlayScrollerTuning: NSViewRepresentable {
     func updateNSView(_ view: OverlayScrollerProbe, context: Context) {}
 }
 
-final class OverlayScrollerProbe: NSView {
+/// Reports the scroller style of the scroll view it sits in. Purely decorative —
+/// as a plain `NSView` it hit-tested as a full-size blank layer and could take
+/// clicks from whatever sat underneath it.
+final class OverlayScrollerProbe: AetherPassthroughView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         var current = superview

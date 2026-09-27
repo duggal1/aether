@@ -15,6 +15,7 @@ public struct ProfileSwitcherView: View {
         Button {
             window.showsProfileMenu.toggle()
             window.showsMoreMenu = false
+            window.showsExtensionsMenu = false
         } label: {
             HStack(spacing: 5) {
                 Text(window.workspace.name(for: window.activeProfileID))
@@ -32,19 +33,17 @@ public struct ProfileSwitcherView: View {
         .focusEffectDisabled()
         .animation(AetherMotion.hover(reduced), value: hovering)
         .onHover { hovering = $0 }
-        .help("Switch profile")
-        .accessibilityLabel("Profile: \(window.workspace.name(for: window.activeProfileID))")
+        .help("Switch space")
+        .accessibilityLabel("Space: \(window.workspace.name(for: window.activeProfileID))")
     }
 
     @ViewBuilder private var pickerGlass: some View {
-        let shape = RoundedRectangle(cornerRadius: AetherMetrics.fieldRadius, style: .continuous)
+        // Quiet solid pill, not a glass lens. The pill sits on chrome; a second
+        // translucent layer on top of an already-solid surface only made the
+        // control look like it was floating in a different window.
         let dark = appearance.isDark
-        shape.fill(.clear)
-            .glassEffect(hovering || window.showsProfileMenu
-                         ? .regular.interactive().tint(dark ? Color.black.opacity(0.18) : Color.white.opacity(0.20))
-                         : .regular.tint(dark ? Color.black.opacity(0.14) : Color.white.opacity(0.16)),
-                         in: shape)
-            .glassEffectTransition(.materialize)
+        RoundedRectangle(cornerRadius: AetherMetrics.utilityRadius, style: .continuous)
+            .fill(hovering || window.showsProfileMenu ? appearance.hover : appearance.hairline.opacity(0.6))
             .environment(\.colorScheme, dark ? .dark : .light)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -57,17 +56,20 @@ public struct ProfileSwitcherView: View {
 // so the rendered corners match the specified radius with no hollow ring.
 public struct ProfileMenuPanel: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
-    private var labelColor: Color { chrome?.text ?? theme.ink }
-    private var iconColor: Color { chrome?.icon ?? theme.muted }
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
+
+    private var labelColor: Color { skin.primaryText }
+    private var iconColor: Color { skin.primaryIcon }
 
     public var body: some View {
-        GlassEffectContainer(spacing: 4) {
-            VStack(alignment: .leading, spacing: 1) {
-                ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
+        VStack(alignment: .leading, spacing: 1) {
+            ForEach(Array(window.workspace.profiles.enumerated()), id: \.element.id) { index, profile in
                 Button {
                     window.switchProfile(profile.id)
                     window.showsProfileMenu = false
@@ -77,13 +79,13 @@ public struct ProfileMenuPanel: View {
                 .buttonStyle(AetherMenuPressStyle())
                 .focusEffectDisabled()
             }
-            Divider().padding(.vertical, 5)
+            Divider().overlay(skin.separator).padding(.vertical, 5)
             Button {
                 window.showsRenameProfile = true
                 window.showsProfileMenu = false
             } label: {
                 AetherMenuRow(radius: 8) {
-                    Text("Rename Profile")
+                    Text("Rename Space")
                         .font(AetherType.body(12))
                         .foregroundStyle(labelColor)
                         .padding(.horizontal, 9).frame(height: 32, alignment: .leading)
@@ -93,20 +95,20 @@ public struct ProfileMenuPanel: View {
             }
             .buttonStyle(AetherMenuPressStyle())
             .focusEffectDisabled()
-            Divider().padding(.vertical, 5)
-            actionRow(.plus, "New Profile") {
+            Divider().overlay(skin.separator).padding(.vertical, 5)
+            actionRow(.plus, "New Space") {
                 window.showsNewProfile = true
                 window.showsProfileMenu = false
             }
-            actionRow(.gear, "Profile Settings") {
+            actionRow(.gear, "Space Settings") {
                 window.showsProfileMenu = false
                 window.showsSettings = true
-            }
             }
         }
         .padding(6)
         .frame(width: 218)
         .background { AetherPopoverBackground() }
+        .environment(\.aetherChromeAppearance, skin.isDark ? .dark : .light)
     }
 
     private func profileRow(_ profile: BrowserProfile, index: Int) -> some View {
@@ -140,9 +142,7 @@ public struct ProfileMenuPanel: View {
         }
     }
 
-    private var appearanceSecondary: Color { chrome?.secondary ?? theme.soft }
-
-    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
+    private var appearanceSecondary: Color { skin.metadataText }
 
     private func actionRow(_ icon: BrowserIcon, _ title: String, enabled: Bool = true,
                            action: @escaping () -> Void) -> some View {
@@ -188,15 +188,27 @@ public struct ProfileMenuPanel: View {
 
 public struct NewProfileSheet: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @BrowserState private var profileName = ""
     @BrowserState private var newProfileColor = 0
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
+    /// Space sheets are always real blur cards — dark frost in dark mode —
+    /// never the opaque solid slab. The sheet usually opens over the New Tab
+    /// page (`.homepage`, which renders solid), so map that to the matching
+    /// website tokens; over a real website keep the shared resolved surface.
+    private var skin: AetherSurfaceStyle {
+        let outer = surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+        guard outer.isHomepage else { return outer }
+        return AetherSurfaceResolver.style(theme.dark ? .darkWebsite : .lightWebsite,
+                                            darkHomepage: theme.dark)
+    }
+
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("New Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
-            AetherField("Profile name", text: $profileName, horizontalPadding: 12)
+        VStack(alignment: .leading, spacing: 18) {
+            Text("New Space").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(skin.primaryText)
+            AetherField("Space name", text: $profileName, horizontalPadding: 12)
             HStack(spacing: 12) {
                 ForEach(0..<ProfileMenuPanel.swatches.count, id: \.self) { index in
                     Button { newProfileColor = index } label: {
@@ -207,7 +219,7 @@ public struct NewProfileSheet: View {
                             .overlay {
                                 if newProfileColor == index {
                                     Circle()
-                                        .strokeBorder(theme.ink, lineWidth: 2)
+                                        .strokeBorder(skin.primaryText, lineWidth: 2)
                                         .padding(-4)
                                 }
                             }
@@ -224,36 +236,58 @@ public struct NewProfileSheet: View {
             HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel") { window.showsNewProfile = false }
-                    .aetherButton()
-                    .frame(minWidth: 88, minHeight: 30)
-                Button("Save") {
+                    .buttonStyle(AetherModalActionButtonStyle(role: .secondary))
+                Button {
                     let profile = window.workspace.createProfile(profileName, colorIndex: newProfileColor)
                     window.switchProfile(profile.id)
                     window.showsNewProfile = false
+                } label: {
+                    HStack(spacing: 7) {
+                        AetherCustomIconView(.arrowReturn, tint: saveInk, size: 13)
+                        Text("Save")
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(AetherModalActionButtonStyle(role: .confirm))
+                .focusEffectDisabled()
+                .aetherPointingCursor()
                 .keyboardShortcut(.defaultAction)
-                .aetherProminentButton()
-                .frame(minWidth: 88, minHeight: 30)
                 .disabled(profileName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.top, 4)
         }
-        .padding(20)
+        .padding(24)
         .frame(width: 388)
         .background { AetherSheetBackground() }
+        .environment(\.aetherSurfaceStyle, skin)
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+        .presentationBackground(.clear)
+        .aetherSurfaceAppear()
     }
+
+    // Ink for the primary action's icon: the inverse of the button fill, which
+    // is the anchor the shape itself is in (dark button on light, light on dark).
+    private var saveInk: Color { theme.background }
 }
 
 public struct RenameProfileSheet: View {
     @Environment(\.aetherTheme) private var theme
+    @Environment(\.aetherSurfaceStyle) private var surface
     @BrowserState private var renameText = ""
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
+    /// Same blur-card rule as New Space: never the opaque solid slab.
+    private var skin: AetherSurfaceStyle {
+        let outer = surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+        guard outer.isHomepage else { return outer }
+        return AetherSurfaceResolver.style(theme.dark ? .darkWebsite : .lightWebsite,
+                                            darkHomepage: theme.dark)
+    }
+
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Rename Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(theme.heading)
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Rename Profile").font(AetherType.panelTitle(20)).tracking(AetherTracking.heading).foregroundStyle(skin.primaryText)
             AetherField("Profile name", text: $renameText, horizontalPadding: 12)
                 .onAppear {
                     if renameText.isEmpty {
@@ -263,22 +297,35 @@ public struct RenameProfileSheet: View {
             HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel") { window.showsRenameProfile = false }
-                    .aetherButton()
-                    .frame(minWidth: 88, minHeight: 30)
-                Button("Save") {
+                    .buttonStyle(AetherModalActionButtonStyle(role: .secondary))
+                Button {
                     window.workspace.renameProfile(window.activeProfileID, to: renameText)
                     window.showsRenameProfile = false
+                } label: {
+                    HStack(spacing: 7) {
+                        AetherCustomIconView(.arrowReturn, tint: saveInk, size: 13)
+                        Text("Save")
+                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(AetherModalActionButtonStyle(role: .confirm))
+                .focusEffectDisabled()
+                .aetherPointingCursor()
                 .keyboardShortcut(.defaultAction)
-                .aetherProminentButton()
-                .frame(minWidth: 88, minHeight: 30)
                 .disabled(renameText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(.top, 4)
         }
-        .padding(20)
+        .padding(24)
         .frame(width: 388)
         .background { AetherSheetBackground() }
+        .environment(\.aetherSurfaceStyle, skin)
         .clipShape(RoundedRectangle(cornerRadius: AetherMetrics.panelRadius, style: .continuous))
+        .presentationBackground(.clear)
+        .aetherSurfaceAppear()
     }
+
+    // Ink for the primary action's icon: the inverse of the button fill, which
+    // is the anchor the shape itself is in (dark button on light, light on dark).
+    private var saveInk: Color { theme.background }
 }

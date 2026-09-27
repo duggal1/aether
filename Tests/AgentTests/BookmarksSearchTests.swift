@@ -84,18 +84,20 @@ import Testing
     contextID: context.id, url: URL(string: "https://example.test/bookmarked")!,
     title: "Example bookmark")
   let suggestions = try await engine.runtime.suggestNavigation(
-    contextID: context.id, prefix: "example.test", limit: 8)
-  #expect(suggestions.count == 2)
-  #expect(suggestions.first?.kind == "bookmark")
-  #expect(suggestions.first?.title == "Example bookmark")
-  #expect(suggestions.last?.kind == "history")
+    contextID: context.id, prefix: "example.test", limit: 8, includeNetwork: false)
+  #expect(suggestions.count == 3)
+  #expect(suggestions.first?.kind == "url")
+  let bookmarkIndex = try #require(suggestions.firstIndex { $0.kind == "bookmark" })
+  let historyIndex = try #require(suggestions.firstIndex { $0.kind == "history" })
+  #expect(bookmarkIndex < historyIndex)
+  #expect(suggestions[bookmarkIndex].title == "Example bookmark")
   let limited = try await engine.runtime.suggestNavigation(
-    contextID: context.id, prefix: "example.test", limit: 1)
+    contextID: context.id, prefix: "example.test", limit: 1, includeNetwork: false)
   #expect(limited.count == 1)
-  #expect(limited.first?.kind == "bookmark")
+  #expect(limited.first?.kind == "url")
   #expect(
     try await engine.runtime.suggestNavigation(
-      contextID: context.id, prefix: "no-such-host", limit: 8
+      contextID: context.id, prefix: "no-such-host", limit: 8, includeNetwork: false
     ).isEmpty)
 }
 

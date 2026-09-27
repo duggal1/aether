@@ -62,9 +62,10 @@ private final class StubPageEngine: BrowserEnginePort, BrowserPageObserving {
 
 @MainActor
 private func settledState(_ id: String, _ url: String, loading: Bool, contentReady: Bool,
-                          progress: Double = 0.6, error: String? = nil) -> EnginePageSnapshot {
+                          progress: Double = 0.6, error: String? = nil,
+                          paintReady: Bool = false) -> EnginePageSnapshot {
     EnginePageSnapshot(id: id, url: url, title: url, canGoBack: false, canGoForward: false,
-        isLoading: loading, contentReady: contentReady, progress: progress,
+        isLoading: loading, contentReady: contentReady, paintReady: paintReady, progress: progress,
         isSecure: true, error: error, closed: false)
 }
 
@@ -115,7 +116,7 @@ struct NavigationStateTests {
         #expect(tab.loadState == .loading)
         tab.paintReady = true
         engine.emit(settledState(pageID, "https://apple.com", loading: true,
-            contentReady: true, progress: 0.8))
+            contentReady: true, progress: 0.8, paintReady: true))
         #expect(await awaitTab(tab) { $0.contentReady && $0.isLoading })
         #expect(tab.loadState == .ready)
         #expect(tab.isLoading)
@@ -141,7 +142,7 @@ struct NavigationStateTests {
         #expect(tab.loadState == .loading)
         tab.paintReady = true
         engine.emit(settledState(pageID, "https://www.example.com/final", loading: true,
-            contentReady: true, progress: 0.6))
+            contentReady: true, progress: 0.6, paintReady: true))
         #expect(await awaitTab(tab) { $0.loadState == .ready })
         #expect(tab.url == "https://www.example.com/final")
         #expect(tab.pendingURL == nil)

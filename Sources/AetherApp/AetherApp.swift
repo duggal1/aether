@@ -25,7 +25,6 @@ struct AetherApp: App {
     AetherApplicationDelegate.workspace = workspace
     adapter.startAutomation(workspace: workspace)
     AetherLatencyProbe.mark("app.init.end")
-    Task { [adapter] in await adapter.engine.runtime.warmWebProcess() }
     Task { [adapter, workspace] in try? await adapter.warmDefaultProfile(workspace.defaultProfileID) }
   }
 

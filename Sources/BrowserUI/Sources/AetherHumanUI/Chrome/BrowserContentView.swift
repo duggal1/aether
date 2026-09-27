@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 public struct BrowserContentView: View {
     @Environment(\.aetherTheme) private var theme
@@ -19,8 +20,8 @@ public struct BrowserContentView: View {
                     NewTabView(window: window)
                 case .loading, .ready:
                     if let pageID = tab.enginePageID {
-                        PersistentPageSurface(pageID: pageID, engine: window.workspace.engine, registry: surfaces)
-                            .id(tab.id)
+                        PersistentPageSurface(pageID: pageID, engine: window.workspace.engine, registry: surfaces, window: window)
+                            .id("\(tab.id.uuidString)|\(window.floatingPageID ?? "embedded")")
                             .task(id: pageID) {
                                 guard let activating = window.workspace.engine as? any BrowserPageActivating else { return }
                                 do {
@@ -44,6 +45,35 @@ public struct BrowserContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
+        .overlay(alignment: .topLeading) {
+            if let interaction = window.agentInteraction,
+               window.selected?.enginePageID == interaction.pageID.description,
+               interaction.kind != .idle {
+                AgentCursorOverlay(update: interaction)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.12), value: window.agentInteraction == nil)
+            }
+        }
+        .overlay(alignment: .bottomLeading) {
+            if window.workspace.preferences.showStatusLine, let address = window.hoveredLink {
+                HStack {
+                    if window.linkPreviewOnRight { Spacer(minLength: 0) }
+                    Text(address)
+                        .font(.system(size: 12))
+                        .foregroundStyle(theme.ink)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .padding(.horizontal, 11)
+                        .frame(height: 26)
+                        .background(theme.background, in: Capsule())
+                    if !window.linkPreviewOnRight { Spacer(minLength: 0) }
+                }
+                .padding(10)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
+        }
         .overlay(alignment: .topTrailing) {
             if window.showsFind {
                 AetherThemeScope {
@@ -56,6 +86,10 @@ public struct BrowserContentView: View {
             }
         }
         .animation(AetherMotion.popover(reduced), value: window.showsFind)
+        .onChange(of: window.selected?.enginePageID) { oldPageID, newPageID in
+            guard oldPageID != newPageID, let oldPageID else { return }
+            window.takeHumanControl(from: oldPageID)
+        }
     }
 
     private func errorPage(_ message: String, tab: BrowserTab) -> some View {

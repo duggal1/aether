@@ -32,6 +32,7 @@ extension AetherEngineAdapter: BrowserProfileManaging {
 extension AetherEngineAdapter: BrowserPageActivating {
   func activate(pageID: String) async throws {
     let id = try page(pageID)
+    try await engine.runtime.prepareWebPageForPresentation(pageID: id)
     let live = await engine.runtime.isWebContentLive(pageID: id)
     if surfaces[pageID] == nil || !live {
       surfaces.removeValue(forKey: pageID)?.removeFromSuperview()

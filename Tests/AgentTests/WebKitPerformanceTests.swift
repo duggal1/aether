@@ -26,9 +26,11 @@ extension BrowserRuntime {
   }
 
   private func publicationState(_ sequence: UInt64, title: String) -> WebPageState {
-    WebPageState(sequence: sequence, url: URL(string: "https://fixture.test/"), title: title,
+    WebPageState(sequence: sequence, documentGeneration: 1,
+      url: URL(string: "https://fixture.test/"), title: title,
       viewport: Size(width: 1280, height: 800), history: [], historyIndex: -1,
-      loading: false, loaded: true, contentReady: true, progress: 1.0, statusCode: 200, error: nil)
+      loading: false, loaded: true, contentReady: true, painted: true,
+      progress: 1.0, statusCode: 200, error: nil, semanticMutationRevision: 0)
   }
 
   fileprivate func checkWebKitPublication() async throws {

@@ -14,6 +14,7 @@ public struct SidebarTabListView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 ProfileSwitcherView(window: window)
+                AetherExtensionsButton(window: window)
                 Spacer(minLength: 0)
             }
             .padding(.leading, fullscreen ? 12 : trafficLeading).padding(.trailing, 6)
@@ -82,18 +83,22 @@ public struct SidebarTabListView: View {
 
             Spacer(minLength: 0)
 
+            // One deliberately composed action row: actions on the left, the
+            // space indicator centred in the space that is left, search on the
+            // right. The dots are laid out in the row, not positioned by
+            // coordinates, so they share the icons' baseline.
             HStack(spacing: 2) {
                 ChromeButton(.history, help: "History", selected: window.showsHistory) {
                     window.closeMenus()
-                    window.showsHistory.toggle()
+                    window.toggleHistoryPanel()
                 }
                 ChromeButton(.bookmark, help: "Bookmarks", selected: window.showsBookmarks) {
                     window.closeMenus()
-                    window.showsBookmarks.toggle()
+                    window.toggleBookmarksPanel()
                 }
-                Spacer(minLength: 8)
-                ProfileIndicatorStrip(window: window)
-                Spacer(minLength: 8)
+                Spacer(minLength: 6)
+                profileDots
+                Spacer(minLength: 6)
                 ChromeButton(.search, help: "Search tabs", selected: window.showsTabSearch) {
                     window.closeMenus()
                     window.showsTabSearch.toggle()
@@ -106,7 +111,48 @@ public struct SidebarTabListView: View {
         .background { AetherChromeBackground(.sidebar) }
         .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
-        .sheet(isPresented: $addingShortcut) { ShortcutEditor(workspace: window.workspace, shortcut: nil) }
+        .sheet(isPresented: $addingShortcut) { AetherDialogScope { ShortcutEditor(workspace: window.workspace, shortcut: nil) } }
+    }
+
+    /// One dot per space, living in the sidebar's action row. The active space
+    /// is the solid dot; the rest are faded. They are a state readout first and
+    /// a control second, so they stay tiny, monochrome and label-free.
+    ///
+    /// The tone inverts with the sidebar: the dot is white on a dark sidebar and
+    /// near-black on the light one, because a white dot on the light veil — or a
+    /// black one on the charcoal — is simply not there. The faded step keeps the
+    /// off-white/neutral ratio the design calls for.
+    @ViewBuilder private var profileDots: some View {
+        let profiles = window.workspace.profiles
+        if profiles.count > 1 {
+            HStack(spacing: 1) {
+                ForEach(profiles) { profile in
+                    let active = profile.id == window.activeProfileID
+                    Button {
+                        window.switchProfile(profile.id)
+                    } label: {
+                        Circle()
+                            .fill(dotInk(active: active))
+                            .frame(width: 6, height: 6)
+                            .frame(width: 14, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .focusEffectDisabled()
+                    .aetherPointingCursor()
+                    .help(profile.name)
+                    .accessibilityLabel("Space: \(profile.name)")
+                    .accessibilityAddTraits(active ? .isSelected : [])
+                    .animation(AetherMotion.selection(reduced), value: active)
+                }
+            }
+        }
+    }
+
+    private func dotInk(active: Bool) -> Color {
+        let dark = chrome?.isDark ?? theme.dark
+        if dark { return active ? Color.white : Color(white: 0.64) }
+        return active ? Color(white: 0.10) : Color(white: 0.60)
     }
 
     private func shortcutTile(_ item: BrowserShortcut) -> some View {
@@ -144,28 +190,6 @@ public struct SidebarTabListView: View {
             .padding(.horizontal, 9)
             .padding(.top, 8)
             .padding(.bottom, 4)
-    }
-}
-
-// One bright active dot and muted inactive dots, centered in the sidebar footer.
-struct ProfileIndicatorStrip: View {
-    @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
-    let window: BrowserWindowModel
-
-    var body: some View {
-        let ids = window.workspace.profiles.prefix(5).map(\.id)
-        let active = ids.firstIndex(of: window.activeProfileID) ?? 0
-        HStack(spacing: 3) {
-            ForEach(Array(ids.enumerated()), id: \.offset) { index, _ in
-                Circle()
-                    .fill(index == active
-                          ? (chrome?.text ?? theme.ink)
-                          : (chrome?.secondary ?? theme.muted).opacity(0.45))
-                    .frame(width: 5, height: 5)
-            }
-        }
-        .accessibilityHidden(true)
     }
 }
 

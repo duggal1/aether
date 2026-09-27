@@ -1,0 +1,797 @@
+{
+  "summary": {
+    "aether/cold": {
+      "completed": "2/2",
+      "dispatchMs": {
+        "count": 2,
+        "medianMs": 902.3,
+        "p95Ms": 1162.9,
+        "worstMs": 1162.9
+      },
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 1703.6,
+        "p95Ms": 2058.9,
+        "worstMs": 2058.9
+      },
+      "toLoadMs": {
+        "count": 2,
+        "medianMs": 3094.4,
+        "p95Ms": 3689.2,
+        "worstMs": 3689.2
+      },
+      "loadCompleted": 2,
+      "fcpMs": {
+        "count": 2,
+        "medianMs": 456.0,
+        "p95Ms": 593,
+        "worstMs": 593
+      },
+      "actionToFcpMs": {
+        "count": 2,
+        "medianMs": 1346.4,
+        "p95Ms": 1467.2,
+        "worstMs": 1467.2
+      }
+    },
+    "aether/warm": {
+      "completed": "6/6",
+      "dispatchMs": {
+        "count": 6,
+        "medianMs": 245.2,
+        "p95Ms": 300.0,
+        "worstMs": 300.0
+      },
+      "toReadyMs": {
+        "count": 6,
+        "medianMs": 737.8,
+        "p95Ms": 2245.9,
+        "worstMs": 2245.9
+      },
+      "toLoadMs": {
+        "count": 6,
+        "medianMs": 1274.1,
+        "p95Ms": 3514.1,
+        "worstMs": 3514.1
+      },
+      "loadCompleted": 6,
+      "fcpMs": {
+        "count": 6,
+        "medianMs": 604.0,
+        "p95Ms": 2217,
+        "worstMs": 2217
+      },
+      "actionToFcpMs": {
+        "count": 6,
+        "medianMs": 618.8,
+        "p95Ms": 2228.1,
+        "worstMs": 2228.1
+      }
+    },
+    "chrome/cold": {
+      "completed": "2/2",
+      "dispatchMs": {
+        "count": 2,
+        "medianMs": 239.8,
+        "p95Ms": 294.8,
+        "worstMs": 294.8
+      },
+      "toReadyMs": {
+        "count": 2,
+        "medianMs": 767.5,
+        "p95Ms": 864.8,
+        "worstMs": 864.8
+      },
+      "toLoadMs": {
+        "count": 2,
+        "medianMs": 1468.6,
+        "p95Ms": 1573.2,
+        "worstMs": 1573.2
+      },
+      "loadCompleted": 2,
+      "fcpMs": {
+        "count": 2,
+        "medianMs": 676.0,
+        "p95Ms": 764,
+        "worstMs": 764
+      },
+      "actionToFcpMs": {
+        "count": 2,
+        "medianMs": 685.8,
+        "p95Ms": 781.8,
+        "worstMs": 781.8
+      }
+    },
+    "chrome/warm": {
+      "completed": "6/6",
+      "dispatchMs": {
+        "count": 6,
+        "medianMs": 216.8,
+        "p95Ms": 292.4,
+        "worstMs": 292.4
+      },
+      "toReadyMs": {
+        "count": 6,
+        "medianMs": 1223.0,
+        "p95Ms": 1545.9,
+        "worstMs": 1545.9
+      },
+      "toLoadMs": {
+        "count": 6,
+        "medianMs": 1065.7,
+        "p95Ms": 1424.2,
+        "worstMs": 1424.2
+      },
+      "loadCompleted": 6,
+      "fcpMs": {
+        "count": 6,
+        "medianMs": 1066.0,
+        "p95Ms": 1384,
+        "worstMs": 1384
+      },
+      "actionToFcpMs": {
+        "count": 6,
+        "medianMs": 1080.1,
+        "p95Ms": 1393.1,
+        "worstMs": 1393.1
+      }
+    },
+    "dia/cold": {
+      "completed": "0/2",
+      "dispatchMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "toLoadMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "loadCompleted": 0,
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "actionToFcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "dia/warm": {
+      "completed": "0/6",
+      "dispatchMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "toReadyMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "toLoadMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "loadCompleted": 0,
+      "fcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      },
+      "actionToFcpMs": {
+        "count": 0,
+        "medianMs": null,
+        "p95Ms": null,
+        "worstMs": null
+      }
+    },
+    "offscreen_wkwebview_safari_proxy": {
+      "cold": {
+        "fcpMs": {
+          "count": 6,
+          "medianMs": 666.0,
+          "p95Ms": 1746,
+          "worstMs": 1746
+        },
+        "actionToFcpMs": {
+          "count": 6,
+          "medianMs": 1202.4,
+          "p95Ms": 2272.2,
+          "worstMs": 2272.2
+        },
+        "loadObservedMs": {
+          "count": 6,
+          "medianMs": 2509.8,
+          "p95Ms": 4783.6,
+          "worstMs": 4783.6
+        },
+        "completed": "6/6"
+      },
+      "warm": {
+        "fcpMs": {
+          "count": 5,
+          "medianMs": 740,
+          "p95Ms": 1134,
+          "worstMs": 1134
+        },
+        "actionToFcpMs": {
+          "count": 5,
+          "medianMs": 852.0,
+          "p95Ms": 1147.0,
+          "worstMs": 1147.0
+        },
+        "loadObservedMs": {
+          "count": 6,
+          "medianMs": 1677.0,
+          "p95Ms": 3438.5,
+          "worstMs": 3438.5
+        },
+        "completed": "6/6"
+      }
+    }
+  },
+  "steps": [
+    {
+      "browser": "aether",
+      "mode": "cold",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 1162.9,
+      "toReadyMs": 2058.9,
+      "toLoadMs": 3689.2,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 1148.2,
+      "fcpMs": 319,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 13,
+      "redirectCount": 0,
+      "transferSize": 96527,
+      "domContentLoadedMs": 904,
+      "loadEventEndMs": 2541,
+      "screenshot": "aether_cold_youtube_home.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "cold",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 641.7,
+      "toReadyMs": 1348.3,
+      "toLoadMs": 2499.6,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 632.6,
+      "fcpMs": 593,
+      "lcpMs": null,
+      "requestStartMs": 0,
+      "responseStartMs": 0,
+      "responseEndMs": 760,
+      "redirectCount": 0,
+      "transferSize": 124027,
+      "domContentLoadedMs": 1160,
+      "loadEventEndMs": 1867,
+      "screenshot": "aether_cold_youtube_route.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 261.7,
+      "toReadyMs": 524.9,
+      "toLoadMs": 1768.8,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 11.8,
+      "fcpMs": 435,
+      "lcpMs": null,
+      "requestStartMs": 1,
+      "responseStartMs": 238,
+      "responseEndMs": 438,
+      "redirectCount": 0,
+      "transferSize": 97257,
+      "domContentLoadedMs": 951,
+      "loadEventEndMs": 1757,
+      "screenshot": "aether_warm_youtube_home.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 300.0,
+      "toReadyMs": 1381.9,
+      "toLoadMs": 1426.4,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 120.4,
+      "fcpMs": 1106,
+      "lcpMs": null,
+      "requestStartMs": 2,
+      "responseStartMs": 150,
+      "responseEndMs": 1167,
+      "redirectCount": 0,
+      "transferSize": 121121,
+      "domContentLoadedMs": 1350,
+      "loadEventEndMs": 1306,
+      "screenshot": "aether_warm_youtube_route.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 247.4,
+      "toReadyMs": 491.8,
+      "toLoadMs": 1092.4,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 13.4,
+      "fcpMs": 412,
+      "lcpMs": null,
+      "requestStartMs": 1,
+      "responseStartMs": 194,
+      "responseEndMs": 423,
+      "redirectCount": 0,
+      "transferSize": 97865,
+      "domContentLoadedMs": 708,
+      "loadEventEndMs": 1079,
+      "screenshot": "aether_warm_youtube_home.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 181.0,
+      "toReadyMs": 2245.9,
+      "toLoadMs": 3514.1,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 11.1,
+      "fcpMs": 2217,
+      "lcpMs": null,
+      "requestStartMs": 1,
+      "responseStartMs": 142,
+      "responseEndMs": 2410,
+      "redirectCount": 0,
+      "transferSize": 123484,
+      "domContentLoadedMs": 2566,
+      "loadEventEndMs": 3503,
+      "screenshot": "aether_warm_youtube_route.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 243.1,
+      "toReadyMs": 444.3,
+      "toLoadMs": 544.4,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 11.4,
+      "fcpMs": 277,
+      "lcpMs": null,
+      "requestStartMs": 1,
+      "responseStartMs": 195,
+      "responseEndMs": 321,
+      "redirectCount": 0,
+      "transferSize": 97040,
+      "domContentLoadedMs": 427,
+      "loadEventEndMs": 533,
+      "screenshot": "aether_warm_youtube_home.png"
+    },
+    {
+      "browser": "aether",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "daemon-fcp",
+      "dispatchMs": 227.6,
+      "toReadyMs": 950.6,
+      "toLoadMs": 1121.8,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 17.8,
+      "fcpMs": 773,
+      "lcpMs": null,
+      "requestStartMs": 1,
+      "responseStartMs": 183,
+      "responseEndMs": 838,
+      "redirectCount": 0,
+      "transferSize": 125839,
+      "domContentLoadedMs": 934,
+      "loadEventEndMs": 1104,
+      "screenshot": "aether_warm_youtube_route.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "cold",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 294.8,
+      "toReadyMs": 670.2,
+      "toLoadMs": 1573.2,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 1.7,
+      "fcpMs": 588,
+      "lcpMs": null,
+      "requestStartMs": 66.19999998807907,
+      "responseStartMs": 281.5999999642372,
+      "responseEndMs": 438.0999999642372,
+      "redirectCount": 0,
+      "transferSize": 97086,
+      "domContentLoadedMs": 1185.199999988079,
+      "loadEventEndMs": 1571.5,
+      "screenshot": "chrome_cold_youtube_home.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "cold",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 184.8,
+      "toReadyMs": 864.8,
+      "toLoadMs": 1364.0,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 17.8,
+      "fcpMs": 764,
+      "lcpMs": null,
+      "requestStartMs": 5.900000035762787,
+      "responseStartMs": 165.4000000357628,
+      "responseEndMs": 782.1000000238419,
+      "redirectCount": 0,
+      "transferSize": 150875,
+      "domContentLoadedMs": 1322.4000000357628,
+      "loadEventEndMs": 1346.2000000476837,
+      "screenshot": "chrome_cold_youtube_route.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 231.3,
+      "toReadyMs": 720.8,
+      "toLoadMs": 535.2,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 15.2,
+      "fcpMs": 596,
+      "lcpMs": null,
+      "requestStartMs": 22.19999998807907,
+      "responseStartMs": 214.39999997615814,
+      "responseEndMs": 401.19999998807907,
+      "redirectCount": 0,
+      "transferSize": 96703,
+      "domContentLoadedMs": 498.0999999642372,
+      "loadEventEndMs": 520,
+      "screenshot": "chrome_warm_youtube_home.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 195.7,
+      "toReadyMs": 1470.2,
+      "toLoadMs": 1347.8,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 11.2,
+      "fcpMs": 1300,
+      "lcpMs": null,
+      "requestStartMs": 4,
+      "responseStartMs": 182.9000000357628,
+      "responseEndMs": 1279.5,
+      "redirectCount": 0,
+      "transferSize": 151385,
+      "domContentLoadedMs": 1310.300000011921,
+      "loadEventEndMs": 1336.6000000238419,
+      "screenshot": "chrome_warm_youtube_route.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 292.4,
+      "toReadyMs": 1010.1,
+      "toLoadMs": 832.0,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 16.7,
+      "fcpMs": 880,
+      "lcpMs": null,
+      "requestStartMs": 11.399999976158142,
+      "responseStartMs": 273.5999999642372,
+      "responseEndMs": 441.7999999523163,
+      "redirectCount": 0,
+      "transferSize": 96732,
+      "domContentLoadedMs": 793.3999999761581,
+      "loadEventEndMs": 815.2999999523163,
+      "screenshot": "chrome_warm_youtube_home.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 210.6,
+      "toReadyMs": 1545.9,
+      "toLoadMs": 1424.2,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 9.1,
+      "fcpMs": 1384,
+      "lcpMs": null,
+      "requestStartMs": 2.699999988079071,
+      "responseStartMs": 199.9000000357628,
+      "responseEndMs": 1319.699999988079,
+      "redirectCount": 0,
+      "transferSize": 123115,
+      "domContentLoadedMs": 1393.4000000357628,
+      "loadEventEndMs": 1415.1000000238419,
+      "screenshot": "chrome_warm_youtube_route.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 223.0,
+      "toReadyMs": 714.6,
+      "toLoadMs": 492.1,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/",
+      "title": "YouTube",
+      "navigationStartDelayMs": 13.5,
+      "fcpMs": 548,
+      "lcpMs": null,
+      "requestStartMs": 13.699999988079071,
+      "responseStartMs": 205.30000001192093,
+      "responseEndMs": 313.30000001192093,
+      "redirectCount": 0,
+      "transferSize": 96660,
+      "domContentLoadedMs": 447.39999997615814,
+      "loadEventEndMs": 478.5999999642372,
+      "screenshot": "chrome_warm_youtube_home.png"
+    },
+    {
+      "browser": "chrome",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "ok",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 175.1,
+      "toReadyMs": 1435.9,
+      "toLoadMs": 1299.3,
+      "loadComplete": true,
+      "finalURL": "https://www.youtube.com/results?search_query=aether",
+      "title": "aether - YouTube",
+      "navigationStartDelayMs": 11.4,
+      "fcpMs": 1252,
+      "lcpMs": null,
+      "requestStartMs": 6.5,
+      "responseStartMs": 162.29999995231628,
+      "responseEndMs": 1180,
+      "redirectCount": 0,
+      "transferSize": 151744,
+      "domContentLoadedMs": 1265.199999988079,
+      "loadEventEndMs": 1287.8999999761581,
+      "screenshot": "chrome_warm_youtube_route.png"
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "dispatchMs": 271.9,
+      "error": "[Errno 54] Connection reset by peer",
+      "elapsedMs": 31428.6
+    },
+    {
+      "browser": "dia",
+      "mode": "cold",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.1
+    },
+    {
+      "browser": "dia",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.0
+    },
+    {
+      "browser": "dia",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.0
+    },
+    {
+      "browser": "dia",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.0
+    },
+    {
+      "browser": "dia",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.0
+    },
+    {
+      "browser": "dia",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "home",
+      "requestedURL": "https://www.youtube.com/",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.0
+    },
+    {
+      "browser": "dia",
+      "mode": "warm",
+      "site": "youtube",
+      "kind": "route",
+      "requestedURL": "https://www.youtube.com/results?search_query=aether",
+      "status": "failed",
+      "method": "headless-cdp-fcp",
+      "error": "[Errno 32] Broken pipe",
+      "elapsedMs": 0.0
+    }
+  ],
+  "metadata": {
+    "benchmark": "YouTube home and search results; headless/offscreen only; background priority nice +15",
+    "aetherReleaseBinarySHA256": "4b39abadafe53809770dbbea47befd8ade6dd133f1b874406c608ce112c5ce7a",
+    "aetherAppBinarySHA256": "58ac0c6485dcdc484a8e52fca78f92dab87b3b2b2d31adbdd56ec6181c2cdf7a",
+    "samples": {
+      "aether": "2 initial page opens + 6 repeated navigations",
+      "chrome": "2 initial navigations + 6 repeated navigations",
+      "dia": "headless attempt; CDP connection reset, no valid samples",
+      "offscreenWKWebView": "6 cold + 6 warm navigations, isolated nonpersistent stores"
+    },
+    "Safari": "Safari.app was not launched. Detached WKWebView is a WebKit-engine proxy only.",
+    "limitations": [
+      "YouTube and network responses varied between samples.",
+      "Aether and Chrome use different control paths; document FCP is the comparable timing.",
+      "Aether cold page-open includes context and WebView creation; Chrome starts from a prepared headless blank tab.",
+      "Dia did not provide a stable headless CDP session, so its result is unavailable."
+    ],
+    "versions": {
+      "Google Chrome": {
+        "version": "153.0.8010.54",
+        "build": "8010.54"
+      },
+      "Dia": {
+        "version": "1.49.1",
+        "build": "87398"
+      },
+      "Safari": {
+        "version": "27.0",
+        "build": "22625.1.29.11.26"
+      }
+    },
+    "macOS": "27.0",
+    "build": {
+      "browserdSHA256": "4b39abadafe53809770dbbea47befd8ade6dd133f1b874406c608ce112c5ce7a",
+      "browserctlSHA256": "652f013b23cdb4d5fa43982fb95c005e172e2a7326ddd047bf5dc92a132b506d",
+      "packagedAetherAppSHA256": "58ac0c6485dcdc484a8e52fca78f92dab87b3b2b2d31adbdd56ec6181c2cdf7a"
+    }
+  }
+}

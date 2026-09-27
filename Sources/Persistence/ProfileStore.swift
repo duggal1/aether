@@ -135,7 +135,7 @@ public enum ProfileError: Error, Sendable, CustomStringConvertible {
 }
 
 public final class ProfileStore: Sendable {
-  public static let schemaVersion = 3
+  public static let schemaVersion = 4
 
   public let directory: URL
   public let blobs: DiskCache
@@ -185,19 +185,21 @@ public final class ProfileStore: Sendable {
   }
 
   public func saveCookies(_ rows: [CookieRow]) throws {
-    try database.withTransaction { connection in
-      try connection.exec("DELETE FROM cookies;")
-      for row in rows {
-        try connection.execute(
-          "INSERT INTO cookies(name,value,domain,path,expires,secure,http_only,same_site,host_only) VALUES(?,?,?,?,?,?,?,?,?);",
-          [
-            .text(row.name), .text(row.value), .text(row.domain), .text(row.path),
-            row.expires.map { .real($0.timeIntervalSince1970) } ?? .null,
-            .integer(row.secure ? 1 : 0), .integer(row.httpOnly ? 1 : 0),
-            row.sameSite.map { .text($0) } ?? .null,
-            .integer(row.hostOnly ? 1 : 0),
-          ])
-      }
+    try database.withTransaction { connection in try saveCookies(rows, on: connection) }
+  }
+
+  private func saveCookies(_ rows: [CookieRow], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM cookies;")
+    for row in rows {
+      try connection.execute(
+        "INSERT INTO cookies(name,value,domain,path,expires,secure,http_only,same_site,host_only) VALUES(?,?,?,?,?,?,?,?,?);",
+        [
+          .text(row.name), .text(row.value), .text(row.domain), .text(row.path),
+          row.expires.map { .real($0.timeIntervalSince1970) } ?? .null,
+          .integer(row.secure ? 1 : 0), .integer(row.httpOnly ? 1 : 0),
+          row.sameSite.map { .text($0) } ?? .null,
+          .integer(row.hostOnly ? 1 : 0),
+        ])
     }
   }
 
@@ -214,13 +216,15 @@ public final class ProfileStore: Sendable {
   }
 
   public func saveLocalStorage(_ rows: [LocalStorageRow]) throws {
-    try database.withTransaction { connection in
-      try connection.exec("DELETE FROM local_storage;")
-      for row in rows {
-        try connection.execute(
-          "INSERT INTO local_storage(origin,key,value) VALUES(?,?,?);",
-          [.text(row.origin), .text(row.key), .text(row.value)])
-      }
+    try database.withTransaction { connection in try saveLocalStorage(rows, on: connection) }
+  }
+
+  private func saveLocalStorage(_ rows: [LocalStorageRow], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM local_storage;")
+    for row in rows {
+      try connection.execute(
+        "INSERT INTO local_storage(origin,key,value) VALUES(?,?,?);",
+        [.text(row.origin), .text(row.key), .text(row.value)])
     }
   }
 
@@ -231,16 +235,18 @@ public final class ProfileStore: Sendable {
   }
 
   public func saveHistory(_ rows: [HistoryRow]) throws {
-    try database.withTransaction { connection in
-      try connection.exec("DELETE FROM history;")
-      for row in rows {
-        try connection.execute(
-          "INSERT INTO history(context_name,slot,idx,url) VALUES(?,?,?,?);",
-          [
-            .text(row.context), .integer(Int64(row.slot)), .integer(Int64(row.index)),
-            .text(row.url),
-          ])
-      }
+    try database.withTransaction { connection in try saveHistory(rows, on: connection) }
+  }
+
+  private func saveHistory(_ rows: [HistoryRow], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM history;")
+    for row in rows {
+      try connection.execute(
+        "INSERT INTO history(context_name,slot,idx,url) VALUES(?,?,?,?);",
+        [
+          .text(row.context), .integer(Int64(row.slot)), .integer(Int64(row.index)),
+          .text(row.url),
+        ])
     }
   }
 
@@ -255,17 +261,19 @@ public final class ProfileStore: Sendable {
   }
 
   public func saveSessionPages(_ rows: [SessionPageRow]) throws {
-    try database.withTransaction { connection in
-      try connection.exec("DELETE FROM session_pages;")
-      for row in rows {
-        try connection.execute(
-          "INSERT INTO session_pages(context_name,slot,history_index,viewport_w,viewport_h) VALUES(?,?,?,?,?);",
-          [
-            .text(row.context), .integer(Int64(row.slot)),
-            .integer(Int64(row.historyIndex)), .real(row.viewportWidth),
-            .real(row.viewportHeight),
-          ])
-      }
+    try database.withTransaction { connection in try saveSessionPages(rows, on: connection) }
+  }
+
+  private func saveSessionPages(_ rows: [SessionPageRow], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM session_pages;")
+    for row in rows {
+      try connection.execute(
+        "INSERT INTO session_pages(context_name,slot,history_index,viewport_w,viewport_h) VALUES(?,?,?,?,?);",
+        [
+          .text(row.context), .integer(Int64(row.slot)),
+          .integer(Int64(row.historyIndex)), .real(row.viewportWidth),
+          .real(row.viewportHeight),
+        ])
     }
   }
 
@@ -280,13 +288,15 @@ public final class ProfileStore: Sendable {
   }
 
   public func savePermissions(_ rows: [PermissionRow]) throws {
-    try database.withTransaction { connection in
-      try connection.exec("DELETE FROM permissions;")
-      for row in rows {
-        try connection.execute(
-          "INSERT INTO permissions(origin,permission,decision) VALUES(?,?,?);",
-          [.text(row.origin), .text(row.permission), .text(row.decision)])
-      }
+    try database.withTransaction { connection in try savePermissions(rows, on: connection) }
+  }
+
+  private func savePermissions(_ rows: [PermissionRow], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM permissions;")
+    for row in rows {
+      try connection.execute(
+        "INSERT INTO permissions(origin,permission,decision) VALUES(?,?,?);",
+        [.text(row.origin), .text(row.permission), .text(row.decision)])
     }
   }
 
@@ -298,16 +308,18 @@ public final class ProfileStore: Sendable {
   }
 
   public func saveBookmarks(_ rows: [BookmarkRow]) throws {
-    try database.withTransaction { connection in
-      try connection.exec("DELETE FROM bookmarks;")
-      for row in rows {
-        try connection.execute(
-          "INSERT INTO bookmarks(url,title,created_at) VALUES(?,?,?);",
-          [
-            .text(row.url), .text(row.title),
-            .real(row.createdAt.timeIntervalSince1970),
-          ])
-      }
+    try database.withTransaction { connection in try saveBookmarks(rows, on: connection) }
+  }
+
+  private func saveBookmarks(_ rows: [BookmarkRow], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM bookmarks;")
+    for row in rows {
+      try connection.execute(
+        "INSERT INTO bookmarks(url,title,created_at) VALUES(?,?,?);",
+        [
+          .text(row.url), .text(row.title),
+          .real(row.createdAt.timeIntervalSince1970),
+        ])
     }
   }
 
@@ -319,18 +331,95 @@ public final class ProfileStore: Sendable {
       }
   }
 
+  // MARK: - Credential metadata (lookup only; secrets live in the Keychain)
+
+  /// Upserts one credential record. No secret material is written here.
+  public func saveCredential(_ record: CredentialRecord) throws {
+    try database.execute(
+      "INSERT INTO credentials(id,profile_id,origin,username,label,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET origin=excluded.origin, username=excluded.username, label=excluded.label, updated_at=excluded.updated_at;",
+      [
+        .text(record.id), .text(record.profileID), .text(record.origin),
+        .text(record.username), .text(record.label),
+        .real(record.createdAt.timeIntervalSince1970),
+        .real(record.updatedAt.timeIntervalSince1970),
+      ])
+  }
+
+  public func loadCredentials(origin: String? = nil) throws -> [CredentialRecord] {
+    let rows: [[SQLiteValue]]
+    if let origin {
+      rows = try database.query(
+        "SELECT id,profile_id,origin,username,label,created_at,updated_at FROM credentials WHERE origin=? ORDER BY username;",
+        [.text(origin)])
+    } else {
+      rows = try database.query(
+        "SELECT id,profile_id,origin,username,label,created_at,updated_at FROM credentials ORDER BY origin,username;")
+    }
+    return rows.compactMap { row in
+      guard row.count == 7,
+        let createdAt = row[5].dateValueOrNil, let updatedAt = row[6].dateValueOrNil
+      else { return nil }
+      return CredentialRecord(
+        id: row[0].textValue, profileID: row[1].textValue, origin: row[2].textValue,
+        username: row[3].textValue, label: row[4].textValue,
+        createdAt: createdAt, updatedAt: updatedAt)
+    }
+  }
+
+  public func loadCredential(id: String) throws -> CredentialRecord? {
+    try database.query(
+      "SELECT id,profile_id,origin,username,label,created_at,updated_at FROM credentials WHERE id=?;",
+      [.text(id)]
+    ).compactMap { row -> CredentialRecord? in
+      guard row.count == 7,
+        let createdAt = row[5].dateValueOrNil, let updatedAt = row[6].dateValueOrNil
+      else { return nil }
+      return CredentialRecord(
+        id: row[0].textValue, profileID: row[1].textValue, origin: row[2].textValue,
+        username: row[3].textValue, label: row[4].textValue,
+        createdAt: createdAt, updatedAt: updatedAt)
+    }.first
+  }
+
+  @discardableResult
+  public func deleteCredential(id: String) throws -> Bool {
+    try database.execute("DELETE FROM credentials WHERE id=?;", [.text(id)]) > 0
+  }
+
   public func saveCacheEntries(_ entries: [CacheEntry]) throws {
+    try database.withTransaction { connection in try saveCacheEntries(entries, on: connection) }
+  }
+
+  private func saveCacheEntries(_ entries: [CacheEntry], on connection: SQLiteConnection) throws {
+    try connection.exec("DELETE FROM cache_entries;")
+    for entry in entries {
+      try connection.execute(
+        "INSERT INTO cache_entries(url,status,headers,etag,stored_at,max_age,body_hash,body_size) VALUES(?,?,?,?,?,?,?,?);",
+        [
+          .text(entry.url), .integer(Int64(entry.status)), .text(entry.headersJSON),
+          entry.etag.map { .text($0) } ?? .null, .real(entry.storedAt.timeIntervalSince1970),
+          .real(entry.maxAge), .text(entry.bodyHash), .integer(Int64(entry.bodySize)),
+        ])
+    }
+  }
+
+  /// Writes every checkpoint table in a single SQLite transaction so one
+  /// checkpoint costs one commit instead of one per table. A nil
+  /// cacheEntries skips the cache-table rewrite when there is nothing to
+  /// snapshot; stale rows self-heal at attach time through blob pruning.
+  public func saveCheckpointTables(
+    cookies: [CookieRow], localStorage: [LocalStorageRow], history: [HistoryRow],
+    sessionPages: [SessionPageRow], permissions: [PermissionRow], bookmarks: [BookmarkRow],
+    cacheEntries: [CacheEntry]?
+  ) throws {
     try database.withTransaction { connection in
-      try connection.exec("DELETE FROM cache_entries;")
-      for entry in entries {
-        try connection.execute(
-          "INSERT INTO cache_entries(url,status,headers,etag,stored_at,max_age,body_hash,body_size) VALUES(?,?,?,?,?,?,?,?);",
-          [
-            .text(entry.url), .integer(Int64(entry.status)), .text(entry.headersJSON),
-            entry.etag.map { .text($0) } ?? .null, .real(entry.storedAt.timeIntervalSince1970),
-            .real(entry.maxAge), .text(entry.bodyHash), .integer(Int64(entry.bodySize)),
-          ])
-      }
+      try saveCookies(cookies, on: connection)
+      if let cacheEntries { try saveCacheEntries(cacheEntries, on: connection) }
+      try saveLocalStorage(localStorage, on: connection)
+      try saveHistory(history, on: connection)
+      try saveSessionPages(sessionPages, on: connection)
+      try savePermissions(permissions, on: connection)
+      try saveBookmarks(bookmarks, on: connection)
     }
   }
 
@@ -348,6 +437,16 @@ public final class ProfileStore: Sendable {
 
   public func deleteCacheEntry(url: String) throws {
     try database.execute("DELETE FROM cache_entries WHERE url=?;", [.text(url)])
+  }
+
+  /// Drops Aether's duplicate HTTP response cache. WKWebView serves all
+  /// production navigations from its own website data store with standard
+  /// revalidation, so these rows and blobs only cost I/O and can never
+  /// serve a page. Safe to purge: every entry is a reconstructible
+  /// network response, never user data.
+  public func dropResponseCache() throws {
+    try database.execute("DELETE FROM cache_entries;")
+    _ = try blobs.evict(maxBytes: 0, keeping: [])
   }
 
   public func setKV(scope: String, key: String, value: Data) throws {
@@ -416,6 +515,14 @@ public final class ProfileStore: Sendable {
         "CREATE TABLE IF NOT EXISTS bookmarks(url TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL);"
       )
       try database.exec("PRAGMA user_version=3;")
+    }
+    if version < 4 {
+      try database.exec(
+        "CREATE TABLE IF NOT EXISTS credentials(id TEXT PRIMARY KEY, profile_id TEXT NOT NULL, origin TEXT NOT NULL, username TEXT NOT NULL, label TEXT NOT NULL DEFAULT '', created_at REAL NOT NULL, updated_at REAL NOT NULL);"
+      )
+      try database.exec(
+        "CREATE INDEX IF NOT EXISTS idx_credentials_origin ON credentials(origin);")
+      try database.exec("PRAGMA user_version=4;")
     }
   }
 }

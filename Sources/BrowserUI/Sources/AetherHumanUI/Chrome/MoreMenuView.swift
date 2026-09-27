@@ -2,8 +2,7 @@ import SwiftUI
 
 struct AetherMenuRow<Content: View>: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
-    @Environment(\.accessibilityReduceMotion) private var reduced
+    @Environment(\.aetherSurfaceStyle) private var surface
     @State private var hovering = false
     let radius: CGFloat
     let content: Content
@@ -13,12 +12,12 @@ struct AetherMenuRow<Content: View>: View {
     }
     var body: some View {
         content
-            .background { surface }
+            .background {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill((surface ?? AetherSurfaceResolver.themed(dark: theme.dark)).hoverFill)
+                    .opacity(hovering ? 1 : 0)
+            }
             .onHover { hovering = $0 }
-    }
-
-    @ViewBuilder private var surface: some View {
-        AetherInteractionSurface(active: hovering, radius: radius)
     }
 }
 
@@ -35,25 +34,30 @@ struct AetherMenuPressStyle: ButtonStyle {
 
 public struct MoreMenuView: View {
     @Environment(\.aetherTheme) private var theme
-    @Environment(\.aetherChromeAppearance) private var chrome
+    @Environment(\.aetherSurfaceStyle) private var surface
     @Environment(\.accessibilityReduceMotion) private var reduced
     let window: BrowserWindowModel
     public init(window: BrowserWindowModel) { self.window = window }
 
-    private var appearance: AetherChromeAppearance { chrome ?? (theme.dark ? .dark : .light) }
+    private var skin: AetherSurfaceStyle {
+        surface ?? AetherSurfaceResolver.themed(dark: theme.dark)
+    }
 
     public var body: some View {
-        GlassEffectContainer(spacing: 4) {
-            VStack(alignment: .leading, spacing: 1) {
-                row("Search Tabs", .search) { window.showsTabSearch = true }
-            row("History", .history) { window.showsHistory = true }
-            row("Bookmarks", .bookmark) { window.showsBookmarks = true }
+        VStack(alignment: .leading, spacing: 1) {
+            row("Search Tabs", .search) { window.showsTabSearch = true }
+            row("History", .history) { window.showHistoryPanel() }
+            row("Bookmarks", .bookmark) { window.showBookmarksPanel() }
             row("Downloads", .downloadFolder) { window.showsDownloads = true }
-            Divider().padding(.vertical, 5)
+            Divider().overlay(skin.separator).padding(.vertical, 5)
             row("Find in Page", .search) { window.showsFind = true }
             row("Reader", .reader) { window.showsReader = true }
-            row("Inspect Page", .inspect) { window.showsInspector = true }
-            Divider().padding(.vertical, 5)
+            row("Site Information", .globe) { window.showsSiteCard = true }
+            row("Hidden Elements…", .inspect) { window.showsVeils = true }
+            // Frontend-only trim (correction pass §1): Inspect Page, Float Video
+            // and Mute Tab remain fully implemented in BrowserCommands /
+            // BrowserWindowModel — they are only not rendered in this menu.
+            Divider().overlay(skin.separator).padding(.vertical, 5)
             row(window.arrangement == .top ? "Use Sidebar Tabs" : "Use Top Tabs", .sidebar) {
                 window.toggleArrangement()
             }
@@ -62,13 +66,12 @@ public struct MoreMenuView: View {
             }
             .buttonStyle(AetherMenuPressStyle())
             .focusEffectDisabled()
-            }
         }
         .padding(6)
         .frame(width: 232)
         .background { AetherPopoverBackground() }
-        .preferredColorScheme(appearance.isDark ? .dark : .light)
-        .environment(\.aetherChromeAppearance, appearance)
+        .preferredColorScheme(skin.isDark ? .dark : .light)
+        .environment(\.aetherChromeAppearance, skin.isDark ? .dark : .light)
     }
 
     private func row(_ title: String, _ icon: BrowserIcon, action: @escaping () -> Void) -> some View {
@@ -82,8 +85,8 @@ public struct MoreMenuView: View {
     private func menuLabel(_ icon: BrowserIcon, _ title: String) -> some View {
         AetherMenuRow {
             HStack(spacing: 10) {
-                BrowserIconView(icon: icon, tint: appearance.icon).iconSize(14)
-                Text(title).font(AetherType.body(13)).foregroundStyle(appearance.text)
+                BrowserIconView(icon: icon, tint: skin.primaryIcon).iconSize(14)
+                Text(title).font(AetherType.body(13)).foregroundStyle(skin.primaryText)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 9)
