@@ -895,6 +895,8 @@ public final class AgentCommandDispatcher: Sendable {
           if let bounds = node.bounds { object["bounds"] = rectJSON(bounds) }
           return .object(object)
         }),
+      "truncated": .bool(snapshot.truncated),
+      "omittedNodes": .number(Double(snapshot.omittedNodes)),
     ])
   }
 

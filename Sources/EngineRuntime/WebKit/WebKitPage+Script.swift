@@ -160,14 +160,33 @@ extension WebKitPage {
     """))
   }
 
+  /// Byte budget for one snapshot payload. Bounds the allocation a hostile or very large
+  /// page can force on a single read (directive §4.1.4, §9.6).
+  static let snapshotByteBudget = 1 * 1024 * 1024
+
   func snapshot(info: BrowserPageInfo, limit: Int = 20000) async throws -> PageSnapshot {
     let capped = max(1, min(limit, 20000))
     let values = try await decode([WebDOMNode].self, domScript("JSON.stringify(globalThis.__aetherDOM.snapshot(\(capped)))"))
     let mutationRevision = try await decode(UInt64.self,
       domScript("JSON.stringify(globalThis.__aetherDOM.mutationVersion())"))
     let mutationVersion = (UInt64(generation) << 32) | (mutationRevision & 0xffff_ffff)
-    return PageSnapshot(page: info, documentID: DocumentID(rawValue: UInt64(generation)),
-      mutationVersion: mutationVersion, nodes: values.map(\.snapshot))
+    // Deterministic truncation: keep nodes until the byte budget is reached, then stop and
+    // report the count. The document node is always kept so the driver sees the root.
+    var totalBytes = 0
+    var kept: [WebDOMNode] = []
+    for value in values {
+      let cost = (value.text?.utf8.count ?? 0) + value.name.utf8.count + 64
+      if !kept.isEmpty && totalBytes + cost > Self.snapshotByteBudget { break }
+      totalBytes += cost
+      kept.append(value)
+    }
+    let omittedByBytes = values.count - kept.count
+    let omittedByCap = values.count >= capped ? 1 : 0
+    let omitted = max(omittedByBytes, omittedByCap)
+    return PageSnapshot(
+      page: info, documentID: DocumentID(rawValue: UInt64(generation)),
+      mutationVersion: mutationVersion, nodes: kept.map(\.snapshot),
+      truncated: omitted > 0, omittedNodes: omitted)
   }
 
   func nodeAction(_ node: NodeID, body: String) async throws {

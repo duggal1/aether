@@ -223,8 +223,9 @@ A program declares `version` (currently 1), an optional attributing
 declared, 100k executed, `forEach` over at most 10k items — over-limit is an
 error, never silent truncation). Step ops: `createContext`, `createPage`,
 `navigate`, `loadHTML`, `query`, `queryAll`, `click`, `type`, `evaluate`,
-`snapshot`, `inspect`, `wait`, `restore`, `set`, `assert`, `forEach`, `if`,
-`result`. `restore` activates a hibernated page (`page.restore` in step form) —
+`snapshot`, `inspect`, `wait`, `verify`, `call`, `restore`, `set`, `assert`,
+`forEach`, `if`, `result`. `restore` activates a hibernated page (`page.restore`
+in step form) —
 every page returned by a branch fork starts hibernated and
 `BrowserBranchInfo.restoreRequiredPages` names them, so a program can activate
 the branch page it is about to drive without a second RPC.
@@ -234,13 +235,42 @@ escapes a literal object that would otherwise look like a reference.
 Conditions (`assert`, `if`) support `eq`, `ne`, `exists`, `notExists`,
 `empty`, `contains`, `gt`, `lt`.
 
+`verify` runs a `BrowserVerificationPlan` against real state without leaving
+the program (directive §8.1). The plan's `page` may be a reference
+(`{"ref": "pg.id"}`), as may the nested `checks`, and the bound value is the
+three-valued verification result. The plan's page is gated to the program's
+lease exactly like a page step.
+
+`call` invokes any other AgentProtocol method from inside the program through
+the same dispatcher, so Tier 2 capabilities that are not first-class steps
+(fill, select, submit, find, scroll, history, cookies, storage, permissions,
+downloads, captures, `events.recent`, and so on) are still program-callable
+(§4.2.2). `method` is the exact method name; `params` is the params object and
+may carry `{"ref": "..."}` markers anywhere. The call is refused with
+`unauthorized` for `agent.exec`, `task.verify` (use the `verify` step), lease,
+session and fleet lifecycle methods, the handoff and approval gates,
+`context.create`/`context.destroy`, and `credentials.get` — and any
+context/page it names is gated against the program's lease before dispatch.
+Capabilities with no program-callable equivalent are a defect, not a
+limitation (§4.2.2, §13.2).
+
 The outcome carries a per-run `executionID` (UUID; join key for handoff
 records and the event stream), a `status` (`completed`, `failed`, `timeout`,
 `cancelled`), ordered `results`, final `vars`, `stepsExecuted` and
 `operations` counters (operations count browser-touching steps only, as
-batching proof), per-step `failures`, and a terminal `error` with the
-failing step path. Program deadlines (default 30s, max 300s) and task
-cancellation produce `timeout`/`cancelled` with partial state preserved.
+batching proof), `counters` (a typed `ExecCounters`: `boundaryCalls` — always
+1 per program, the batching proof — plus `snapshots`, `waits`, `images`,
+`verificationChecks`, `runtimeCalls`, `coordinateActions`), `truncated` and
+`truncationReason` naming any applied cap, per-step `failures`, and a terminal
+`error` with the failing step path. Program deadlines (default 30s, max 300s)
+and task cancellation produce `timeout`/`cancelled` with partial state
+preserved.
+
+Limits are enforced by the host, not the program, and are reported rather than
+silently softened (§5.3): a program's encoded size is capped at 64 KiB
+(`ExecLimits.maxProgramBytes`), driver-visible `results` at 12 MiB
+(`maxOutputBytes`, over-limit sets `truncated`), and a session's retained
+variable set at 4 MiB (`maxSessionBytes`).
 
 Authorization: host connections run unrestricted; non-host principals are
 confined to contexts they own (resolved dynamically per page op, including
@@ -255,3 +285,14 @@ expires, the runtime revokes the program at the next step boundary; it ends as
 `cancelled` with `error.code == "leaseRevoked"` (never swallowed by
 `onError: proceed`), so an agent that loses its workspace cannot keep driving
 the browser. Unrestricted host executions are never revoked.
+
+Persistent sessions: a program naming a `session` loads that session's retained
+variable set and commits its final variables back on completion, so state
+written by one program is visible to the next program in the same session
+(§5.1). Session state is bounded (§5.1.3), destroyed in constant time on lease
+release/cancel/expiry and on `destroy` (§5.1.4), and one session runs one
+program at a time — a concurrent program is refused with `sessionBusy`
+(§5.3.7). A failed, timed-out, cancelled, or revoked program leaves the
+session's previous state intact: partial work never becomes the session's
+truth. After a daemon restart the session is rebuilt empty; no live heap is
+restored (§5.1.5).

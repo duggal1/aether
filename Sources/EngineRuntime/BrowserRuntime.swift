@@ -141,6 +141,10 @@ public actor BrowserRuntime {
   /// In-flight work that a workspace lease authorizes. When a lease stops being active
   /// the runtime revokes these so a revoked workspace cannot keep being driven.
   var leaseBoundExecutions: [LeaseRevocationToken: LeaseBoundExecution] = [:]
+  /// Child registrations whose context scope follows a parent registration. A persistent
+  /// execution session registers here under the program that drives it, so the session's
+  /// teardown follows every context the program touches without extra plumbing.
+  var leaseBoundExecutionLinks: [LeaseRevocationToken: [LeaseRevocationToken]] = [:]
   var branchContexts: [BranchID: ContextID] = [:]
   var contextBranches: [ContextID: BranchID] = [:]
 

@@ -6,9 +6,14 @@ import Foundation
 
 public final class NativeBrowserEngine: Sendable {
   public let runtime: BrowserRuntime
+  /// Persistent code-execution sessions for this engine. One over the runtime's lifetime,
+  /// so a program's variables survive into the next program naming the same session
+  /// (directive §5.1). Leases destroy their sessions through the lease registry.
+  public let execSessions: ExecSessionStore
 
-  public init(runtime: BrowserRuntime = BrowserRuntime()) {
+  public init(runtime: BrowserRuntime = BrowserRuntime(), execSessions: ExecSessionStore = ExecSessionStore()) {
     self.runtime = runtime
+    self.execSessions = execSessions
   }
 
   public func createContext(name: String) async -> BrowserContextInfo {

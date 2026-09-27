@@ -1,4 +1,5 @@
 import AgentProtocol
+import BrowserVerification
 import DOM
 import EngineCore
 import EngineRuntime
@@ -41,9 +42,50 @@ public struct AgentExecRuntime: Sendable {
     let state = ExecRunState()
     let box = ExecChildBox()
     let contexts = Set((allowedContexts ?? []).map { ContextID(rawValue: $0) })
+
+    // A named session must exist and must load before anything runs. Session state is the
+    // persistence layer for §5.1; a failure here is typed and executes nothing.
+    if let sessionID = program.session {
+      let sessions = await engine.runtime.listSessions()
+      guard sessions.contains(where: { $0.id.rawValue == sessionID }) else {
+        return ExecOutcome(
+          executionID: UUID().uuidString, status: .failed,
+          error: ExecFailure(
+            stepPath: [], op: "exec", code: "sessionNotFound",
+            message: "Session not found: \(sessionID)"), session: sessionID)
+      }
+      let retained: [String: JSONValue]
+      do {
+        retained = try await engine.execSessions.loadOrCreate(sessionID)
+      } catch {
+        return ExecOutcome(
+          executionID: UUID().uuidString, status: .failed,
+          error: ExecFailure(
+            stepPath: [], op: "exec", code: "sessionLimitExceeded",
+            message: String(describing: error)), session: sessionID)
+      }
+      // One lease-bound registration per session destroys its retained state when the
+      // workspace lease ends (directive §5.1.4). It is created with the lease's known
+      // contexts and expanded as the program touches more contexts.
+      var sessionToken = await engine.execSessions.token(for: sessionID)
+      if sessionToken == nil {
+        let store = engine.execSessions
+        let created = await engine.runtime.registerLeaseBoundExecution(contexts: contexts) {
+          await store.destroy(sessionID)
+        }
+        await engine.execSessions.setToken(created, for: sessionID)
+        sessionToken = created
+      }
+      await state.seedSession(id: sessionID, vars: retained, token: sessionToken)
+    }
+
     let token = await engine.runtime.registerLeaseBoundExecution(contexts: contexts) {
       box.cancel()
       await state.requestRevocation()
+    }
+    // The session's teardown scope follows this program's touched contexts.
+    if let sessionToken = await state.sessionToken {
+      await engine.runtime.linkLeaseBoundExecution(sessionToken, to: token)
     }
     let child = Task<ExecOutcome, Never> {
       await runner.runInner(
@@ -51,13 +93,34 @@ public struct AgentExecRuntime: Sendable {
         state: state, revocation: token)
     }
     box.adopt(child)
-    return await withTaskCancellationHandler {
-      let outcome = await child.value
+    var outcome = await withTaskCancellationHandler {
+      let result = await child.value
       await engine.runtime.unregisterLeaseBoundExecution(token)
-      return outcome
+      return result
     } onCancel: {
       child.cancel()
     }
+    // Retained variables are committed only on a completed program. A failed, cancelled,
+    // timed-out, or revoked program leaves the session's previous state intact: partial
+    // work must never become the session's truth (directive §5.1.2, §12.2.3).
+    if let sessionID = program.session {
+      if outcome.status == .completed {
+        do {
+          _ = try await engine.execSessions.commit(sessionID, vars: outcome.vars)
+        } catch {
+          outcome.truncated = true
+          outcome.truncationReason = "sessionBytes"
+          if outcome.error == nil {
+            outcome.error = ExecFailure(
+              stepPath: [], op: "exec", code: "sessionLimitExceeded",
+              message: String(describing: error))
+          }
+        }
+      }
+      // Release the single-flight slot on every terminal path (directive §5.3.7).
+      await engine.execSessions.endProgram(sessionID)
+    }
+    return outcome
   }
 
   private func runInner(
@@ -332,6 +395,7 @@ public struct AgentExecRuntime: Sendable {
         try await self.engine.runtime.snapshot(pageID: page, limit: limit ?? 20_000)
       }
       await state.noteOperation()
+      await state.noteSnapshot()
       await bind(step, value: try encodeJSON(snapshot), state: state, path: path)
     case .inspect(let pageValue, _):
       let page = try await requirePage(
@@ -353,7 +417,76 @@ public struct AgentExecRuntime: Sendable {
           timeoutMilliseconds: timeoutMs ?? 5_000)
       }
       await state.noteOperation()
+      await state.noteWait()
       await bind(step, value: node.map(execNodeJSON) ?? .null, state: state, path: path)
+    case .verify(let planValue, _):
+      let raw = try interpolate(try planValue.resolve(vars), vars: vars)
+      let plan: BrowserVerificationPlan
+      do {
+        plan = try JSONDecoder().decode(
+          BrowserVerificationPlan.self, from: try JSONEncoder().encode(raw))
+      } catch {
+        throw ExecStepError(
+          failure: ExecFailure(
+            stepPath: path, op: step.op, code: "badParameter", message: "verify.plan"))
+      }
+      do {
+        try plan.validate()
+      } catch {
+        throw ExecStepError(
+          failure: ExecFailure(
+            stepPath: path, op: step.op, code: "badParameter", message: String(describing: error)))
+      }
+      let owner: BrowserPageInfo
+      do {
+        owner = try await engine.runtime.pageInfo(plan.pageID)
+      } catch {
+        throw mapError(error, path: path, op: step.op)
+      }
+      try await gateContext(
+        owner.contextID, path: path, op: step.op, allowedContexts: allowedContexts,
+        revocation: revocation)
+      let result = try await browser(path: path, op: step.op) {
+        try await self.engine.verify(plan)
+      }
+      await state.noteVerificationChecks(max(1, plan.checks.count))
+      await state.noteOperation()
+      await bind(step, value: try encodeJSON(result), state: state, path: path)
+    case .call(let methodValue, let paramsValue, _):
+      let method = try methodValue.stringValue(vars, what: "method", path: path, op: step.op)
+      guard ExecStep.callableMethods.contains(method) else {
+        throw ExecStepError(
+          failure: ExecFailure(
+            stepPath: path, op: step.op, code: "unauthorized",
+            message: "Method \(method) is not callable from inside a program"))
+      }
+      var params: [String: JSONValue] = [:]
+      if let paramsValue {
+        let resolved = try paramsValue.resolve(vars)
+        guard case .object(let object) = resolved else {
+          throw ExecStepError(
+            failure: ExecFailure(
+              stepPath: path, op: step.op, code: "typeMismatch", message: "call.params"))
+        }
+        // Param values may carry `{"ref": "pg.id"}` markers so a driver can pass ids it
+        // read earlier in the same program without another round trip (directive §4.2.2).
+        for (key, value) in object {
+          params[key] = try interpolate(value, vars: vars)
+        }
+      }
+      try await gateCallParams(
+        params, path: path, op: step.op, allowedContexts: allowedContexts,
+        revocation: revocation)
+      let dispatcher = AgentCommandDispatcher(engine: engine)
+      let response = await dispatcher.handle(AgentRequest(method: method, params: params))
+      await state.noteRuntimeCall()
+      await state.noteOperation()
+      if let error = response.error {
+        throw ExecStepError(
+          failure: ExecFailure(
+            stepPath: path, op: step.op, code: error.code, message: error.message))
+      }
+      await bind(step, value: response.result ?? .null, state: state, path: path)
     case .restore(let pageValue, _):
       let page = try await requirePage(
         pageValue, vars: vars, path: path, op: step.op, allowedContexts: allowedContexts, revocation: revocation)
@@ -471,6 +604,32 @@ public struct AgentExecRuntime: Sendable {
     }
   }
 
+  /// Confines a `call` step to the program's lease by deriving the context it targets from
+  /// its typed params. A `page` param resolves through the runtime's page owner, so a
+  /// program cannot reach another workspace through a call (directive §11.1.3).
+  private func gateCallParams(
+    _ params: [String: JSONValue], path: [Int], op: String,
+    allowedContexts: Set<UInt64>?, revocation: LeaseRevocationToken
+  ) async throws {
+    if let raw = params["context"]?.exactUInt64 {
+      try await gateContext(
+        ContextID(rawValue: raw), path: path, op: op, allowedContexts: allowedContexts,
+        revocation: revocation)
+      return
+    }
+    if let raw = params["page"]?.exactUInt64 {
+      let info: BrowserPageInfo
+      do {
+        info = try await engine.runtime.pageInfo(PageID(rawValue: raw))
+      } catch {
+        throw mapError(error, path: path, op: op)
+      }
+      try await gateContext(
+        info.contextID, path: path, op: op, allowedContexts: allowedContexts,
+        revocation: revocation)
+    }
+  }
+
   private func browser<T>(
     path: [Int], op: String, body: () async throws -> T
   ) async throws -> T {
@@ -506,6 +665,28 @@ public struct AgentExecRuntime: Sendable {
     return ExecStepError(
       failure: ExecFailure(
         stepPath: path, op: op, code: "engine_error", message: String(describing: error)))
+  }
+
+  /// Resolves `{"ref": "name"}` markers anywhere inside a literal payload. A one-key
+  /// object that is exactly a ref marker is substituted with the variable it names; every
+  /// other value is copied unchanged. This is what makes a structured argument (a plan, a
+  /// call's params) usable without a second wire round trip (directive §4.2.2).
+  private func interpolate(_ value: JSONValue, vars: [String: JSONValue]) throws -> JSONValue {
+    switch value {
+    case .object(let object):
+      if object.count == 1, let name = object["ref"]?.string {
+        return try ExecValue.ref(name).resolve(vars)
+      }
+      var result: [String: JSONValue] = [:]
+      for (key, nested) in object {
+        result[key] = try interpolate(nested, vars: vars)
+      }
+      return .object(result)
+    case .array(let items):
+      return .array(try items.map { try interpolate($0, vars: vars) })
+    default:
+      return value
+    }
   }
 
   private func nodeID(
@@ -672,6 +853,8 @@ extension ExecStep {
     case .restore(_, let into): return into
     case .snapshot(_, _, let into): return into
     case .inspect(_, let into): return into
+    case .verify(_, let into): return into
+    case .call(_, _, let into): return into
     default: return nil
     }
   }
@@ -809,6 +992,18 @@ actor ExecRunState {
   private var operations = 0
   private var revocationRequested = false
 
+  // Counters and truncation state (directive §5.5.5, §5.3.5).
+  private(set) var counters = ExecCounters()
+  private(set) var outputBytes = 0
+  private(set) var truncated = false
+  private(set) var truncationReason: String?
+
+  /// The session this program runs against, when one was named. Its variables are seeded
+  /// before the program runs and committed back after (directive §5.1.2).
+  private(set) var sessionID: UInt64?
+  /// Lease-bound registration that destroys the session when its workspace lease ends.
+  private(set) var sessionToken: LeaseRevocationToken?
+
   /// Set by the runtime when the workspace lease authorizing this program ends. Checked at
   /// every step boundary, so revocation latency is one browser operation.
   func requestRevocation() {
@@ -821,6 +1016,14 @@ actor ExecRunState {
       : nil
   }
 
+  func seedSession(id: UInt64, vars retained: [String: JSONValue], token: LeaseRevocationToken?) {
+    sessionID = id
+    sessionToken = token
+    for (name, value) in retained where vars[name] == nil {
+      vars[name] = value
+    }
+  }
+
   func noteStep() -> Int {
     stepsExecuted += 1
     return stepsExecuted
@@ -828,6 +1031,28 @@ actor ExecRunState {
 
   func noteOperation() {
     operations += 1
+    counters.operations += 1
+  }
+
+  func noteSnapshot() {
+    counters.snapshots += 1
+  }
+
+  func noteWait() {
+    counters.waits += 1
+  }
+
+  func noteImage() -> Int {
+    counters.images += 1
+    return counters.images
+  }
+
+  func noteVerificationChecks(_ count: Int) {
+    counters.verificationChecks += count
+  }
+
+  func noteRuntimeCall() {
+    counters.runtimeCalls += 1
   }
 
   func noteFailure(_ failure: ExecFailure) {
@@ -848,13 +1073,36 @@ actor ExecRunState {
     vars[name] = value
   }
 
+  /// Appends a result unless the output-byte cap is already reached. A cap hit sets the
+  /// truncation flag and names the dimension rather than silently dropping (directive §5.3.5).
   func appendResult(_ value: JSONValue) {
+    guard !truncated else { return }
+    let size = (try? JSONEncoder().encode(value).count) ?? 0
+    guard outputBytes + size <= ExecLimits.maxOutputBytes else {
+      truncated = true
+      truncationReason = "outputBytes"
+      return
+    }
+    outputBytes += size
     results.append(value)
+  }
+
+  func noteTruncation(_ reason: String) {
+    truncated = true
+    truncationReason = reason
+  }
+
+  func countersSnapshot() -> ExecCounters {
+    var copy = counters
+    copy.boundaryCalls = 1
+    return copy
   }
 
   func snapshot() -> ExecOutcome {
     ExecOutcome(
       executionID: "", status: .completed, results: results, vars: vars,
-      stepsExecuted: stepsExecuted, operations: operations, failures: failures, error: nil)
+      stepsExecuted: stepsExecuted, operations: operations, failures: failures, error: nil,
+      session: sessionID, counters: countersSnapshot(), truncated: truncated,
+      truncationReason: truncationReason)
   }
 }

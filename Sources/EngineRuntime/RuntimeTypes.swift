@@ -121,15 +121,22 @@ public struct PageSnapshot: Hashable, Sendable, Codable {
   public var documentID: DocumentID
   public var mutationVersion: UInt64
   public var nodes: [PageNodeSnapshot]
+  /// True when the snapshot hit its node or byte cap and omitted elements. A snapshot
+  /// never silently drops: the driver sees the cap and the count (directive §4.1.4).
+  public var truncated: Bool
+  /// Number of elements omitted when `truncated` is true.
+  public var omittedNodes: Int
 
   public init(
     page: BrowserPageInfo, documentID: DocumentID, mutationVersion: UInt64,
-    nodes: [PageNodeSnapshot]
+    nodes: [PageNodeSnapshot], truncated: Bool = false, omittedNodes: Int = 0
   ) {
     self.page = page
     self.documentID = documentID
     self.mutationVersion = mutationVersion
     self.nodes = nodes
+    self.truncated = truncated
+    self.omittedNodes = omittedNodes
   }
 }
 

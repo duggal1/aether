@@ -267,12 +267,23 @@ extension BrowserRuntime {
 
   public func unregisterLeaseBoundExecution(_ token: LeaseRevocationToken) {
     leaseBoundExecutions[token] = nil
+    leaseBoundExecutionLinks[token] = nil
+  }
+
+  /// Makes `child`'s context scope follow `parent`'s. Used to tie a persistent execution
+  /// session's teardown to the program that drives it, so the session cannot outlive the
+  /// lease that authorized the contexts it touched (directive §5.1.4).
+  public func linkLeaseBoundExecution(_ child: LeaseRevocationToken, to parent: LeaseRevocationToken) {
+    leaseBoundExecutionLinks[parent, default: []].append(child)
   }
 
   public func expandLeaseBoundExecution(_ token: LeaseRevocationToken, context: ContextID) {
     guard var entry = leaseBoundExecutions[token] else { return }
     entry.contexts.insert(context)
     leaseBoundExecutions[token] = entry
+    for child in leaseBoundExecutionLinks[token] ?? [] {
+      expandLeaseBoundExecution(child, context: context)
+    }
   }
 
   /// Number of registered in-flight executions still confined to leases.
@@ -284,6 +295,7 @@ extension BrowserRuntime {
     let matches = leaseBoundExecutions.filter { !$0.value.contexts.isDisjoint(with: contexts) }
     for (token, execution) in matches {
       leaseBoundExecutions[token] = nil
+      leaseBoundExecutionLinks[token] = nil
       await execution.revoke()
     }
   }

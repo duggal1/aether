@@ -8,6 +8,20 @@ public enum ExecLimits {
   public static let defaultTimeoutMs: UInt64 = 30_000
   public static let maxTimeoutMs: UInt64 = 300_000
   public static let maxSnapshotLimit = 100_000
+  /// Declared size of an encoded program. Matches the reference implementation's 64 KiB
+  /// code cap (`openai-cua-sample-app/.../browser/protocol.ts:19`) rather than being
+  /// smaller without a measured reason.
+  public static let maxProgramBytes = 64 * 1024
+  /// Bytes of `results` returned to the driver in one outcome. Over-limit is reported as
+  /// `truncated`, never silently dropped (directive §5.3.5, §10.3.3).
+  public static let maxOutputBytes = 12 * 1024 * 1024
+  /// Retained bytes of a persistent execution session's variable set (directive §5.1.3).
+  public static let maxSessionBytes = 4 * 1024 * 1024
+  /// Programs a single persistent session may execute before it must be reset.
+  public static let maxSessionPrograms = 64
+  /// Requested images a single program may produce. The budget prices pixels; it never
+  /// gates the channel (directive §4.0.5, §4.3.3).
+  public static let maxImagesPerProgram = 32
 }
 
 public enum ExecOnError: String, Hashable, Sendable, Codable {
@@ -58,6 +72,11 @@ public struct ExecProgram: Hashable, Sendable, Codable {
     }
     var declared = 0
     try validate(steps: steps, declared: &declared)
+    if let encoded = try? JSONEncoder().encode(self), encoded.count > ExecLimits.maxProgramBytes {
+      throw AgentProcedureError(
+        code: "badParameter",
+        message: "program exceeds \(ExecLimits.maxProgramBytes) bytes")
+    }
   }
 
   private func validate(steps: [ExecStep], declared: inout Int) throws {
@@ -140,6 +159,17 @@ public enum ExecStep: Hashable, Sendable, Codable {
   case snapshot(page: ExecValue, limit: Int?, into: String?)
   case inspect(page: ExecValue, into: String?)
   case wait(page: ExecValue, selector: ExecValue, condition: String?, timeoutMs: UInt64?)
+  /// Runs a verification plan against real, external state without leaving the program
+  /// (directive §8.1.2, recon Conflict 3). The plan is a JSON `BrowserVerificationPlan`;
+  /// the bound value is the three-valued verification result. This is the runtime's only
+  /// "did it work" implementation and is not reimplemented here.
+  case verify(plan: ExecValue, into: String?)
+  /// Invokes any other AgentProtocol method from inside a program through the single
+  /// dispatcher (directive §4.2.2: every Tier 2 operation is program-callable). The bound
+  /// value is the method's typed JSON result. `agent.exec`, verification, lease, handoff
+  /// and approval methods are refused here because they have first-class steps or must not
+  /// be driven from inside an agent program.
+  case call(method: ExecValue, params: ExecValue?, into: String?)
   /// Activates a hibernated page (a page restored from a profile, including every page of
   /// a freshly forked branch) so later steps can drive it. `page.restore` in RPC form.
   case restore(page: ExecValue, into: String?)
@@ -163,6 +193,8 @@ public enum ExecStep: Hashable, Sendable, Codable {
     case .snapshot: return "snapshot"
     case .inspect: return "inspect"
     case .wait: return "wait"
+    case .verify: return "verify"
+    case .call: return "call"
     case .restore: return "restore"
     case .set: return "set"
     case .assert: return "assert"
@@ -200,15 +232,49 @@ public enum ExecStep: Hashable, Sendable, Codable {
       guard !name.isEmpty else {
         throw AgentProcedureError(code: "badParameter", message: "set.name")
       }
+    case .call(let method, _, _):
+      if case .literal(let value) = method, let name = value.string {
+        guard ExecStep.callableMethods.contains(name) else {
+          throw AgentProcedureError(code: "badParameter", message: "call.method \(name)")
+        }
+      }
     default:
       break
     }
   }
 
+  /// The closed set of methods a `call` step may reach from inside a program. Derived from
+  /// the full method surface minus the methods that have first-class steps, that return a
+  /// secret, that manage leases/sessions, or that must not be driven from inside a
+  /// confined program. Deriving it keeps it from drifting away from `AgentMethod`.
+  public static let callableMethods: Set<String> = Set(
+    AgentMethod.allCases.filter { !callExcludedMethods.contains($0) }.map(\.rawValue))
+
+  /// Methods a program must not invoke through `call`:
+  /// - `agent.exec` would recurse into the execution channel.
+  /// - `task.verify` has a typed `verify` step that returns the three-valued result.
+  /// - lease, session and fleet lifecycle are the host's to drive, not a confined program's.
+  /// - `context.create`/`context.destroy` and `session.*` are not context-gated by a param,
+  ///   so they could escape the program's lease.
+  /// - `credentials.get` returns a secret value; a program supplies intent, never the value
+  ///   (directive §11.3.2).
+  public static let callExcludedMethods: Set<AgentMethod> = [
+    .exec, .taskVerify,
+    .workspaceLeaseAcquire, .workspaceLeaseRenew, .workspaceLeaseRelease,
+    .workspaceLeaseCancel, .workspaceLeaseList,
+    .contextCreate, .contextDestroy, .contextOpenProfile,
+    .sessionCreate, .sessionDestroy, .sessionPages, .sessionList,
+    .fleetStats, .fleetPages, .fleetSweep,
+    .handoffRequest, .handoffList, .handoffClaim, .handoffComplete, .handoffCancel,
+    .handoffResume, .handoffWait,
+    .approvalRequest, .approvalList, .approvalResolve, .approvalCancel, .approvalWait,
+    .credentialsGet,
+  ]
+
   private enum CodingKeys: String, CodingKey {
     case op, name, context, page, url, html, selector, index, generation, text, append,
       source, into, limit, condition, timeoutMs, value, message, items, item, steps,
-      then, otherwise, width, height, settle, left, right
+      then, otherwise, width, height, settle, left, right, method, params, plan
   }
 
   public init(from decoder: Decoder) throws {
@@ -280,6 +346,15 @@ public enum ExecStep: Hashable, Sendable, Codable {
     case "restore":
       self = .restore(
         page: try container.decode(ExecValue.self, forKey: .page),
+        into: try container.decodeIfPresent(String.self, forKey: .into))
+    case "verify":
+      self = .verify(
+        plan: try container.decode(ExecValue.self, forKey: .plan),
+        into: try container.decodeIfPresent(String.self, forKey: .into))
+    case "call":
+      self = .call(
+        method: try container.decode(ExecValue.self, forKey: .method),
+        params: try container.decodeIfPresent(ExecValue.self, forKey: .params),
         into: try container.decodeIfPresent(String.self, forKey: .into))
     case "set":
       self = .set(
@@ -366,6 +441,13 @@ public enum ExecStep: Hashable, Sendable, Codable {
     case .restore(let page, let into):
       try container.encode(page, forKey: .page)
       try container.encodeIfPresent(into, forKey: .into)
+    case .verify(let plan, let into):
+      try container.encode(plan, forKey: .plan)
+      try container.encodeIfPresent(into, forKey: .into)
+    case .call(let method, let params, let into):
+      try container.encode(method, forKey: .method)
+      try container.encodeIfPresent(params, forKey: .params)
+      try container.encodeIfPresent(into, forKey: .into)
     case .set(let name, let value):
       try container.encode(name, forKey: .name)
       try container.encode(value, forKey: .value)
@@ -406,6 +488,40 @@ public struct ExecFailure: Hashable, Sendable, Codable {
   }
 }
 
+/// Counters that make the outcome evidence rather than prose (directive §5.5.5, §16.1).
+/// `boundaryCalls` is always 1 per program: a program absorbs every operation the driver
+/// would otherwise have made as a separate wire round trip (§10.1.1).
+public struct ExecCounters: Hashable, Sendable, Codable {
+  public var boundaryCalls: Int
+  public var operations: Int
+  public var snapshots: Int
+  public var waits: Int
+  public var images: Int
+  public var verificationChecks: Int
+  public var runtimeCalls: Int
+  public var coordinateActions: Int
+
+  public init(
+    boundaryCalls: Int = 1,
+    operations: Int = 0,
+    snapshots: Int = 0,
+    waits: Int = 0,
+    images: Int = 0,
+    verificationChecks: Int = 0,
+    runtimeCalls: Int = 0,
+    coordinateActions: Int = 0
+  ) {
+    self.boundaryCalls = boundaryCalls
+    self.operations = operations
+    self.snapshots = snapshots
+    self.waits = waits
+    self.images = images
+    self.verificationChecks = verificationChecks
+    self.runtimeCalls = runtimeCalls
+    self.coordinateActions = coordinateActions
+  }
+}
+
 public struct ExecOutcome: Hashable, Sendable, Codable {
   public var executionID: String
   public var status: ExecStatus
@@ -415,6 +531,16 @@ public struct ExecOutcome: Hashable, Sendable, Codable {
   public var operations: Int
   public var failures: [ExecFailure]
   public var error: ExecFailure?
+  /// The persistent session this program ran against, when one was named. Its variables
+  /// survive into the next program in the same session (directive §5.1.2).
+  public var session: UInt64?
+  /// Counters for the whole program (directive §5.5.5).
+  public var counters: ExecCounters
+  /// True when any declared cap was applied to the driver-visible payload.
+  public var truncated: Bool
+  /// Names the exhausted dimension when `truncated` is true, so the driver can re-plan
+  /// rather than guess (directive §5.3.5).
+  public var truncationReason: String?
 
   public init(
     executionID: String,
@@ -424,7 +550,11 @@ public struct ExecOutcome: Hashable, Sendable, Codable {
     stepsExecuted: Int = 0,
     operations: Int = 0,
     failures: [ExecFailure] = [],
-    error: ExecFailure? = nil
+    error: ExecFailure? = nil,
+    session: UInt64? = nil,
+    counters: ExecCounters = ExecCounters(),
+    truncated: Bool = false,
+    truncationReason: String? = nil
   ) {
     self.executionID = executionID
     self.status = status
@@ -434,6 +564,10 @@ public struct ExecOutcome: Hashable, Sendable, Codable {
     self.operations = operations
     self.failures = failures
     self.error = error
+    self.session = session
+    self.counters = counters
+    self.truncated = truncated
+    self.truncationReason = truncationReason
   }
 }
 
