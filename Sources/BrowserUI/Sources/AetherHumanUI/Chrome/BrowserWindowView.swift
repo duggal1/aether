@@ -6,6 +6,7 @@ public struct BrowserWindowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduced
     @Environment(\.aetherTrafficLeading) private var trafficLeading
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("aether.welcomed.v1") private var hasWelcomed = false
     let window: BrowserWindowModel
     let isFullscreen: Bool
     public init(window: BrowserWindowModel, isFullscreen: Bool = false) {
@@ -206,10 +207,12 @@ public struct BrowserWindowView: View {
                     .environment(\.aetherChromeAppearance, chromeAppearance)
                     .zIndex(24)
             }
-            if window.showsWelcome || !UserDefaults.standard.bool(forKey: "aether.welcomed.v1") {
+            if window.showsWelcome || !hasWelcomed {
                 VStack(spacing: 0) {
                     Spacer(minLength: 0)
-                    AetherThemeScope { WelcomeView(window: window) {} }
+                    AetherThemeScope {
+                        WelcomeView(window: window) { hasWelcomed = true }
+                    }
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

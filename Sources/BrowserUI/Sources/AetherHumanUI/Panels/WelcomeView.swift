@@ -57,7 +57,6 @@ public struct WelcomeView: View {
 
     private func next() { if page < 3 { page += 1 } else { finish() } }
     private func finish() {
-        UserDefaults.standard.set(true, forKey: "aether.welcomed.v1")
         window.showsWelcome = false
         onDone()
     }
