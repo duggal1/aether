@@ -38,6 +38,14 @@ extension AetherEngineAdapter: BrowserCredentialVaultProviding {
       pageID: page(pageID), credentialID: credentialID, fillUsername: fillUsername)
   }
 
+  /// The engine only hands a secret back for a credential its own profile
+  /// holds, so a credential id from another profile reads as not found.
+  func savedPassword(profileID: UUID, credentialID: String) async throws -> String {
+    let contextID = try await context(for: profileID)
+    return try await engine.runtime.credentialSecret(
+      contextID: contextID, credentialID: credentialID).password
+  }
+
   private func migrateLegacyCredentials(profileID: UUID, contextID: ContextID) async throws {
     guard !migratedCredentialProfiles.contains(profileID) else { return }
     var allSecretsAvailable = true

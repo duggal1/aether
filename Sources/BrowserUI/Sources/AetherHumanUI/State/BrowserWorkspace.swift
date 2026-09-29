@@ -46,14 +46,36 @@ public final class BrowserWorkspace {
         syncSpotlight()
     }
 
+    @ObservationIgnored private var sessionSaveArmed = false
+
+    /// Asking for a save no longer builds one.
+    ///
+    /// Closing a tab asks for this once, so closing forty meant forty whole
+    /// archives read on the main thread and forty whole-file writes queued
+    /// behind them — work that grew with the list it was writing. The session
+    /// is read at the moment it is written, so a burst of changes needs one
+    /// write and not forty: the first caller arms the write, every later one is
+    /// covered by it, and a change made while a write is in flight is picked up
+    /// by the write that follows it. Nothing is lost, because the last change
+    /// always leaves an armed write behind it.
     public func scheduleSessionSave() {
-        let archive = sessionArchive()
-        persistenceQueue.async {
-            BrowserPersistence.saveSession(archive)
+        guard !sessionSaveArmed else { return }
+        sessionSaveArmed = true
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard let self, self.sessionSaveArmed else { return }
+            self.sessionSaveArmed = false
+            let archive = self.sessionArchive()
+            self.persistenceQueue.async {
+                BrowserPersistence.saveSession(archive)
+            }
         }
     }
 
     public func flushSession() {
+        // An armed write is now unnecessary rather than cancelled: whatever it
+        // would have read, this reads later and writes last.
+        sessionSaveArmed = false
         let archive = sessionArchive()
         persistenceQueue.sync {
             BrowserPersistence.saveSession(archive)

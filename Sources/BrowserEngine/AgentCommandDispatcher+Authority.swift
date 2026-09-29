@@ -67,8 +67,55 @@ extension AgentCommandDispatcher {
       context = identifier("context")
     } else if method.hasPrefix("extension."), let page = identifier("page") {
       context = try? await engine.runtime.pageInfo(PageID(rawValue: page)).contextID.rawValue
+    } else if method.hasPrefix("credentials."), let page = identifier("page") {
+      context = try? await engine.runtime.pageInfo(PageID(rawValue: page)).contextID.rawValue
+    } else if method.hasPrefix("credentials.") {
+      // `credentials.fill` carries a page and is handled above; every other
+      // `credentials.*` call is scoped by an explicit context.
+      context = identifier("context")
+    } else if method == "workspace.lease.list" {
+      // A list scoped by an explicit context is authorized by the guard below. With no
+      // context the caller may only observe leases held on contexts it owns, so the
+      // runtime result is filtered rather than rejected.
+      if let explicit = identifier("context") {
+        context = explicit
+      } else {
+        let owned = Set(
+          await engine.runtime.listContexts().filter {
+            ownership.ownerOfContext($0.id.rawValue) == principal.id
+          }.map { $0.id.rawValue })
+        let response = await handle(request)
+        guard let items = response.result?.array else { return response }
+        return AgentResponse(id: request.id, result: .array(items.filter { item in
+          item["context"]?.exactUInt64.map { owned.contains($0) } ?? false
+        }))
+      }
     } else if method.hasPrefix("page."), let page = identifier("page") {
       context = try? await engine.runtime.pageInfo(PageID(rawValue: page)).contextID.rawValue
+    } else if method.hasPrefix("session."), let session = identifier("session") {
+      // Session-scoped calls authorize against the session's owning principal.
+      guard ownership.ownerOfSession(session) == principal.id else { return denied() }
+      return await handle(request)
+    } else if method.hasPrefix("session.") {
+      // `session.create` mints a new session owned by the caller; `session.list` is
+      // answered from the ownership registry rather than the full runtime listing.
+      if method == "session.create" {
+        let response = await handle(request)
+        if response.error == nil, let id = response.result?["id"]?.exactUInt64 {
+          ownership.bindSession(id, to: principal.id)
+        }
+        return response
+      }
+      return denied()
+    } else if method.hasPrefix("fleet.") {
+      // Fleet aggregates are cross-context, so they are only observable by a principal
+      // that owns at least one context.
+      let owned = Set(
+        await engine.runtime.listContexts().filter {
+          ownership.ownerOfContext($0.id.rawValue) == principal.id
+        }.map { $0.id.rawValue })
+      guard !owned.isEmpty else { return denied() }
+      return await handle(request)
     } else if method.hasPrefix("handoff.") || method.hasPrefix("approval.") {
       if let value = identifier("context") {
         context = value

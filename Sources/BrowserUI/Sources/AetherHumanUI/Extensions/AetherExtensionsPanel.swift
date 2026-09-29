@@ -51,6 +51,14 @@ public struct AetherExtensionsButton: View {
         }
         .buttonStyle(AetherPressStyle(reduced: reduced))
         .focusEffectDisabled()
+        .overlay {
+            // Where an extension's popup hangs from when its own button is not
+            // in the toolbar: this drawer's button sits where the pinned ones
+            // would be, in place of one that was unpinned.
+            AetherExtensionActionAnchor(extensions: extensions, windowID: window.id,
+                                       extensionID: AetherExtensions.menuAnchor)
+                .allowsHitTesting(false)
+        }
         .animation(AetherMotion.hover(reduced), value: hovering)
         .onHover { hovering = $0 }
         .help(count == 0 ? "Extensions" : "Extensions (\(count))")

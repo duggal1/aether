@@ -140,14 +140,15 @@ public struct BrowserWindowView: View {
                         }
                         BrowserContentView(window: window, surfaces: window.surfaces)
                             .overlay {
-                                // Click-to-dismiss lives on page content only. It
+                                // Press-to-dismiss lives on page content only. It
                                 // must never cover the toolbar or its buttons
-                                // would stop receiving clicks while a panel is open.
+                                // would stop receiving clicks while a panel is
+                                // open, and it must never take the scroll wheel
+                                // or the page would stop scrolling while a menu
+                                // or panel is up.
                                 if window.showsTabSearch || window.showsHistory || window.showsBookmarks
                                     || window.showsProfileMenu || window.showsMoreMenu {
-                                    Color.clear
-                                        .contentShape(Rectangle())
-                                        .onTapGesture { closeOverlays() }
+                                    AetherDismissSurface(action: closeOverlays)
                                 }
                             }
                     }

@@ -200,11 +200,16 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   static let fileUploadHandlerName = "aetherFileUpload"
   static let consoleHandlerName = "aetherConsole"
   static let focusHandlerName = "aetherFocus"
+  static let networkHandlerName = "aetherNetwork"
 
   static func makeConfiguration(context: WebKitContext) -> WKWebViewConfiguration {
     let configuration = WKWebViewConfiguration()
     configuration.websiteDataStore = context.store
     configuration.webExtensionController = context.extensionController
+    // Every page view shares one identity, so no site — Google first among
+    // them — can serve a page built for a browser it doesn't recognise. See
+    // WebKitUserAgent for why WebKit's own default isn't enough.
+    configuration.applicationNameForUserAgent = WebKitUserAgent.safariToken
     configuration.preferences.inactiveSchedulingPolicy = .none
     configuration.preferences.tabFocusesLinks = true
     configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
@@ -411,12 +416,23 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     const send = value => {
       try { window.webkit.messageHandlers.aetherCredentials.postMessage(value); } catch (_) {}
     };
+    // Framework-bound inputs (Polymer, lit, React) only observe a value once a real
+    // `input` event fires. A non-composed `Event` never escapes a shadow root, so the
+    // page keeps treating the field as empty and any re-render wipes what we wrote.
     const setValue = (element, value) => {
       if (!element) return;
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
       if (setter && setter.set) setter.set.call(element, value); else element.value = value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
+      const fire = type => {
+        if (type === 'input' && typeof InputEvent === 'function') {
+          element.dispatchEvent(new InputEvent('input', {bubbles: true, composed: true,
+            data: value, inputType: 'insertText'}));
+        } else {
+          element.dispatchEvent(new Event(type, {bubbles: true, composed: true}));
+        }
+      };
+      fire('input');
+      fire('change');
     };
     let submitted = false;
     let settleTimer = 0;
@@ -441,7 +457,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         const target = fields[0] || null;
         const user = usernameFor(target);
         if (fillUser) setValue(user, username);
-        if (fillPassword && target) setValue(target, password);
+        // Signup and change-password forms pair the entry with a confirm/repeat field
+        // (`PasswdAgain`, `confirmPassword`, …). Filling only the first leaves the form
+        // unsubmittable, so every visible password field receives the secret.
+        if (fillPassword) fields.forEach(element => setValue(element, password));
         if (target && fillPassword) target.focus();
       },
       fillGenerated: password => {
@@ -567,6 +586,79 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   })();
   """
 
+  /// Layer 1 network observation (directive §7.2). Installed at document start in the page
+  /// world, before page script can run, and wraps `fetch` and `XMLHttpRequest` without
+  /// changing their contract. Requests, responses, status, timing, sizes, and a bounded
+  /// redacted body snippet for JSON/form bodies are reported; everything is capped per
+  /// document so a hostile page cannot flood the control plane.
+  static let networkObserverJS = """
+  (() => {
+    if (window.__aetherNetworkBridge) return;
+    window.__aetherNetworkBridge = true;
+    const limit = 2000;
+    let count = 0;
+    const numberOrZero = value => {
+      const n = parseInt(value || '0', 10);
+      return isFinite(n) && n > 0 ? n : 0;
+    };
+    const post = payload => {
+      if (count >= limit) { return; }
+      count += 1;
+      try { window.webkit.messageHandlers.aetherNetwork.postMessage(payload); } catch (_) {}
+      if (count >= limit) {
+        try { window.webkit.messageHandlers.aetherNetwork.postMessage({phase:'truncated', limit}); } catch (_) {}
+      }
+    };
+    const snippet = (body, contentType) => {
+      if (typeof body !== 'string') { return null; }
+      const type = String(contentType || '').toLowerCase();
+      if (!(type.indexOf('json') >= 0 || type.indexOf('form-urlencoded') >= 0)) { return null; }
+      let text = body.slice(0, 256);
+      text = text.replace(/("(?:password|passwd|pwd|token|access_token|refresh_token|id_token|secret|client_secret|api_key|apikey|authorization)"\\s*:\\s*")[^"]*(")/gi, '$1[redacted]$2');
+      text = text.replace(/((?:password|passwd|pwd|token|access_token|refresh_token|id_token|secret|client_secret|api_key|apikey)=)[^&]*/gi, '$1[redacted]');
+      return text;
+    };
+    const originalFetch = window.fetch;
+    if (typeof originalFetch === 'function') {
+      window.fetch = function(input, init) {
+        const started = Date.now();
+        const method = ((init && init.method) || (input && input.method) || 'GET');
+        const url = typeof input === 'string' ? input : ((input && input.url) || '');
+        const headers = (init && init.headers) || {};
+        const contentType = headers['Content-Type'] || headers['content-type'] || '';
+        post({phase:'request', url, method: String(method).toUpperCase(), bodyBytes: (init && typeof init.body === 'string') ? init.body.length : 0, bodySnippet: snippet(init && init.body, contentType)});
+        return originalFetch.apply(this, arguments).then(response => {
+          post({phase:'response', url, method: String(method).toUpperCase(), status: response.status, durationMs: Date.now() - started, responseBytes: numberOrZero(response.headers && response.headers.get('content-length'))});
+          return response;
+        }, error => {
+          post({phase:'response', url, method: String(method).toUpperCase(), status: 0, durationMs: Date.now() - started, responseBytes: 0});
+          throw error;
+        });
+      };
+    }
+    const originalOpen = XMLHttpRequest.prototype.open;
+    const originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      this.__aetherNetwork = {method: String(method).toUpperCase(), url: String(url), started: 0};
+      return originalOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function(body) {
+      const meta = this.__aetherNetwork || {method:'GET', url:'', started: 0};
+      meta.started = Date.now();
+      post({phase:'request', url: meta.url, method: meta.method, bodyBytes: (typeof body === 'string') ? body.length : 0, bodySnippet: null});
+      this.addEventListener('loadend', () => {
+        let bytes = 0;
+        try {
+          if (typeof this.responseText === 'string') { bytes = this.responseText.length; }
+          else if (this.response) { bytes = String(this.response).length; }
+        } catch (_) {}
+        post({phase:'response', url: meta.url, method: meta.method, status: this.status || 0, durationMs: Date.now() - (meta.started || Date.now()), responseBytes: bytes});
+      }, {once: true});
+      return originalSend.apply(this, arguments);
+    };
+  })();
+  """
+
   func consoleLines() async -> [String] {
     guard
       let text = try? await script(
@@ -614,6 +706,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
       emitEvent(.focusChanged(target: target, focused: body["focused"] as? Bool ?? false))
       return
     }
+    if message.name == Self.networkHandlerName {
+      receiveNetworkMessage(message)
+      return
+    }
     if message.name == Self.fileUploadHandlerName {
       receiveFileUploadMessage(message)
       return
@@ -641,6 +737,39 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     installDeferredPageFeatures()
     probe("paint observed gen=\(gen) \(elapsed(currentScope))")
     publish()
+  }
+
+  /// Turns a layer 1 network message into a typed event (directive §7.2.3). The URL and body
+  /// are redacted here, at the producer, so a secret never enters the event pipeline.
+  private func receiveNetworkMessage(_ message: WKScriptMessage) {
+    guard let body = message.body as? [String: Any], let phase = body["phase"] as? String else {
+      return
+    }
+    func integer(_ key: String) -> Int {
+      (body[key] as? NSNumber)?.intValue ?? 0
+    }
+    switch phase {
+    case "request":
+      guard let rawURL = body["url"] as? String, let method = body["method"] as? String else {
+        return
+      }
+      let snippet = (body["bodySnippet"] as? String).map(BrowserNetworkRedaction.redactBody)
+      emitEvent(.networkRequest(
+        url: BrowserNetworkRedaction.redact(url: rawURL), method: method,
+        bodyBytes: integer("bodyBytes"), bodySnippet: snippet))
+    case "response":
+      guard let rawURL = body["url"] as? String, let method = body["method"] as? String else {
+        return
+      }
+      emitEvent(.networkResponse(
+        url: BrowserNetworkRedaction.redact(url: rawURL), method: method,
+        statusCode: integer("status"), durationMs: integer("durationMs"),
+        responseBytes: integer("responseBytes")))
+    case "truncated":
+      emitEvent(.networkObservationTruncated(limit: integer("limit")))
+    default:
+      return
+    }
   }
 
   private func receiveFileUploadMessage(_ message: WKScriptMessage) {
@@ -734,6 +863,11 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     configuration.userContentController.addUserScript(WKUserScript(
       source: WebKitPage.focusEventBridgeJS, injectionTime: .atDocumentStart,
       forMainFrameOnly: true, in: .page))
+    // Layer 1 network observation is installed before page script, so a page cannot dodge
+    // it (directive §7.2.1). The bridge is bounded and redacted at the producer.
+    configuration.userContentController.addUserScript(WKUserScript(
+      source: WebKitPage.networkObserverJS, injectionTime: .atDocumentStart,
+      forMainFrameOnly: true, in: .page))
     // The semantic-mutation observer is a first-class event producer
     // (`document.mutated`), so it is installed for every page rather than only
     // when the optional semantic-signal service is configured. The handler
@@ -767,6 +901,8 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
       name: WebKitPage.consoleHandlerName)
     configuration.userContentController.add(self, contentWorld: .page,
       name: WebKitPage.focusHandlerName)
+    configuration.userContentController.add(self, contentWorld: .page,
+      name: WebKitPage.networkHandlerName)
     configuration.userContentController.add(self, contentWorld: .defaultClient,
       name: AetherStoreRelay.name)
     view.allowsBackForwardNavigationGestures = false
@@ -1107,6 +1243,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     view.configuration.userContentController.removeScriptMessageHandler(forName: Self.fileUploadHandlerName)
     view.configuration.userContentController.removeScriptMessageHandler(forName: Self.consoleHandlerName)
     view.configuration.userContentController.removeScriptMessageHandler(forName: Self.focusHandlerName)
+    view.configuration.userContentController.removeScriptMessageHandler(forName: Self.networkHandlerName)
     view.configuration.userContentController.removeScriptMessageHandler(forName: AetherStoreRelay.name)
     view.navigationDelegate = nil
     view.uiDelegate = nil

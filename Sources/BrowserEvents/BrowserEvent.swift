@@ -56,6 +56,15 @@ public enum BrowserEventKind: Sendable, Equatable {
   case documentMutated(revision: UInt64)
   case consoleMessage(level: String, text: String)
   case networkNavigationResponse(url: String, statusCode: Int, mimeType: String?)
+  /// Layer 1 in-page observation (directive §7.2): a request issued by page script,
+  /// observed before it is sent. `bodySnippet` is bounded and redacted by the producer.
+  case networkRequest(url: String, method: String, bodyBytes: Int, bodySnippet: String?)
+  /// The completion of an observed request. `statusCode == 0` means the request failed
+  /// before a response (CORS, network error), which is itself evidence.
+  case networkResponse(
+    url: String, method: String, statusCode: Int, durationMs: Int, responseBytes: Int)
+  /// The observer hit its per-document cap and stopped reporting. Counted, not silent.
+  case networkObservationTruncated(limit: Int)
   case downloadStarted(url: String)
   case downloadFinished(url: String, path: String?)
   case downloadFailed(url: String, error: String)
@@ -89,7 +98,9 @@ public enum BrowserEventKind: Sendable, Equatable {
       .navigationFinished, .navigationFailed: return .navigation
     case .urlChanged, .titleChanged, .documentMutated: return .document
     case .consoleMessage: return .console
-    case .networkNavigationResponse: return .network
+    case .networkNavigationResponse, .networkRequest, .networkResponse,
+      .networkObservationTruncated:
+      return .network
     case .downloadStarted, .downloadFinished, .downloadFailed: return .download
     case .popupRequested: return .popup
     case .dialogOpened: return .dialog
@@ -121,6 +132,9 @@ public enum BrowserEventKind: Sendable, Equatable {
     case .documentMutated: return "document.mutated"
     case .consoleMessage: return "console.message"
     case .networkNavigationResponse: return "network.navigationResponse"
+    case .networkRequest: return "network.request"
+    case .networkResponse: return "network.response"
+    case .networkObservationTruncated: return "network.truncated"
     case .downloadStarted: return "download.started"
     case .downloadFinished: return "download.finished"
     case .downloadFailed: return "download.failed"
@@ -166,6 +180,17 @@ public enum BrowserEventKind: Sendable, Equatable {
     case .consoleMessage(let level, let text): return ["level": level, "text": text]
     case .networkNavigationResponse(let url, let statusCode, let mimeType):
       return ["url": url, "statusCode": String(statusCode), "mimeType": mimeType ?? ""]
+    case .networkRequest(let url, let method, let bodyBytes, let bodySnippet):
+      return [
+        "url": url, "method": method, "bodyBytes": String(bodyBytes),
+        "bodySnippet": bodySnippet ?? "",
+      ]
+    case .networkResponse(let url, let method, let statusCode, let durationMs, let responseBytes):
+      return [
+        "url": url, "method": method, "statusCode": String(statusCode),
+        "durationMs": String(durationMs), "responseBytes": String(responseBytes),
+      ]
+    case .networkObservationTruncated(let limit): return ["limit": String(limit)]
     case .downloadStarted(let url): return ["url": url]
     case .downloadFinished(let url, let path): return ["url": url, "path": path ?? ""]
     case .downloadFailed(let url, let error): return ["url": url, "error": error]

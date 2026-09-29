@@ -95,23 +95,6 @@ public struct TabItemView: View {
                     }
                 }
                 .frame(maxWidth: compact ? .infinity : nil)
-                .overlay {
-                    if replacesFavicon {
-                        Button { window.close(tab.id) } label: {
-                            BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
-                                .frame(width: 24, height: 24)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .aetherPointingCursor()
-                        .focusEffectDisabled()
-                        .focused($slotCloseFocused)
-                        .help("Close tab")
-                        .opacity(hovering || slotCloseFocused ? 1 : 0)
-                        .disabled(!hovering && !slotCloseFocused)
-                        .transition(.opacity)
-                    }
-                }
                 if !compact {
                     tabTitleText
                 }
@@ -121,23 +104,14 @@ public struct TabItemView: View {
                     BrowserIconView(icon: .pin, tint: theme.soft).iconSize(10)
                         .frame(width: 16, alignment: .center)
                 }
-                if !compact {
-                    Button { window.close(tab.id) } label: {
-                        BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
-                            .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .aetherPointingCursor()
-                    .focusEffectDisabled()
-                        .focused($trailCloseFocused)
-                        .help("Close tab")
-                        .opacity((hovering || trailCloseFocused) ? 1 : 0)
-                        .disabled(!hovering && !trailCloseFocused)
-                        .transition(.opacity)
-                }
             }
             .padding(.horizontal, compact ? 2 : (topFused ? 8 : 10))
+            // The close control is drawn beside this button rather than inside
+            // it: a button nested in another button's label is never handed the
+            // click on macOS, which is why the cross closed nothing. Its width
+            // is held open here, so the title truncates in exactly the same
+            // place it always did — nothing about the row's look changes.
+            .padding(.trailing, compact ? 0 : closeWidthReserve)
             .frame(height: topFused ? AetherMetrics.tabHeight : 32)
             .background {
                 selectionBackground
@@ -186,17 +160,36 @@ public struct TabItemView: View {
                     .allowsHitTesting(false)
             }
         }
-        .overlay { TabMiddleClick { window.close(tab.id) } }
+        // One close control, used by both rows: the trailing one in the sidebar
+        // and the wide tab strip, and the one that takes the favicon's place in
+        // the narrow strip. Both are siblings of the row button, so both are
+        // real targets.
+        .overlay(alignment: .trailing) {
+            if !compact {
+                closeControl(focused: $trailCloseFocused)
+                    .padding(.trailing, horizontalPadding)
+                    .opacity(hovering || trailCloseFocused ? 1 : 0)
+                    .allowsHitTesting(hovering || trailCloseFocused)
+            }
+        }
+        .overlay {
+            if compact && replacesFavicon {
+                closeControl(focused: $slotCloseFocused)
+                    .opacity(hovering || slotCloseFocused ? 1 : 0)
+                    .allowsHitTesting(hovering || slotCloseFocused)
+            }
+        }
+        .overlay { TabMiddleClick { closeTab() } }
         .aetherPointingCursor()
         .zIndex(topFused ? (selected ? 5 : 1) : 0)
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
         .contextMenu {
-            Button("New Tab") { _ = window.newTab() }
-            Button("New Private Tab") { _ = window.newPrivateTab() }
-            Button("Duplicate Tab") { window.duplicate(tab.id) }
-            Button("Open Beside") { if let url = tab.url { _ = window.openBeside(url: url) } }.disabled(tab.url == nil)
+            Button("New Tab") { withAnimation(AetherMotion.tab(reduced)) { _ = window.newTab() } }
+            Button("New Private Tab") { withAnimation(AetherMotion.tab(reduced)) { _ = window.newPrivateTab() } }
+            Button("Duplicate Tab") { withAnimation(AetherMotion.tab(reduced)) { window.duplicate(tab.id) } }
+            Button("Open Beside") { if let url = tab.url { withAnimation(AetherMotion.tab(reduced)) { _ = window.openBeside(url: url) } } }.disabled(tab.url == nil)
             Button("Rename Tab…") { window.renamingTabID = tab.id }
-            Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") { window.togglePin(tab.id) }
+            Button(tab.isPinned ? "Unpin Tab" : "Pin Tab") { withAnimation(AetherMotion.tab(reduced)) { window.togglePin(tab.id) } }
             Button(tab.isMuted ? "Unmute Tab" : "Mute Tab") { window.toggleMute(tab) }
                 .disabled(tab.enginePageID == nil)
             Button(tab.isSleeping ? "Wake Tab" : "Sleep Tab") { tab.isSleeping ? window.select(tab.id) : window.sleepTab(tab.id) }
@@ -204,15 +197,15 @@ public struct TabItemView: View {
             Button("Share Page…") { window.sharePage(for: tab) }.disabled(tab.url == nil)
             Button("Copy as Markdown Link") { window.copyMarkdownLink(for: tab) }.disabled(tab.url == nil)
             Divider()
-            Button("Close Other Tabs") { window.closeOthers(tab.id) }
-            Button("Close Tab") { window.closeOrPutDown(tab.id) }
+            Button("Close Other Tabs") { withAnimation(AetherMotion.closeTab(reduced)) { window.closeOthers(tab.id) } }
+            Button("Close Tab") { withAnimation(AetherMotion.closeTab(reduced)) { window.closeOrPutDown(tab.id) } }
         }
         .onDrag { NSItemProvider(object: tab.id.uuidString as NSString) }
         .onDrop(of: [.plainText], isTargeted: nil) { providers in
             guard let provider = providers.first else { return false }
             _ = provider.loadObject(ofClass: NSString.self) { object, _ in
                 guard let source = object as? String, let id = UUID(uuidString: source) else { return }
-                Task { @MainActor in window.moveTab(id, before: tab.id) }
+                Task { @MainActor in withAnimation(AetherMotion.tab(reduced)) { window.moveTab(id, before: tab.id) } }
             }
             return true
         }
@@ -222,6 +215,35 @@ public struct TabItemView: View {
 
     private var sidebarWidth: CGFloat {
         window.workspace.preferences.transientSidebarWidth ?? window.workspace.preferences.sidebarWidth
+    }
+
+    /// The inset the row's content sits at, and the inset the trailing close
+    /// control has to reproduce to land where it used to sit in the row.
+    private var horizontalPadding: CGFloat { compact ? 2 : (topFused ? 8 : 10) }
+    /// What the close control used to occupy in the row's stack: 10pt of spacing
+    /// plus the 24pt button.
+    private var closeWidthReserve: CGFloat { 34 }
+
+    private func closeControl(focused: FocusState<Bool>.Binding) -> some View {
+        Button { closeTab() } label: {
+            BrowserIconView(icon: .close, tint: closeTint).iconSize(10)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .aetherPointingCursor()
+        .focusEffectDisabled()
+        .focused(focused)
+        .help("Close tab")
+    }
+
+    /// Sending the tab away and animating the tab list are the same act, so the
+    /// animation is raised here, where the tab going is known — not by an
+    /// `animation(_:value:)` on the whole sidebar, which also animated every
+    /// reorder the list ever did and left each close inside a relayout of the
+    /// tabs it was not about.
+    private func closeTab() {
+        withAnimation(AetherMotion.closeTab(reduced)) { window.close(tab.id) }
     }
 
     private var replacesFavicon: Bool {

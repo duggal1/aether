@@ -105,6 +105,12 @@ public struct BrowserCredentialSummary: Identifiable, Sendable, Equatable {
     func saveCredential(profileID: UUID, origin: String, username: String, password: String) async throws
     func deleteCredential(profileID: UUID, credentialID: String) async throws
     func fillCredential(pageID: String, credentialID: String, fillUsername: Bool) async throws
+    /// The one way a saved password comes back, for a person to read or copy.
+    /// Filling a form is not this: that goes through `fillCredential`, and the
+    /// secret never leaves the engine. Callers prove it is the person the Mac
+    /// belongs to first — `AetherLocalAuth.prove` — as Safari asks before it
+    /// shows one.
+    func savedPassword(profileID: UUID, credentialID: String) async throws -> String
 }
 
 public enum PasskeyAuthorizationState: String, Sendable, Equatable, CaseIterable {

@@ -77,10 +77,6 @@ enum AetherExtensionCompatibility {
 
     /// A path a package names, resolved and kept inside the folder it came
     /// in: `..` is not a way out of the package, and neither is a link.
-    static func fileInside(_ name: String, of folder: URL) -> URL? {
-        packageURL(name, folder: folder)
-    }
-
     private static func packageURL(_ name: String, folder: URL) -> URL? {
         let root = folder.standardizedFileURL
         let file = root.appendingPathComponent(name.trimmingCharacters(in: CharacterSet(charactersIn: "/"))).standardizedFileURL

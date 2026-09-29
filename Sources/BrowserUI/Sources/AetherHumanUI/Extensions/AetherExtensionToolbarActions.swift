@@ -52,7 +52,7 @@ struct AetherExtensionToolbarActions: View {
 }
 
 @MainActor
-private struct AetherExtensionActionAnchor: NSViewRepresentable {
+struct AetherExtensionActionAnchor: NSViewRepresentable {
     let extensions: AetherExtensions
     let windowID: UUID
     let extensionID: String
@@ -68,6 +68,6 @@ private struct AetherExtensionActionAnchor: NSViewRepresentable {
     }
 }
 
-private final class AnchorView: NSView {
+final class AnchorView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
