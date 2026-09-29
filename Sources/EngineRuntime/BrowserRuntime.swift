@@ -141,6 +141,10 @@ public actor BrowserRuntime {
   /// In-flight work that a workspace lease authorizes. When a lease stops being active
   /// the runtime revokes these so a revoked workspace cannot keep being driven.
   var leaseBoundExecutions: [LeaseRevocationToken: LeaseBoundExecution] = [:]
+  /// Child registrations whose context scope follows a parent registration. A persistent
+  /// execution session registers here under the program that drives it, so the session's
+  /// teardown follows every context the program touches without extra plumbing.
+  var leaseBoundExecutionLinks: [LeaseRevocationToken: [LeaseRevocationToken]] = [:]
   var branchContexts: [BranchID: ContextID] = [:]
   var contextBranches: [ContextID: BranchID] = [:]
 
@@ -181,6 +185,12 @@ public actor BrowserRuntime {
     let eventStream = pageEventChannel.stream
     Task { [weak self] in
       for await (pageID, kind) in eventStream {
+        // The WebKit layer already observes requests/responses and emits them as events,
+        // but only the custom-engine loader wrote `page.networkLog`. Without this,
+        // `page-network-log` returns [] for every WebKit page, which makes an empty log
+        // indistinguishable from "the page made no requests" — exactly the ambiguity that
+        // left load failures undiagnosable.
+        await self?.recordNetworkEvent(kind, pageID: pageID)
         await self?.publishPageEvent(kind, pageID: pageID)
       }
     }
@@ -286,6 +296,10 @@ public actor BrowserRuntime {
     if let branch = contextBranches.removeValue(forKey: id) {
       branchContexts[branch] = nil
     }
+    // Capture the session before the store closes. Without this the last sign-in a
+    // context performed is lost, so a "persistent profile" silently behaves like an
+    // ephemeral one across restarts.
+    if let profile = removed.profile { await persistCookies(contextID: id, profile: profile) }
     removed.profile?.close()
     workspaceLeases[id] = nil
     for pageID in removed.pages.keys {
@@ -347,6 +361,18 @@ public actor BrowserRuntime {
         sameSite: row.sameSite, hostOnly: row.hostOnly)
     }
     context.network.restoreCookies(cookies)
+    // Restoring into `context.network` alone is not enough: production navigations are
+    // served by WKWebView, which reads and writes `WKHTTPCookieStore`. Seeding only the
+    // custom jar made every "persistent profile" behave as ephemeral — a profile that had
+    // been signed in came back anonymous after a restart (measured: 56 cookies in the
+    // store, 0 restored into the live session). Seed the WebKit store too.
+    for row in try profile.loadCookies() {
+      try? await setCookie(
+        contextID: contextID,
+        cookie: CookieInfo(
+          name: row.name, value: row.value, domain: row.domain, path: row.path,
+          secure: row.secure, httpOnly: row.httpOnly, sameSite: row.sameSite))
+    }
     // Production navigations render in WKWebView, which owns HTTP caching
     // in its website data store (proper ETag/age revalidation, so a
     // redesigned site is never served stale). Aether's duplicate response
@@ -399,6 +425,50 @@ public actor BrowserRuntime {
     restoreHumanRequests(contextID: contextID)
   }
 
+  /// The cookie rows that must be persisted for a context.
+  ///
+  /// Production navigations are served by WKWebView, whose cookies live in
+  /// `WKHTTPCookieStore` — *not* in `context.network`. Reading only the latter persisted an
+  /// empty jar, and because `saveCheckpointTables` rewrites the whole table in one
+  /// transaction, that silently wiped the real session: a profile that had signed in to
+  /// Google, Clay and Slack came back with `cookies: 0` and every site anonymous after a
+  /// restart. WebKit wins on key collision, since it is the jar real navigations used.
+  private func mergedCookieRows(contextID: ContextID) async -> [CookieRow] {
+    var merged: [String: CookieRow] = [:]
+    func key(_ domain: String, _ path: String, _ name: String) -> String {
+      "\(domain)\u{0}\(path)\u{0}\(name)"
+    }
+    if let network = contexts[contextID]?.network {
+      for cookie in network.snapshotCookies() {
+        let row = CookieRow(
+          name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path,
+          expires: cookie.expires, secure: cookie.secure, httpOnly: cookie.httpOnly,
+          sameSite: cookie.sameSite, hostOnly: cookie.hostOnly)
+        merged[key(row.domain, row.path, row.name)] = row
+      }
+    }
+    if let webCookies = try? await listCookies(contextID: contextID) {
+      for cookie in webCookies {
+        let row = CookieRow(
+          name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path,
+          expires: nil, secure: cookie.secure, httpOnly: cookie.httpOnly,
+          sameSite: cookie.sameSite)
+        merged[key(row.domain, row.path, row.name)] = row
+      }
+    }
+    return Array(merged.values)
+  }
+
+  /// Standalone cookie write for teardown, where no checkpoint follows. Failures are
+  /// logged rather than thrown so a teardown never aborts.
+  private func persistCookies(contextID: ContextID, profile: ProfileStore) async {
+    let rows = await mergedCookieRows(contextID: contextID)
+    guard !rows.isEmpty else { return }
+    do { try profile.saveCookies(rows) } catch {
+      NSLog("aether: cookie persist failed for context \(contextID.rawValue): \(error)")
+    }
+  }
+
   public func checkpoint(contextID: ContextID) async throws {
     guard let context = contexts[contextID] else {
       throw BrowserRuntimeError.contextNotFound(contextID)
@@ -406,12 +476,9 @@ public actor BrowserRuntime {
     guard let profile = context.profile else {
       throw BrowserRuntimeError.profileNotConfigured(contextID)
     }
-    let cookies = context.network.snapshotCookies().map { cookie in
-      CookieRow(
-        name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path,
-        expires: cookie.expires, secure: cookie.secure, httpOnly: cookie.httpOnly,
-        sameSite: cookie.sameSite, hostOnly: cookie.hostOnly)
-    }
+    // Always write the jar back, even for contexts with no attached page: closing a
+    // context is the last chance to capture the session before the process exits.
+    let cookies = await mergedCookieRows(contextID: contextID)
     let stored = context.storage.snapshotAll().flatMap { origin, values in
       values.map { LocalStorageRow(origin: origin, key: $0.key, value: $0.value) }
     }
@@ -805,8 +872,11 @@ public actor BrowserRuntime {
     return PageInspection(page: try pageInfo(pageID), nodes: nodes)
   }
 
-  public func snapshot(pageID: PageID, limit: Int = 20000) async throws -> PageSnapshot {
-    return try await webPage(pageID).snapshot(info: pageInfo(pageID), limit: limit)
+  public func snapshot(pageID: PageID, limit: Int = 20000, since: UInt64? = nil) async throws
+    -> PageSnapshot
+  {
+    return try await webPage(pageID).snapshot(
+      info: pageInfo(pageID), limit: limit, since: since)
   }
 
   public func query(pageID: PageID, selector: String) async throws -> InspectedNode? {
@@ -1384,6 +1454,29 @@ public actor BrowserRuntime {
 
   public func networkLogEntries(pageID: PageID) throws -> [NetworkLogEntry] {
     try requirePage(pageID).networkLog
+  }
+
+  /// Mirrors the WebKit observer's `networkResponse` events into `page.networkLog`.
+  ///
+  /// Only responses are recorded, so a request that never completed still shows up with
+  /// `statusCode == 0` — a request that is absent from the log genuinely never happened.
+  /// That distinction is the whole point: it makes an empty log meaningful.
+  private func recordNetworkEvent(_ kind: BrowserEventKind, pageID: PageID) {
+    guard case .networkResponse(let url, _, let statusCode, let durationMs, _) = kind else { return }
+    guard let contextID = contextID(containing: pageID),
+      var page = contexts[contextID]?.pages[pageID]
+    else { return }
+    page.networkLog.append(
+      NetworkLogEntry(
+        request: RequestID(rawValue: 0), navigation: nil, url: url,
+        statusCode: statusCode, durationMilliseconds: Double(durationMs), fromCache: false))
+    // More headroom than the custom-engine path (32): diagnosing a page that issues many
+    // subresource requests needs history, and this list is only read on demand.
+    let limit = 512
+    if page.networkLog.count > limit {
+      page.networkLog.removeFirst(page.networkLog.count - limit)
+    }
+    contexts[contextID]?.pages[pageID] = page
   }
 
   public func mainFrame(pageID: PageID) throws -> AgentFrameInfo {

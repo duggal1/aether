@@ -124,3 +124,33 @@ import Testing
   #expect(adapter.currentRouteStatus(profileID: profileID) == .blocked)
   await adapter.shutdown()
 }
+
+/// The one path that hands a saved password back to a person, for the settings
+/// pane's Show and Copy. It returns exactly what was saved, and nothing for a
+/// credential that belongs to a profile nobody opened.
+@MainActor
+@Test func adapterRevealsASavedPasswordOnlyForItsOwnProfile() async throws {
+  let directory = FileManager.default.temporaryDirectory
+    .appendingPathComponent(UUID().uuidString, isDirectory: true)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let adapter = AetherEngineAdapter(profileDirectory: directory)
+  let profileID = UUID()
+  let origin = "https://vault.test"
+  try await adapter.saveCredential(
+    profileID: profileID, origin: origin, username: "person", password: "kept-secret")
+  let credential = try #require(
+    try await adapter.savedCredentials(profileID: profileID, origin: origin).first)
+  #expect(
+    try await adapter.savedPassword(profileID: profileID, credentialID: credential.id)
+      == "kept-secret")
+
+  await #expect(throws: (any Error).self) {
+    _ = try await adapter.savedPassword(profileID: UUID(), credentialID: credential.id)
+  }
+
+  try await adapter.deleteCredential(profileID: profileID, credentialID: credential.id)
+  await #expect(throws: (any Error).self) {
+    _ = try await adapter.savedPassword(profileID: profileID, credentialID: credential.id)
+  }
+  await adapter.shutdown()
+}

@@ -1,5 +1,8 @@
 # Architecture
 
+> [!WARNING]
+> **This document describes the original custom engine and is stale.** That engine is being retired in favour of system WebKit (`WKWebView`). The module layering below still describes the code that exists on disk, but the rendering path (`SoftwareRenderer`/`MetalRenderer`), the `JSRuntime`, and the headless rendering targets are **not** the current website-rendering path. Read `Docs/WEBKIT.md` for what actually renders pages, and `work/plan/backend/retire-custom-engine.md` for the migration status. Where the two disagree, the WebKit path is live.
+
 NativeBrowserEngine is a frontend-independent engine. A future macOS browser shell, `browserctl`, `browserd`, tests, and local coding agents are clients of the same runtime rather than separate browser implementations.
 
 ## Dependency direction

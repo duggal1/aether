@@ -1,0 +1,310 @@
+version: "1.0"
+name: aether-professional-workflow
+repository: /Users/harshitduggal/workspace/Aether
+description: >-
+  Sequential end-to-end validation of Aether as an agent-native browser workspace
+  for frontier coding agents doing legitimate professional work.
+
+identity:
+  profile: agent-profile
+  email_pattern: aether-agent-{coding-agent-name}@gmail.com
+  handle_pattern: aether-agent-{coding-agent-name}
+  credential_policy: >-
+    Use Aether's authorized credential system. Never store raw passwords in this
+    YAML, Markdown, source code, logs, screenshots, or git history.
+
+execution_policy:
+  strict_order: true
+  no_step_skipping: true
+  dependencies_must_pass_before_next_task: true
+  allowed_status:
+    - not_started
+    - in_progress
+    - passed
+    - blocked
+    - failed
+  on_failure:
+    - reproduce
+    - classify
+    - fix_if_in_scope
+    - add_regression_test_if_appropriate
+    - rerun
+    - record_evidence
+  authentication_boundary: >-
+    Stop for explicit human handoff when a provider requires passkey, MFA,
+    CAPTCHA, phone verification, identity verification, payment, legal
+    acceptance, or another human-only security action.
+  no_security_bypass: true
+  no_provider_limit_evasion: true
+
+state_tracking:
+  ledger_file: execution.md
+  required_fields:
+    - task_id
+    - status
+    - started_at
+    - completed_at
+    - profile_id
+    - context_id
+    - session_id
+    - page_id
+    - actions
+    - expected_result
+    - actual_result
+    - verification_evidence
+    - errors
+    - recovery
+    - blocker
+    - code_changes
+    - regression_tests
+
+tasks:
+  - id: T1
+    level: 1
+    name: Create agent browser profile and Google identity
+    goal: >-
+      Create the persistent agent-profile and establish a real agent-owned
+      Google/Gmail identity through the Aether browser.
+    steps:
+      - Inspect the repository and discover the real profile/session/page interface.
+      - Start the Aether browser runtime using the repository's actual mechanism.
+      - Create profile agent-profile.
+      - Open a session/context using agent-profile.
+      - Open Google's account-creation flow in Aether.
+      - Generate an identity using aether-agent-{coding-agent-name}@gmail.com.
+      - Generate credentials through the authorized credential subsystem.
+      - Complete account creation through the real browser flow.
+      - If Google requires a human-only security action, stop and request handoff.
+      - Verify the resulting Google account is authenticated.
+      - Open Gmail in the same profile.
+      - Verify the inbox and account identity load correctly.
+      - Persist the successful credential association under the correct profile.
+    pass_criteria:
+      - agent-profile exists and persists.
+      - A real Google/Gmail account using the required identity pattern exists, or the provider's actual blocker is recorded.
+      - Gmail opens in the intended profile and shows the correct account.
+      - Credentials are stored through the authorized credential subsystem.
+      - No plaintext password is present in repository files or logs.
+    block_conditions:
+      - passkey/MFA/CAPTCHA/phone verification/human-only security step
+      - provider blocks automated account creation
+      - provider policy prevents required flow
+
+  - id: T2
+    level: 2
+    name: Establish professional web identity
+    depends_on: [T1]
+    goal: >-
+      Use the newly established agent identity to configure authorized accounts
+      or workspaces across the requested professional/social platforms.
+    steps:
+      - Open Clay.
+      - Create or configure the agent-owned Clay account if the provider permits it.
+      - Verify the authenticated Clay state.
+      - Open YouTube and verify the Google identity is available.
+      - Open X and create/sign into the agent-owned account if permitted.
+      - Open Reddit and create/sign into the agent-owned account if permitted.
+      - Open Slack and create/join the authorized agent workspace if permitted.
+      - Verify each completed account by its authenticated landing state.
+      - Record provider restrictions and human-only boundaries.
+    pass_criteria:
+      - Every permitted platform is configured and actually verified.
+      - Restrictions are recorded rather than hidden.
+      - The same agent identity is used consistently.
+      - No deceptive public engagement is created.
+
+  - id: T3
+    level: 3
+    name: Professional prospecting and controlled outreach test
+    depends_on: [T2]
+    goal: >-
+      Use Clay/Apollo and authorized email tooling to create a qualified prospect
+      set, build a pipeline, and perform a controlled 10-recipient test.
+    steps:
+      - Open Clay using the authenticated agent account.
+      - Define a concrete ICP relevant to the business workflow.
+      - Research real prospects.
+      - Enrich prospects using supported provider functionality.
+      - Validate required fields and evidence.
+      - Remove duplicates and weak-fit records.
+      - Export the prospect set through the real browser workflow.
+      - Open Apollo or the authorized sequencing system.
+      - Create the prospecting pipeline.
+      - Import/connect selected prospects as permitted.
+      - Configure the email sequence.
+      - Select designated test recipients where available.
+      - Send exactly 10 authorized test emails.
+      - Verify the sender-side Sent state for the messages.
+      - Record any throttling, rejection, or deliverability issue.
+    pass_criteria:
+      - Real qualified prospect set exists.
+      - Export actually succeeds.
+      - Pipeline exists and contains intended records.
+      - Exactly 10 authorized test emails are sent when permitted.
+      - Sent-state evidence is verified.
+      - No sending or anti-spam controls were bypassed.
+
+  - id: T4
+    level: 2
+    name: Independent human-style YouTube and X browsing
+    depends_on: [T2]
+    goal: Demonstrate genuine browser navigation and independent content selection.
+    steps:
+      - Open YouTube.
+      - Search independently across learning/education, AI, technology, music, fun, and novelty.
+      - Open several agent-selected results.
+      - Watch enough content to prove real page interaction.
+      - Navigate recommendations and perform additional searches.
+      - Return to relevant results.
+      - Record the categories and selections used.
+      - Repeat a smaller autonomous navigation flow on X.
+      - Do not fabricate likes, follows, posts, replies, or votes.
+    pass_criteria:
+      - Real search and navigation occur in Aether.
+      - Selections are agent-generated rather than hardcoded item IDs.
+      - Dynamic navigation and page state are handled successfully.
+
+  - id: T5
+    level: 4
+    name: Production infrastructure and application operation
+    depends_on: [T1]
+    goal: >-
+      Demonstrate that the coding agent can cross from code into real cloud
+      infrastructure and back using authorized systems and Aether browser access.
+    steps:
+      - Inspect the project repository and determine the target production architecture.
+      - Open the authorized AWS account in Aether.
+      - Inspect current infrastructure before making changes.
+      - Configure only resources explicitly authorized for this task.
+      - Configure required IAM/security settings.
+      - Configure required networking, storage, database, compute, and monitoring resources.
+      - Open Cloudflare if DNS/domain configuration is required.
+      - Open Neon or the authorized database provider if required.
+      - Open the authorized deployment provider if required.
+      - Create/retrieve scoped credentials through supported provider flows when needed.
+      - Store secrets through the approved secret-management mechanism.
+      - Return to the code worktree.
+      - Implement/configure the application.
+      - Deploy to the authorized environment.
+      - Open the live application in Aether.
+      - Execute a real end-to-end browser workflow.
+      - Inspect logs/network/console when failures occur.
+      - Fix code/configuration and redeploy when necessary.
+      - Verify the final live state.
+    pass_criteria:
+      - Required infrastructure is actually configured.
+      - Application is actually deployed.
+      - Live application is tested through Aether.
+      - Final state is independently verified.
+      - Chargeable resources were created only with authorization.
+
+  - id: T6
+    level: 5
+    name: Market Dark Funnel with legitimate real outreach
+    depends_on: [T3, T5]
+    company: darkfunnel.pro
+    goal: >-
+      Perform real professional B2B marketing work for Dark Funnel using the
+      existing product, qualified business prospects, and authorized systems.
+    steps:
+      - Open darkfunnel.pro and study the live product.
+      - Read relevant product/company material from the authorized repository and website.
+      - Determine the actual ICP and strongest truthful value propositions.
+      - Open Clay and/or Apollo.
+      - Build a qualified account/person list based on the actual ICP.
+      - Enrich the selected prospects.
+      - Remove duplicates and weak-fit records.
+      - Record selection evidence.
+      - Create/update the prospecting pipeline.
+      - Generate genuinely personalized outreach.
+      - Use truthful business outreach with appropriate opt-out handling.
+      - Send outreach to a legitimate prospect set through the authorized email system.
+      - Monitor delivery and replies.
+      - Respond to legitimate replies when authorized.
+      - Schedule meetings when recipients agree.
+      - Report actual activity in the authorized Slack channel.
+      - Update the pipeline with real outcomes.
+      - Return to darkfunnel.pro and evaluate the product as a customer would.
+      - Capture real objections, UX issues, or product requests.
+      - Create engineering/product work from real feedback where appropriate.
+      - Never claim traction, meetings, replies, revenue, or conversions that did not happen.
+    pass_criteria:
+      - Real qualified prospect pipeline exists.
+      - Legitimate outreach is actually executed.
+      - Delivery/reply outcomes are recorded.
+      - Any reported meetings/conversions are real and verifiable.
+      - Internal reporting reflects actual work.
+      - Concrete product/market feedback is produced when available.
+
+  - id: T7
+    level: 6
+    name: Parallel frontier-agent workforce
+    depends_on: [T5]
+    goal: >-
+      Demonstrate multiple isolated agents using independent browser workspaces
+      and coding worktrees on related professional objectives.
+    steps:
+      - Allocate unique agent identities for workers.
+      - Create isolated Aether browser workspaces.
+      - Pair workers with separate repository worktrees where applicable.
+      - Assign independent jobs such as prospect research, QA, infrastructure verification, competitor research, or documentation.
+      - Verify browser profile/session/workspace isolation.
+      - Run workers concurrently.
+      - Observe browser events and workspace state.
+      - Attempt controlled cross-workspace access and verify isolation rejects it.
+      - Collect worker results.
+      - Combine and verify results.
+      - Measure sustainable concurrency honestly.
+    pass_criteria:
+      - Multiple workers run concurrently.
+      - Browser workspaces remain isolated.
+      - Worktrees remain isolated where used.
+      - Combined output is correct and free of cross-agent state corruption.
+      - Real measured concurrency and resource usage are recorded.
+
+  - id: T8
+    level: 6
+    name: End-to-end autonomous company loop
+    depends_on: [T6, T7]
+    goal: >-
+      Demonstrate the complete Aether thesis across code, infrastructure,
+      browser operations, marketing, users, feedback, and iterative development.
+    steps:
+      - Start from the current product/repository state.
+      - Select one concrete business objective for the cycle.
+      - Implement required product changes in the code worktree.
+      - Configure required operational systems through Aether.
+      - Deploy the product.
+      - Verify the live application.
+      - Research qualified prospects through Aether.
+      - Execute legitimate outreach.
+      - Monitor actual responses and user feedback.
+      - Record real market/product feedback.
+      - Convert useful feedback into product/engineering tasks.
+      - Modify the repository.
+      - Test changes.
+      - Redeploy.
+      - Verify the new production state.
+      - Report the complete cycle with evidence and actual outcomes.
+    pass_criteria:
+      - The loop crosses code, browser, infrastructure, and business operations.
+      - The agent can return from browser work to code and back.
+      - Major results are independently verified.
+      - No fabricated business outcome is reported.
+
+global_acceptance:
+  must_pass: [T1, T2, T3, T5, T6]
+  T4_T7_T8: passed_or_honestly_blocked
+  completion_rule: >-
+    Never declare the mission complete if an unverified, blocked, failed, or
+    provider-restricted task is presented as passed.
+  final_report:
+    - task-by-task status
+    - exact evidence
+    - provider restrictions
+    - Aether bugs found and fixed
+    - Aether bugs still open
+    - runtime limitations
+    - measured concurrency
+    - actual business outcomes
+    - next highest-value engineering gaps

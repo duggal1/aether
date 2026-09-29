@@ -51,12 +51,21 @@ extension WebKitPage {
   }
 
   func domScript(_ source: String) -> String {
-    WebKitDOMScript.source(generation: generation) + ";\n" + source
+    // The extractor is installed once per document (document-start user script, with this
+    // as the lazy fallback). Once installed for the current generation, only the tiny
+    // activation script crosses the bridge, so a per-operation read no longer pays for a
+    // 3.5 KiB source re-transmission (directive §10.3.3, §10.4.6).
+    let installed = domInstalledGeneration == generation
+    let prefix = installed
+      ? WebKitDOMScript.activation(generation: generation)
+      : WebKitDOMScript.source(generation: generation)
+    domInstalledGeneration = generation
+    return prefix + ";\n" + source
   }
 
   func query(_ selector: String) async throws -> [InspectedNode] {
     let values = try await decode([WebDOMNode].self,
-      domScript("JSON.stringify(Array.from(document.querySelectorAll(\(try Self.literal(selector)))).slice(0,10000).map(n => globalThis.__aetherDOM.describe(n)))"))
+      domScript(Self.forceLayout + "JSON.stringify(Array.from(document.querySelectorAll(\(try Self.literal(selector)))).slice(0,10000).map(n => globalThis.__aetherDOM.describe(n)))"))
     return values.map(\.inspected)
   }
 
@@ -145,7 +154,8 @@ extension WebKitPage {
           Object.getOwnPropertyDescriptor(prototype, 'value').set.call(target, next);
           const caret = start + inserted.length;
           try { target.setSelectionRange(caret, caret); } catch {}
-          target.dispatchEvent(new Event('input', {bubbles: true}));
+          target.dispatchEvent(new InputEvent('input', {bubbles: true, composed: true,
+            data: inserted, inputType: 'insertText'}));
           value = next;
         }
       } else if (target.isContentEditable && key.length === 1) {
@@ -160,29 +170,69 @@ extension WebKitPage {
     """))
   }
 
-  func snapshot(info: BrowserPageInfo, limit: Int = 20000) async throws -> PageSnapshot {
+  /// Byte budget for one snapshot payload. Bounds the allocation a hostile or very large
+  /// page can force on a single read (directive §4.1.4, §9.6).
+  static let snapshotByteBudget = 1 * 1024 * 1024
+
+  func snapshot(info: BrowserPageInfo, limit: Int = 20000, since: UInt64? = nil) async throws
+    -> PageSnapshot
+  {
     let capped = max(1, min(limit, 20000))
+    // Change check first: if the caller's generation matches this document and nothing has
+    // mutated, return a flagged no-op instead of re-serializing the tree (directive §4.1.3).
+    if let since, (since >> 32) == UInt64(generation) {
+      let revision = try await decode(
+        UInt64.self, domScript("JSON.stringify(globalThis.__aetherDOM.mutationVersion())"))
+      let current = (UInt64(generation) << 32) | (revision & 0xffff_ffff)
+      if current == since {
+        return PageSnapshot(
+          page: info, documentID: DocumentID(rawValue: UInt64(generation)),
+          mutationVersion: current, nodes: [], truncated: false, omittedNodes: 0,
+          unchanged: true)
+      }
+    }
     let values = try await decode([WebDOMNode].self, domScript("JSON.stringify(globalThis.__aetherDOM.snapshot(\(capped)))"))
     let mutationRevision = try await decode(UInt64.self,
       domScript("JSON.stringify(globalThis.__aetherDOM.mutationVersion())"))
     let mutationVersion = (UInt64(generation) << 32) | (mutationRevision & 0xffff_ffff)
-    return PageSnapshot(page: info, documentID: DocumentID(rawValue: UInt64(generation)),
-      mutationVersion: mutationVersion, nodes: values.map(\.snapshot))
+    // Deterministic truncation: keep nodes until the byte budget is reached, then stop and
+    // report the count. The document node is always kept so the driver sees the root.
+    var totalBytes = 0
+    var kept: [WebDOMNode] = []
+    for value in values {
+      let cost = (value.text?.utf8.count ?? 0) + value.name.utf8.count + 64
+      if !kept.isEmpty && totalBytes + cost > Self.snapshotByteBudget { break }
+      totalBytes += cost
+      kept.append(value)
+    }
+    let omittedByBytes = values.count - kept.count
+    let omittedByCap = values.count >= capped ? 1 : 0
+    let omitted = max(omittedByBytes, omittedByCap)
+    return PageSnapshot(
+      page: info, documentID: DocumentID(rawValue: UInt64(generation)),
+      mutationVersion: mutationVersion, nodes: kept.map(\.snapshot),
+      truncated: omitted > 0, omittedNodes: omitted)
   }
 
   func nodeAction(_ node: NodeID, body: String) async throws {
     guard node.version == generation else { throw BrowserRuntimeError.nodeNotFound(node) }
-    _ = try await script(domScript("""
+    // A node can detach, or the extractor registry can be rebuilt for a new document,
+    // between the caller reading a ref and acting on it. Throwing inside the injected
+    // script surfaced only as "A JavaScript exception occurred", which tells the caller
+    // nothing. Return a sentinel instead and raise the precise, actionable error.
+    let result = try await script(domScript("""
     (() => { const n = globalThis.__aetherDOM.get(\(node.index));
-    if (!n || !n.isConnected) throw new Error('Node is no longer attached');
+    if (!n || !n.isConnected) return "__aether_node_missing__";
     \(body)
+    return "__aether_ok__";
     })()
     """))
+    if result.contains("__aether_node_missing__") { throw BrowserRuntimeError.nodeNotFound(node) }
   }
 
   func interactionTarget(_ node: NodeID) async throws -> WebKitInteractionTarget {
     guard node.version == generation else { throw BrowserRuntimeError.nodeNotFound(node) }
-    return try await decode(WebKitInteractionTarget.self, domScript("""
+    return try await decode(WebKitInteractionTarget.self, domScript(Self.forceLayout + """
     (() => {
       const n = globalThis.__aetherDOM.get(\(node.index));
       if (!n || !n.isConnected) throw new Error('Node is no longer attached');
@@ -227,8 +277,31 @@ extension WebKitPage {
   }
 
   func click(_ node: NodeID) async throws {
-    try await nodeAction(node, body: "n.scrollIntoView({block:'center', inline:'center'}); n.focus(); n.click();")
+    try await nodeAction(node, body: Self.forceLayout + """
+    n.scrollIntoView({block:'center', inline:'center'});
+    n.focus();
+    // A bare `n.click()` is ignored by framework-driven buttons (Google's Polymer
+    // components and most design systems bind on the pointer/mouse sequence, not on
+    // `click` alone), so the click silently does nothing while reporting success.
+    // Dispatch the full sequence a real pointer produces, then a final plain click so
+    // both listener styles are satisfied.
+    for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+      n.dispatchEvent(new MouseEvent(type, {bubbles: true, cancelable: true, view: window}));
+    }
+    """)
   }
+
+  /// Forces a layout pass.
+  ///
+  /// A freshly navigated SPA routinely holds elements that are present in the DOM but not
+  /// yet laid out: `getBoundingClientRect()` returns 0x0, `offsetParent` is null, and
+  /// structured queries cannot see them at all. Interaction primitives run this first so
+  /// callers never have to discover the invisible-element failure class themselves.
+  static let forceLayout = """
+    window.dispatchEvent(new Event('resize'));
+    void document.documentElement.offsetHeight;
+    void (document.body && document.body.offsetHeight);
+    """
 
   func sampleLuminance(at target: WebKitInteractionTarget) async -> Double? {
     guard view.bounds.width > 0, view.bounds.height > 0 else { return nil }
@@ -315,21 +388,40 @@ extension WebKitPage {
   }
 
   func fill(_ node: NodeID, value: String, append: Bool) async throws {
-    try await nodeAction(node, body: """
+    try await nodeAction(node, body: Self.forceLayout + """
     if (n.disabled || n.readOnly) throw new Error('Element is not editable');
+    n.scrollIntoView({block:'center', inline:'center'});
     n.focus();
     const text = \(try Self.literal(value));
-    if (n.isContentEditable) n.textContent = \(append ? "n.textContent + text" : "text");
-    else if (n instanceof HTMLSelectElement) {
+    if (n instanceof HTMLSelectElement) {
       const option = Array.from(n.options).find(option => option.value === text);
       if (!option) throw new Error('Select option was not found');
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(n, text);
+    } else if (n instanceof HTMLInputElement && (n.type === 'checkbox' || n.type === 'radio')) {
+      // Toggle semantics: set `checked` and still emit a change so frameworks react.
+      n.checked = (text === 'true' || text === '1' || text === 'on');
     } else if (n instanceof HTMLInputElement || n instanceof HTMLTextAreaElement) {
       const prototype = n instanceof HTMLInputElement ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype;
       Object.getOwnPropertyDescriptor(prototype, 'value').set.call(n, \(append ? "n.value + text" : "text"));
+    } else if (n.isContentEditable) {
+      n.textContent = \(append ? "n.textContent + text" : "text");
     } else throw new Error('Element is not editable');
-    n.dispatchEvent(new Event('input', {bubbles:true}));
-    n.dispatchEvent(new Event('change', {bubbles:true}));
+    // Framework-bound inputs (Polymer, lit, React) only observe the value once a real
+    // `input` event fires. A plain non-composed `Event` never escapes a shadow root and
+    // is ignored by listeners that check `event instanceof InputEvent`, so the page keeps
+    // treating the field as empty and the next re-render wipes what we wrote.
+    const aetherEvent = (type) => {
+      if (type === 'input' && typeof InputEvent === 'function') {
+        return new InputEvent('input', {bubbles:true, composed:true, data:text, inputType:'insertText'});
+      }
+      return new Event(type, {bubbles:true, composed:true});
+    };
+    n.dispatchEvent(aetherEvent('input'));
+    n.dispatchEvent(aetherEvent('change'));
+    // Blur last: several wizards only commit the field on blur, and it flushes any
+    // pending framework state before the caller reads the value back.
+    n.blur();
+    n.dispatchEvent(new Event('blur', {bubbles:true, composed:true}));
     """)
   }
 

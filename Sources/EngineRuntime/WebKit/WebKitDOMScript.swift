@@ -33,7 +33,14 @@ struct WebDOMNode: Decodable {
   }
 }
 
+/// The in-page half of Tier 1 structured page state (directive §4.1). It is installed once
+/// per document — as a document-start user script in the isolated client world the page
+/// cannot see, with an on-demand install as the fallback — and a same-generation read sends
+/// only a tiny activation script instead of re-transmitting the whole extractor.
 enum WebKitDOMScript {
+  /// Builds (or refreshes) the extractor for `generation`. Rebuilding on a new generation
+  /// replaces the mutation observer for the new document; a same-generation call early
+  /// returns and keeps the existing reference map.
   static func source(generation: UInt32) -> String {
     """
     (() => {
@@ -86,5 +93,13 @@ enum WebKitDOMScript {
       }};
     })()
     """
+  }
+
+  /// The per-operation activation for a document whose extractor is already current: one
+  /// generation check instead of the whole extractor over the bridge. It still refreshes if
+  /// the object is missing or stale, so a same-generation call is never a correctness risk
+  /// (directive §10.3.3, §10.4.6).
+  static func activation(generation: UInt32) -> String {
+    "(globalThis.__aetherDOM?.generation === \(generation) ? true : (\(source(generation: generation)), true))"
   }
 }

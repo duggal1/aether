@@ -97,8 +97,26 @@ final class WebKitDialogs: NSObject, WKUIDelegate, WKDownloadDelegate {
   func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
     for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
     emit(.popupRequested(url: navigationAction.request.url?.absoluteString ?? ""))
+    // Returning nil means WebKit never creates a child window, so anything relying on
+    // `window.opener` / a `postMessage` handshake cannot initialise. Google's GSI account
+    // chooser is exactly that: it renders blank without a real opener.
+    //
+    // WebKit hands us the `configuration` for the child. Adopting *that* object (rather
+    // than building a fresh one) is what preserves the opener relationship.
+    if let makePopup, let child = makePopup(configuration, navigationAction, windowFeatures) {
+      return child
+    }
     if navigationAction.targetFrame == nil { webView.load(navigationAction.request) }
     return nil
+  }
+
+  /// Invoked when the popup calls `window.close()`.
+  var popupClosed: (@MainActor (WKWebView) -> Void)?
+  /// Builds a real child web view. Assigned by `WebKitPage`.
+  var makePopup: (@MainActor (WKWebViewConfiguration, WKNavigationAction, WKWindowFeatures) -> WKWebView?)?
+
+  func webViewDidClose(_ webView: WKWebView) {
+    popupClosed?(webView)
   }
 
   func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters,

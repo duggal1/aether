@@ -30,6 +30,13 @@ public final class AetherExtensions: NSObject, ObservableObject, WKWebExtensionC
     var windowAdapters: [UUID: AetherExtensionWindow] = [:]
     fileprivate var tabAdapters: [String: AetherExtensionTab] = [:]
     private var tabOrders: [String: [UUID]] = [:]
+    /// What each tab last told WebKit, so the next sync says only what changed.
+    ///
+    /// This runs on every tab change, and closing a tab is one: telling every
+    /// remaining tab its title, URL, loading state and pin state again — a call
+    /// into WebKit each — made closing a tab cost more the more tabs were open,
+    /// and closing them all cost the square of that.
+    private var reportedTabProperties: [String: String] = [:]
     private var activeTabs: [UUID: UUID] = [:]
     private let extensionPopup = AetherExtensionPopup()
     /// Extensions taken up at least once this session, and ones taken up
@@ -78,41 +85,9 @@ public final class AetherExtensions: NSObject, ObservableObject, WKWebExtensionC
     /// `action.setPopup` runs — so the popup opened is the current one.
     var popups: [String: [String: String]] = [:]
 
-    /// The copy an extension's popup page is loaded from, beside it.
-    ///
-    /// WebKit takes any page at the path of an extension's popup for its own
-    /// popup, and a popup that isn't in WebKit's own view (Aether's is its
-    /// own) is sent no events: no storage.onChanged, no tabs.onUpdated. A
-    /// popup waiting on those never renders. So the page is loaded from a
-    /// copy under another name, in the same folder: the same file, the same
-    /// files around it, and none of WebKit's rules for popups. Anything else
-    /// is loaded as it is.
-    static let popupCopy = ".aether-popup"
-
-    static func unpopped(_ url: URL, context: WKWebExtensionContext) -> URL {
-        guard url.scheme == "chrome-extension", url.host == context.uniqueIdentifier,
-              !url.lastPathComponent.contains(popupCopy)
-        else { return url }
-        let id = context.uniqueIdentifier
-        let extra = AetherExtensions.shared.popups[id]?.values.compactMap {
-            URL(string: $0, relativeTo: context.baseURL)?.absoluteURL
-        } ?? []
-        let named = [popupURL(for: context)] + extra
-        guard named.contains(where: { $0?.path == url.path }) else { return url }
-        let folder = Self.folder.appendingPathComponent(id, isDirectory: true)
-        guard let original = AetherExtensionCompatibility.fileInside(url.path, of: folder),
-              let data = try? Data(contentsOf: original)
-        else { return url }
-        let ext = original.pathExtension
-        let name = original.deletingPathExtension().lastPathComponent + popupCopy + (ext.isEmpty ? "" : "." + ext)
-        let copy = original.deletingLastPathComponent().appendingPathComponent(name)
-        if (try? Data(contentsOf: copy)) != data {
-            guard (try? data.write(to: copy, options: .atomic)) != nil else { return url }
-        }
-        guard var parts = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
-        parts.path = (url.path as NSString).deletingLastPathComponent.appending("/" + name).replacingOccurrences(of: "//", with: "/")
-        return parts.url ?? url
-    }
+    /// Where a popup hangs from when the extension it belongs to is not
+    /// pinned to the toolbar: the extensions drawer's own button.
+    static let menuAnchor = "aether.extensions"
 
     /// The page the manifest names for the button, when WebKit hasn't said.
     static func popupURL(for context: WKWebExtensionContext) -> URL? {
@@ -144,22 +119,34 @@ public final class AetherExtensions: NSObject, ObservableObject, WKWebExtensionC
             let tabs = (window.tabsByProfile[profile.id] ?? []).filter { !window.workspace.isIncognito($0.profileID) }
             let previous = tabOrders[orderKey(window.id, profile.id)] ?? []
             let ids = tabs.map(\.id)
-            for id in previous where !ids.contains(id) {
+            // A tab's place, by identity: looking it up in the array each time
+            // made one pass over the tabs a pass over the square of them.
+            let previousIndex = Dictionary(uniqueKeysWithValues: previous.enumerated().map { ($1, $0) })
+            let currentIndex = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
+            for id in previous where currentIndex[id] == nil {
                 if let tabAdapter = tabAdapters[adapterKey(window.id, id)] {
                     controller.didCloseTab(tabAdapter, windowIsClosing: false)
                 }
                 tabAdapters[adapterKey(window.id, id)] = nil
+                reportedTabProperties[adapterKey(window.id, id)] = nil
             }
             for tab in tabs {
                 let key = adapterKey(window.id, tab.id)
                 let tabAdapter = tabAdapters[key] ?? AetherExtensionTab(tab: tab, window: window, owner: self)
                 tabAdapters[key] = tabAdapter
-                if !previous.contains(tab.id) { controller.didOpenTab(tabAdapter) }
-                else if let oldIndex = previous.firstIndex(of: tab.id),
-                        let newIndex = ids.firstIndex(of: tab.id), oldIndex != newIndex {
+                if previousIndex[tab.id] == nil { controller.didOpenTab(tabAdapter) }
+                else if let oldIndex = previousIndex[tab.id],
+                        let newIndex = currentIndex[tab.id], oldIndex != newIndex {
                     controller.didMoveTab(tabAdapter, from: oldIndex, in: adapter)
                 }
-                controller.didChangeTabProperties([.title, .URL, .loading, .pinned], for: tabAdapter)
+                // Only the tabs that actually changed are reported. The one
+                // that was closed, and the one that took its place, are the
+                // whole of a close as far as WebKit is concerned.
+                let reported = Self.reportedProperties(of: tab)
+                if reportedTabProperties[key] != reported {
+                    reportedTabProperties[key] = reported
+                    controller.didChangeTabProperties([.title, .URL, .loading, .pinned], for: tabAdapter)
+                }
             }
             tabOrders[orderKey(window.id, profile.id)] = ids
             let selected = window.selectionByProfile[profile.id]
@@ -180,15 +167,39 @@ public final class AetherExtensions: NSObject, ObservableObject, WKWebExtensionC
     }
 
     public func press(_ extensionID: String, profileID: UUID) {
-        if extensionPopup.extensionID == extensionID {
-            extensionPopup.close()
-            return
-        }
+        guard !extensionPopup.closes(extensionID) else { return }
         guard let context = contexts[profileID]?[extensionID],
               let window = activeWindow(profileID: profileID),
               let adapter = activeTabAdapter(in: window, profileID: profileID) else { return }
         context.userGesturePerformed(in: adapter)
+        // The popup is opened here, on the press. Left to WebKit, it builds a
+        // popup of its own first, and a popup that replaces it has lost the
+        // new page's first messages to its worker and never renders.
+        if context.action(for: adapter)?.presentsPopup == true,
+           let url = popupURL(for: context, tabID: window.selectionByProfile[profileID]) {
+            extensionPopup.show(url, context: context, owner: self, window: window,
+                                profileID: profileID, anchor: anchor(for: extensionID, window: window))
+            return
+        }
         context.performAction(for: adapter)
+    }
+
+    /// The page the button's popup is now: the one the extension set for this
+    /// tab, or for all of them, else its manifest's.
+    private func popupURL(for context: WKWebExtensionContext, tabID: UUID?) -> URL? {
+        let set = popups[context.uniqueIdentifier] ?? [:]
+        guard let path = tabID.flatMap({ set[$0.uuidString] }) ?? set["*"] else {
+            return Self.popupURL(for: context)
+        }
+        guard !path.isEmpty else { return nil }
+        return URL(string: path, relativeTo: context.baseURL)?.absoluteURL
+    }
+
+    /// What a popup hangs from: the extension's own button in the toolbar,
+    /// else the drawer's — whichever is in the window now.
+    private func anchor(for extensionID: String, window: BrowserWindowModel) -> NSView? {
+        let own = actionAnchors[anchorKey(window.id, extensionID)]?.value
+        return own?.window != nil ? own : actionAnchors[anchorKey(window.id, Self.menuAnchor)]?.value
     }
 
     func closePopup(_ extensionID: String) {
@@ -441,6 +452,12 @@ public final class AetherExtensions: NSObject, ObservableObject, WKWebExtensionC
         return activeWindow(profileID: profileID)
     }
 
+    /// The four properties `didChangeTabProperties` is told about, as one value
+    /// to compare against the last thing this tab said.
+    private static func reportedProperties(of tab: BrowserTab) -> String {
+        "\(tab.title)\u{1}\(tab.url ?? "")\u{1}\(tab.isLoading)\u{1}\(tab.isPinned)"
+    }
+
     private func adapterKey(_ window: UUID, _ tab: UUID) -> String { "\(window.uuidString):\(tab.uuidString)" }
     private func orderKey(_ window: UUID, _ profile: UUID) -> String { "\(window.uuidString):\(profile.uuidString)" }
     private func anchorKey(_ window: UUID, _ extensionID: String) -> String { "\(window.uuidString):\(extensionID)" }
@@ -538,12 +555,13 @@ public final class AetherExtensions: NSObject, ObservableObject, WKWebExtensionC
         presentActionPopup action: WKWebExtension.Action,
         for extensionContext: WKWebExtensionContext) async throws {
         guard let profileID = profileID(for: controller),
-              let window = activeWindow(profileID: profileID),
-              let anchor = actionAnchors[anchorKey(window.id, extensionContext.uniqueIdentifier)]?.value,
-              let url = action.popupWebView?.url else { return }
+              let window = activeWindow(profileID: profileID) else { return }
+        let url = action.popupWebView?.url ?? Self.popupURL(for: extensionContext)
         action.closePopup()
+        guard let url else { return }
         extensionPopup.show(url, context: extensionContext, owner: self, window: window,
-                            profileID: profileID, anchor: anchor)
+                            profileID: profileID,
+                            anchor: anchor(for: extensionContext.uniqueIdentifier, window: window))
     }
 }
 

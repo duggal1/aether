@@ -11,6 +11,13 @@ public enum AetherMotion {
     public static func focus(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.21) }
     public static func press(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.11) }
     public static func tab(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }
+
+    /// Closing a tab is the one action that can be asked for several times a
+    /// second, so it gets the shortest curve in the set. At 0.11s a row is gone
+    /// before the next close arrives, and a run of closes reads as one movement
+    /// instead of a stack of overlapping relayouts — which is what made closing
+    /// a window's worth of tabs crawl.
+    public static func closeTab(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.11) }
     public static func selection(_ reduced: Bool) -> Animation? { reduced ? nil : .snappy(duration: 0.10) }
     public static func sidebar(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.22) }
     public static func popover(_ reduced: Bool) -> Animation? { reduced ? nil : .smooth(duration: 0.19) }

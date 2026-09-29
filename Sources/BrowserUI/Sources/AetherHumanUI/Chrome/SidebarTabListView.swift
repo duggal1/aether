@@ -33,7 +33,7 @@ public struct SidebarTabListView: View {
                 }
             }
 
-            Button { _ = window.newTab() } label: {
+            Button { withAnimation(AetherMotion.tab(reduced)) { _ = window.newTab() } } label: {
                 HStack(spacing: 9) {
                     BrowserIconView(icon: .plus, tint: chrome?.icon ?? theme.ink)
                         .iconSize(13)
@@ -109,7 +109,11 @@ public struct SidebarTabListView: View {
         .frame(width: window.workspace.preferences.transientSidebarWidth ?? window.workspace.preferences.sidebarWidth)
         .frame(maxHeight: .infinity)
         .background { AetherChromeBackground(.sidebar) }
-        .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
+        // Deliberately no `animation(_:value:)` over the tab list. It fired for
+        // every reorder and every pin as well as every close, and it wrapped
+        // each close in an animated relayout of every row in the sidebar — the
+        // more tabs there were, the longer a close took. Each tab animation is
+        // now raised by the action that causes it, so a close animates a close.
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
         .sheet(isPresented: $addingShortcut) { AetherDialogScope { ShortcutEditor(workspace: window.workspace, shortcut: nil) } }
     }
@@ -156,7 +160,7 @@ public struct SidebarTabListView: View {
     }
 
     private func shortcutTile(_ item: BrowserShortcut) -> some View {
-        Button { _ = window.newTab(url: item.url) } label: {
+        Button { withAnimation(AetherMotion.tab(reduced)) { _ = window.newTab(url: item.url) } } label: {
             DomainIcon(item.url, size: 17)
                 .frame(maxWidth: .infinity).frame(height: 41)
         }
@@ -164,8 +168,8 @@ public struct SidebarTabListView: View {
         .focusEffectDisabled()
         .help(item.name)
         .contextMenu {
-            Button("Open in New Tab") { _ = window.newTab(url: item.url) }
-            Button(item.isPinned ? "Unpin" : "Pin") { window.workspace.toggleShortcutPin(item.id) }
+            Button("Open in New Tab") { withAnimation(AetherMotion.tab(reduced)) { _ = window.newTab(url: item.url) } }
+            Button(item.isPinned ? "Unpin" : "Pin") { withAnimation(AetherMotion.tab(reduced)) { window.workspace.toggleShortcutPin(item.id) } }
         }
     }
 

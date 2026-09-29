@@ -595,32 +595,53 @@ public final class BrowserWindowModel: Identifiable {
         closedTabs.removeAll { $0.profileID == id }
         if activeProfileID == id { switchProfile(next) }
     }
-    public func close(_ id: UUID) {
-        guard let current = tabs.firstIndex(where: { $0.id == id }) else { return }
-        let tab = tabs[current]
-        if floatingPageID == tab.enginePageID { landVideo() }
-        navigationTasks.removeValue(forKey: id)?.cancel()
-        if case .newTab = tab.loadState {
-        } else if case .search = tab.loadState {
-        } else if let url = tab.url, !url.isEmpty, url != "about:blank" {
-            closedTabs.insert(ClosedTab(title: tab.title.isEmpty ? url : tab.title, url: tab.url, profileID: tab.profileID), at: 0)
-            if closedTabs.count > 30 { closedTabs.removeLast() }
+    public func close(_ id: UUID) { close(ids: [id]) }
+
+    /// Closing several tabs is one change to the window, not several.
+    ///
+    /// Each tab still goes down on its own — its navigation cancelled, its page
+    /// released, its place kept for restore — but the list is rebuilt once, the
+    /// extensions are told once and the session is written once, instead of all
+    /// three happening again for every tab. "Close others" on a window of forty
+    /// used to be forty of each.
+    public func close(ids: [UUID]) {
+        let closing = Set(ids)
+        guard !closing.isEmpty, let list = tabsByProfile[activeProfileID] else { return }
+        var removed = 0
+        var closedSelectedAt: Int?
+        for (index, tab) in list.enumerated() where closing.contains(tab.id) {
+            if floatingPageID == tab.enginePageID { landVideo() }
+            navigationTasks.removeValue(forKey: tab.id)?.cancel()
+            if case .newTab = tab.loadState {
+            } else if case .search = tab.loadState {
+            } else if let url = tab.url, !url.isEmpty, url != "about:blank" {
+                closedTabs.insert(ClosedTab(title: tab.title.isEmpty ? url : tab.title, url: tab.url, profileID: tab.profileID), at: 0)
+                if closedTabs.count > 30 { closedTabs.removeLast() }
+            }
+            if let page = tab.enginePageID {
+                pageInteractionRelays.removeValue(forKey: page)
+                surfaces.release(page); forgetEnginePage(page); Task { await workspace.engine.close(pageID: page) }
+            }
+            removed += 1
+            if tab.id == selectedID { closedSelectedAt = index }
         }
-        if let page = tab.enginePageID {
-            pageInteractionRelays.removeValue(forKey: page)
-            surfaces.release(page); forgetEnginePage(page); Task { await workspace.engine.close(pageID: page) }
-        }
-        tabsByProfile[activeProfileID]?.remove(at: current)
+        guard removed > 0 else { return }
+        let remaining = list.filter { !closing.contains($0.id) }
+        tabsByProfile[activeProfileID] = remaining
         AetherExtensions.shared.sync(self)
-        if selectedID == id {
-            let remaining = tabs
-            selectionByProfile[activeProfileID] = remaining.isEmpty ? nil : remaining[min(current, remaining.count - 1)].id
+        // The tab after the one that went takes its place, as it always has; with
+        // several gone at once that means the first tab that followed the last
+        // selected one of them.
+        if let index = closedSelectedAt {
+            selectionByProfile[activeProfileID] =
+                remaining.isEmpty ? nil : remaining[min(index, remaining.count - 1)].id
         }
         if tabs.isEmpty { _ = newTab() }
         workspace.scheduleSessionSave()
     }
+
     public func closeOthers(_ id: UUID) {
-        for tab in tabs where tab.id != id && !tab.isPinned { close(tab.id) }
+        close(ids: tabs.filter { $0.id != id && !$0.isPinned }.map(\.id))
     }
     public func togglePin(_ id: UUID) {
         tabs.first(where: { $0.id == id })?.isPinned.toggle()

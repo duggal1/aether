@@ -40,7 +40,7 @@ public struct TopTabStripView: View {
                                         window: window, topFused: true, isFirst: offset == 0)
                                 .frame(width: layout.tabWidth)
                         }
-                        Button { _ = window.newTab() } label: {
+                        Button { withAnimation(AetherMotion.tab(reduced)) { _ = window.newTab() } } label: {
                             BrowserIconView(icon: .plus,
                                             tint: newTabHovering ? (chrome?.text ?? theme.ink)
                                                                  : (chrome?.icon ?? theme.muted))
@@ -75,7 +75,9 @@ public struct TopTabStripView: View {
         .background {
             if showsChrome { AetherChromeBackground(.tabStrip) }
         }
-        .animation(AetherMotion.tab(reduced), value: window.tabs.map(\.id))
+        // As in the sidebar: the tab-list animation belongs to the action that
+        // changes the list, not to the list itself, so closing a tab animates
+        // the close rather than a relayout of every tab in the strip.
         .animation(AetherMotion.selection(reduced), value: window.selectedID)
     }
 

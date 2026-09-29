@@ -156,8 +156,23 @@ final class WebKitContext {
 @MainActor
 final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   let view: WKWebView
+  /// Reports a `window.open` child view so the runtime can adopt it as a page.
+  let popupOpened: @Sendable (WebKitPage) -> Void
+
+  /// Re-points runtime state delivery at this page's final id. A popup is constructed
+  /// before the runtime can mint a `PageID` for it, so its sink is bound twice.
+  func rebind(changed newChanged: @escaping @Sendable (WebPageState) -> Void) {
+    changed = newChanged
+  }
+
+  /// Current URL, safe to read from the runtime actor.
+  var currentURL: String? { view.url?.absoluteString }
   let context: WebKitContext
   var generation: UInt32 = 1
+  /// The snapshot generation the isolated-world DOM extractor is currently installed for.
+  /// When it matches `generation`, `domScript` sends only the tiny activation script
+  /// instead of re-transmitting the extractor on every operation (directive §10.3.3).
+  var domInstalledGeneration: UInt32?
   var loaded = false
   var contentReady = false
   var paintReported = false
@@ -196,14 +211,35 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   static let fileUploadHandlerName = "aetherFileUpload"
   static let consoleHandlerName = "aetherConsole"
   static let focusHandlerName = "aetherFocus"
+  static let networkHandlerName = "aetherNetwork"
+
+  /// Reports the document as visible/focused regardless of whether the web view is in an
+  /// on-screen window. Defines the properties rather than patching them so page code that
+  /// feature-detects them behaves the same as in a foreground tab.
+  static let visibilityJS = """
+    (() => {
+      const doc = Document.prototype, win = Window.prototype;
+      Object.defineProperty(doc, 'visibilityState', { configurable: true, get: () => 'visible' });
+      Object.defineProperty(doc, 'hidden', { configurable: true, get: () => false });
+      Object.defineProperty(doc, 'webkitHidden', { configurable: true, get: () => false });
+      Object.defineProperty(doc, 'webkitVisibilityState', { configurable: true, get: () => 'visible' });
+      Object.defineProperty(doc, 'hasFocus', { configurable: true, value: () => true });
+      Object.defineProperty(win, 'documentHidden', { configurable: true, get: () => false });
+      Object.defineProperty(win, 'documentVisibilityState', { configurable: true, get: () => 'visible' });
+    })();
+    """
 
   static func makeConfiguration(context: WebKitContext) -> WKWebViewConfiguration {
     let configuration = WKWebViewConfiguration()
     configuration.websiteDataStore = context.store
     configuration.webExtensionController = context.extensionController
+    // Every page view shares one identity, so no site — Google first among
+    // them — can serve a page built for a browser it doesn't recognise. See
+    // WebKitUserAgent for why WebKit's own default isn't enough.
+    configuration.applicationNameForUserAgent = WebKitUserAgent.safariToken
     configuration.preferences.inactiveSchedulingPolicy = .none
     configuration.preferences.tabFocusesLinks = true
-    configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+    configuration.preferences.javaScriptCanOpenWindowsAutomatically = true
     configuration.preferences.isElementFullscreenEnabled = true
     configuration.allowsAirPlayForMediaPlayback = true
     configuration.mediaTypesRequiringUserActionForPlayback = .audio
@@ -407,12 +443,23 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     const send = value => {
       try { window.webkit.messageHandlers.aetherCredentials.postMessage(value); } catch (_) {}
     };
+    // Framework-bound inputs (Polymer, lit, React) only observe a value once a real
+    // `input` event fires. A non-composed `Event` never escapes a shadow root, so the
+    // page keeps treating the field as empty and any re-render wipes what we wrote.
     const setValue = (element, value) => {
       if (!element) return;
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
       if (setter && setter.set) setter.set.call(element, value); else element.value = value;
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-      element.dispatchEvent(new Event('change', { bubbles: true }));
+      const fire = type => {
+        if (type === 'input' && typeof InputEvent === 'function') {
+          element.dispatchEvent(new InputEvent('input', {bubbles: true, composed: true,
+            data: value, inputType: 'insertText'}));
+        } else {
+          element.dispatchEvent(new Event(type, {bubbles: true, composed: true}));
+        }
+      };
+      fire('input');
+      fire('change');
     };
     let submitted = false;
     let settleTimer = 0;
@@ -437,7 +484,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         const target = fields[0] || null;
         const user = usernameFor(target);
         if (fillUser) setValue(user, username);
-        if (fillPassword && target) setValue(target, password);
+        // Signup and change-password forms pair the entry with a confirm/repeat field
+        // (`PasswdAgain`, `confirmPassword`, …). Filling only the first leaves the form
+        // unsubmittable, so every visible password field receives the secret.
+        if (fillPassword) fields.forEach(element => setValue(element, password));
         if (target && fillPassword) target.focus();
       },
       fillGenerated: password => {
@@ -563,6 +613,79 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   })();
   """
 
+  /// Layer 1 network observation (directive §7.2). Installed at document start in the page
+  /// world, before page script can run, and wraps `fetch` and `XMLHttpRequest` without
+  /// changing their contract. Requests, responses, status, timing, sizes, and a bounded
+  /// redacted body snippet for JSON/form bodies are reported; everything is capped per
+  /// document so a hostile page cannot flood the control plane.
+  static let networkObserverJS = """
+  (() => {
+    if (window.__aetherNetworkBridge) return;
+    window.__aetherNetworkBridge = true;
+    const limit = 2000;
+    let count = 0;
+    const numberOrZero = value => {
+      const n = parseInt(value || '0', 10);
+      return isFinite(n) && n > 0 ? n : 0;
+    };
+    const post = payload => {
+      if (count >= limit) { return; }
+      count += 1;
+      try { window.webkit.messageHandlers.aetherNetwork.postMessage(payload); } catch (_) {}
+      if (count >= limit) {
+        try { window.webkit.messageHandlers.aetherNetwork.postMessage({phase:'truncated', limit}); } catch (_) {}
+      }
+    };
+    const snippet = (body, contentType) => {
+      if (typeof body !== 'string') { return null; }
+      const type = String(contentType || '').toLowerCase();
+      if (!(type.indexOf('json') >= 0 || type.indexOf('form-urlencoded') >= 0)) { return null; }
+      let text = body.slice(0, 256);
+      text = text.replace(/("(?:password|passwd|pwd|token|access_token|refresh_token|id_token|secret|client_secret|api_key|apikey|authorization)"\\s*:\\s*")[^"]*(")/gi, '$1[redacted]$2');
+      text = text.replace(/((?:password|passwd|pwd|token|access_token|refresh_token|id_token|secret|client_secret|api_key|apikey)=)[^&]*/gi, '$1[redacted]');
+      return text;
+    };
+    const originalFetch = window.fetch;
+    if (typeof originalFetch === 'function') {
+      window.fetch = function(input, init) {
+        const started = Date.now();
+        const method = ((init && init.method) || (input && input.method) || 'GET');
+        const url = typeof input === 'string' ? input : ((input && input.url) || '');
+        const headers = (init && init.headers) || {};
+        const contentType = headers['Content-Type'] || headers['content-type'] || '';
+        post({phase:'request', url, method: String(method).toUpperCase(), bodyBytes: (init && typeof init.body === 'string') ? init.body.length : 0, bodySnippet: snippet(init && init.body, contentType)});
+        return originalFetch.apply(this, arguments).then(response => {
+          post({phase:'response', url, method: String(method).toUpperCase(), status: response.status, durationMs: Date.now() - started, responseBytes: numberOrZero(response.headers && response.headers.get('content-length'))});
+          return response;
+        }, error => {
+          post({phase:'response', url, method: String(method).toUpperCase(), status: 0, durationMs: Date.now() - started, responseBytes: 0});
+          throw error;
+        });
+      };
+    }
+    const originalOpen = XMLHttpRequest.prototype.open;
+    const originalSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(method, url) {
+      this.__aetherNetwork = {method: String(method).toUpperCase(), url: String(url), started: 0};
+      return originalOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function(body) {
+      const meta = this.__aetherNetwork || {method:'GET', url:'', started: 0};
+      meta.started = Date.now();
+      post({phase:'request', url: meta.url, method: meta.method, bodyBytes: (typeof body === 'string') ? body.length : 0, bodySnippet: null});
+      this.addEventListener('loadend', () => {
+        let bytes = 0;
+        try {
+          if (typeof this.responseText === 'string') { bytes = this.responseText.length; }
+          else if (this.response) { bytes = String(this.response).length; }
+        } catch (_) {}
+        post({phase:'response', url: meta.url, method: meta.method, status: this.status || 0, durationMs: Date.now() - (meta.started || Date.now()), responseBytes: bytes});
+      }, {once: true});
+      return originalSend.apply(this, arguments);
+    };
+  })();
+  """
+
   func consoleLines() async -> [String] {
     guard
       let text = try? await script(
@@ -610,6 +733,10 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
       emitEvent(.focusChanged(target: target, focused: body["focused"] as? Bool ?? false))
       return
     }
+    if message.name == Self.networkHandlerName {
+      receiveNetworkMessage(message)
+      return
+    }
     if message.name == Self.fileUploadHandlerName {
       receiveFileUploadMessage(message)
       return
@@ -637,6 +764,39 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     installDeferredPageFeatures()
     probe("paint observed gen=\(gen) \(elapsed(currentScope))")
     publish()
+  }
+
+  /// Turns a layer 1 network message into a typed event (directive §7.2.3). The URL and body
+  /// are redacted here, at the producer, so a secret never enters the event pipeline.
+  private func receiveNetworkMessage(_ message: WKScriptMessage) {
+    guard let body = message.body as? [String: Any], let phase = body["phase"] as? String else {
+      return
+    }
+    func integer(_ key: String) -> Int {
+      (body[key] as? NSNumber)?.intValue ?? 0
+    }
+    switch phase {
+    case "request":
+      guard let rawURL = body["url"] as? String, let method = body["method"] as? String else {
+        return
+      }
+      let snippet = (body["bodySnippet"] as? String).map(BrowserNetworkRedaction.redactBody)
+      emitEvent(.networkRequest(
+        url: BrowserNetworkRedaction.redact(url: rawURL), method: method,
+        bodyBytes: integer("bodyBytes"), bodySnippet: snippet))
+    case "response":
+      guard let rawURL = body["url"] as? String, let method = body["method"] as? String else {
+        return
+      }
+      emitEvent(.networkResponse(
+        url: BrowserNetworkRedaction.redact(url: rawURL), method: method,
+        statusCode: integer("status"), durationMs: integer("durationMs"),
+        responseBytes: integer("responseBytes")))
+    case "truncated":
+      emitEvent(.networkObservationTruncated(limit: integer("limit")))
+    default:
+      return
+    }
   }
 
   private func receiveFileUploadMessage(_ message: WKScriptMessage) {
@@ -701,43 +861,130 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
   private func probe(_ message: @autoclosure () -> String) {
     WebKitNavigationProbe.log("[scope=\(currentScope) \(message())]")
   }
-  private let changed: @Sendable (WebPageState) -> Void
+  // `var` so a popup can be re-pointed at its final runtime page id after adoption.
+  var changed: @Sendable (WebPageState) -> Void
   var dialogs: WebKitDialogs?
 
+  /// Installs every Aether user script and message handler onto a configuration.
+  ///
+  /// Shared by the primary initializer and the popup initializer. A popup is built from the
+  /// `WKWebViewConfiguration` WebKit hands to `createWebViewWith` — that object is what carries
+  /// the `window.opener` relationship Google's GSI `id_token` handshake depends on — so it
+  /// cannot go through `makeConfiguration`, and re-registering a handler name on a shared
+  /// controller raises `NSInvalidArgumentException`.
+  private static func installAetherScripts(
+    on configuration: WKWebViewConfiguration, handler: WKScriptMessageHandler
+  ) {
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitDOMScript.source(generation: 1), injectionTime: .atDocumentStart,
+  forMainFrameOnly: true, in: .defaultClient))
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitPage.paintObserverJS, injectionTime: .atDocumentStart,
+  forMainFrameOnly: true, in: .defaultClient))
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitPage.consoleEventBridgeJS, injectionTime: .atDocumentStart,
+  forMainFrameOnly: true, in: .page))
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitPage.focusEventBridgeJS, injectionTime: .atDocumentStart,
+  forMainFrameOnly: true, in: .page))
+// Layer 1 network observation is installed before page script, so a page cannot dodge
+// it (directive §7.2.1). The bridge is bounded and redacted at the producer.
+// `forMainFrameOnly: false` — Google's GSI account chooser runs in a frame, so
+// main-frame-only observation is exactly what would miss it.
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitPage.networkObserverJS, injectionTime: .atDocumentStart,
+  forMainFrameOnly: false, in: .page))
+// A `WKWebView` with no on-screen window reports `document.visibilityState ===
+// "hidden"`. Content-visibility-gated UIs (YouTube's feed paints on visibility and
+// IntersectionObserver) then never render: the DOM is present but permanently empty.
+// The offscreen window host is not sufficient by itself — a process without an
+// activation policy cannot make a window "visible" to macOS — so the visibility
+// primitives a page gates on are corrected here, at document start, ahead of any page
+// script. Same class of shim headless browser stacks apply.
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitPage.visibilityJS, injectionTime: .atDocumentStart,
+  forMainFrameOnly: false, in: .page))
+// The semantic-mutation observer is a first-class event producer
+// (`document.mutated`), so it is installed for every page rather than only
+// when the optional semantic-signal service is configured. The handler
+// `aetherSemanticMutation` is registered in `.defaultClient`, matching this
+// script's content world, and the observer itself is debounced to one report
+// per quiet period, so the cost is bounded.
+configuration.userContentController.addUserScript(WKUserScript(
+  source: WebKitPage.semanticObserverJS, injectionTime: .atDocumentStart,
+  forMainFrameOnly: true, in: .defaultClient))
+// The Chrome Web Store's "Add to Aether" button (see AetherStoreRelay).
+configuration.userContentController.addUserScript(WKUserScript(
+  source: AetherStoreRelay.script, injectionTime: .atDocumentEnd,
+  forMainFrameOnly: true, in: .defaultClient))
+configuration.userContentController.add(handler, contentWorld: .defaultClient,
+  name: WebKitPage.paintHandlerName)
+configuration.userContentController.add(handler, contentWorld: .defaultClient,
+  name: WebKitPage.credentialHandlerName)
+configuration.userContentController.add(handler, contentWorld: .defaultClient,
+  name: WebKitPage.semanticMutationHandlerName)
+configuration.userContentController.add(handler, contentWorld: .defaultClient,
+  name: WebKitPage.fileUploadHandlerName)
+configuration.userContentController.add(handler, contentWorld: .page,
+  name: WebKitPage.consoleHandlerName)
+configuration.userContentController.add(handler, contentWorld: .page,
+  name: WebKitPage.focusHandlerName)
+configuration.userContentController.add(handler, contentWorld: .page,
+  name: WebKitPage.networkHandlerName)
+configuration.userContentController.add(handler, contentWorld: .defaultClient,
+  name: AetherStoreRelay.name)
+  }
+
+  /// Adopts a view WebKit created for `window.open` as a driveable Aether page.
+  ///
+  /// The view must be adopted as-is: it carries the `window.opener` relationship that
+  /// Google's GSI flow needs to complete its `id_token` `postMessage` back to the origin.
+  /// Rebuilding an equivalent view silently breaks the handshake, which is why this takes a
+  /// `WKWebView` rather than a `WKWebViewConfiguration`.
   init(
-    context: WebKitContext, viewport: Size,
-    fileUploadRequested: @escaping @Sendable (SemanticUploadContext) -> Void = { _ in },
+    adopting child: WKWebView, context: WebKitContext, viewport: Size,
     emitEvent: @escaping @Sendable (BrowserEventKind) -> Void = { _ in },
     changed: @escaping @Sendable (WebPageState) -> Void
   ) {
     self.context = context
     self.changed = changed
+    self.fileUploadRequested = { _ in }
+    self.emitEvent = emitEvent
+    self.popupOpened = { _ in }
+    view = child
+    super.init()
+    child.navigationDelegate = self
+    // A private script controller: the popup's configuration may share the opener's, and
+    // re-registering an existing handler name raises NSInvalidArgumentException.
+    let scripts = WKUserContentController()
+    Self.installAetherScripts(on: child.configuration, handler: self)
+    child.allowsBackForwardNavigationGestures = false
+    child.isInspectable = true
+    dialogs = WebKitDialogs()
+    dialogs?.emit = emitEvent
+    child.uiDelegate = dialogs
+    _ = scripts
+  }
+
+  init(
+    context: WebKitContext, viewport: Size,
+    fileUploadRequested: @escaping @Sendable (SemanticUploadContext) -> Void = { _ in },
+    emitEvent: @escaping @Sendable (BrowserEventKind) -> Void = { _ in },
+    // A popup view created for `window.open`, handed to the runtime so it can be adopted as
+    // a first-class page. OAuth popups (Google's GSI chooser) live in the child window, so
+    // without this an agent cannot reach them at all.
+    popupOpened: @escaping @Sendable (WebKitPage) -> Void = { _ in },
+    changed: @escaping @Sendable (WebPageState) -> Void
+  ) {
+    self.context = context
+    self.popupOpened = popupOpened
+    self.changed = changed
     self.fileUploadRequested = fileUploadRequested
     self.emitEvent = emitEvent
     let viewStart = WebKitNavigationProbe.enabled ? Date() : nil
     let configuration = Self.makeConfiguration(context: context)
-    configuration.userContentController.addUserScript(WKUserScript(
-      source: WebKitPage.paintObserverJS, injectionTime: .atDocumentStart,
-      forMainFrameOnly: true, in: .defaultClient))
-    configuration.userContentController.addUserScript(WKUserScript(
-      source: WebKitPage.consoleEventBridgeJS, injectionTime: .atDocumentStart,
-      forMainFrameOnly: true, in: .page))
-    configuration.userContentController.addUserScript(WKUserScript(
-      source: WebKitPage.focusEventBridgeJS, injectionTime: .atDocumentStart,
-      forMainFrameOnly: true, in: .page))
-    // The semantic-mutation observer is a first-class event producer
-    // (`document.mutated`), so it is installed for every page rather than only
-    // when the optional semantic-signal service is configured. The handler
-    // `aetherSemanticMutation` is registered in `.defaultClient`, matching this
-    // script's content world, and the observer itself is debounced to one report
-    // per quiet period, so the cost is bounded.
-    configuration.userContentController.addUserScript(WKUserScript(
-      source: WebKitPage.semanticObserverJS, injectionTime: .atDocumentStart,
-      forMainFrameOnly: true, in: .defaultClient))
-    // The Chrome Web Store's "Add to Aether" button (see AetherStoreRelay).
-    configuration.userContentController.addUserScript(WKUserScript(
-      source: AetherStoreRelay.script, injectionTime: .atDocumentEnd,
-      forMainFrameOnly: true, in: .defaultClient))
+    // The Tier 1 structured-state extractor exists before page script can run, in the
+    // isolated client world the page cannot see or tamper with (directive §4.1.7).
     view = AetherPageView(frame: NSRect(x: 0, y: 0, width: viewport.width, height: viewport.height),
       configuration: configuration)
     if let viewStart {
@@ -746,25 +993,51 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     }
     super.init()
     view.navigationDelegate = self
-    configuration.userContentController.add(self, contentWorld: .defaultClient,
-      name: WebKitPage.paintHandlerName)
-    configuration.userContentController.add(self, contentWorld: .defaultClient,
-      name: WebKitPage.credentialHandlerName)
-    configuration.userContentController.add(self, contentWorld: .defaultClient,
-      name: WebKitPage.semanticMutationHandlerName)
-    configuration.userContentController.add(self, contentWorld: .defaultClient,
-      name: WebKitPage.fileUploadHandlerName)
-    configuration.userContentController.add(self, contentWorld: .page,
-      name: WebKitPage.consoleHandlerName)
-    configuration.userContentController.add(self, contentWorld: .page,
-      name: WebKitPage.focusHandlerName)
-    configuration.userContentController.add(self, contentWorld: .defaultClient,
-      name: AetherStoreRelay.name)
+    Self.installAetherScripts(on: configuration, handler: self)
     view.allowsBackForwardNavigationGestures = false
     view.isInspectable = true
     dialogs = WebKitDialogs()
     dialogs?.emit = emitEvent
     view.uiDelegate = dialogs
+    // A real child view, built from the `configuration` WebKit supplies. Adopting that
+    // object rather than a fresh one is what preserves `window.opener`, which anything
+    // using a `postMessage` handshake (Google's GSI chooser) needs in order to render.
+    dialogs?.makePopup = { [weak self] configuration, action, features in
+      guard let self else { return nil }
+      let width = features.width?.doubleValue ?? Double(self.view.bounds.width)
+      let height = features.height?.doubleValue ?? Double(self.view.bounds.height)
+      let size = width > 0 && height > 0 ? CGSize(width: width, height: height) : self.view.bounds.size
+      // A private script controller: the supplied configuration may share the parent's,
+      // and re-registering a handler name raises NSInvalidArgumentException.
+      configuration.userContentController = WKUserContentController()
+      if let rules = self.context.rules {
+        configuration.userContentController.add(rules)
+      }
+      let child = WKWebView(
+        frame: NSRect(origin: .zero, size: size), configuration: configuration)
+      child.allowsBackForwardNavigationGestures = false
+      child.isInspectable = true
+      // Offscreen, for the same reason the main view is: no window means
+      // `visibilityState === "hidden"`, and a hidden popup paints nothing.
+      OffscreenPageHost.attach(child, pageID: PageID(rawValue: 1 << 20))
+      // WebKit performs the initial load itself once this returns a view, so do not
+      // call `child.load` here.
+      // Build the page HERE, on the main actor, while the popup has not started loading.
+      // Its document-start scripts (notably the isolated-world DOM extractor) must be
+      // installed before the first byte arrives; installing them after the async hop to
+      // the runtime leaves the popup un-evaluable and the OAuth flow unstoppable.
+      let popup = WebKitPage(
+        adopting: child, context: self.context,
+        viewport: Size(width: size.width, height: size.height),
+        emitEvent: self.emitEvent, changed: { _ in })
+      self.emitEvent(.popupOpened(url: action.request.url?.absoluteString ?? ""))
+      popupOpened(popup)
+      return child
+    }
+    dialogs?.popupClosed = { [weak self] closed in
+      OffscreenPageHost.detach(closed)
+      self?.emitEvent(.popupClosed(url: closed.url?.absoluteString ?? ""))
+    }
     observations = [
       view.observe(\.url, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
       view.observe(\.title, options: [.new]) { [weak self] _, _ in self?.scheduleChange() },
@@ -1098,6 +1371,7 @@ final class WebKitPage: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     view.configuration.userContentController.removeScriptMessageHandler(forName: Self.fileUploadHandlerName)
     view.configuration.userContentController.removeScriptMessageHandler(forName: Self.consoleHandlerName)
     view.configuration.userContentController.removeScriptMessageHandler(forName: Self.focusHandlerName)
+    view.configuration.userContentController.removeScriptMessageHandler(forName: Self.networkHandlerName)
     view.configuration.userContentController.removeScriptMessageHandler(forName: AetherStoreRelay.name)
     view.navigationDelegate = nil
     view.uiDelegate = nil
