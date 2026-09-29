@@ -19,9 +19,32 @@ One native macOS browser, two first-class users. Humans get an exceptionally cle
 
 **The agent owns its sessions. The browser is an execution environment, not the agent's supervisor.**
 
-No Chromium, WebKit, Electron, Tauri, Rust, React, webview, or Cloud control plane. Apple frameworks are used where they are the correct systems primitive: Metal, CoreText/CoreGraphics, ImageIO, Foundation/Network, Swift structured concurrency.
+No Chromium, Electron, Tauri, Rust, React, or Cloud control plane. Apple frameworks are used where they are the correct systems primitive: **system WebKit** (`WKWebView`), Metal, CoreText/CoreGraphics, ImageIO, Foundation/Network, Swift structured concurrency. See `Docs/WEBKIT.md`.
 
-Current honest state: **Engine 0** — a real end-to-end engine (network bytes → DOM → CSS → layout → display list → pixels) with a compact-but-incomplete JS interpreter, a 76-method local agent protocol, fleet/lifecycle management, and design capture. It is **not** Chrome/Safari-class and is **not** a hardened sandbox for hostile content.
+Current honest state: **WebKit-backed agent runtime, mid-migration.** The app and the agent control plane run on system WebKit. An 85-method local agent protocol, page lifecycle management, profiles, credentials, and capture are live. The original from-scratch engine (`HTML`/`CSS`/`Layout`/`JavaScript` custom pipeline) is being retired in favour of WebKit — see `work/plan/backend/retire-custom-engine.md` for the classification and step status. It is **not** a hardened sandbox for hostile content: renderer-process isolation and a production macOS sandbox profile are not implemented (`Docs/IMPLEMENTATION_STATUS.md`).
+
+> **Migration boundary:** the standalone `.experimental` backend is still the default for engine-library clients, fixtures and research. The app adapter selects `.webKit`. Both paths share `AgentProtocol`, `NodeID` identity, and `BrowserRuntime`. This is an explicit, documented boundary — not a claim that the custom engine supports the modern web.
+
+## 0.1 Measured vs designed
+
+The single largest risk in this repository is an unfalsifiable scale claim. Everything below is separated into what has actually been run on a real machine and what is an architectural target. **No claim in this repository may exceed the measured column without saying so.**
+
+| | Measured (reproducible today) | Designed (not yet demonstrated) |
+|---|---|---|
+| **Concurrent pages** | **8** pages in one daemon | 50–100+; the directive targets hundreds of thousands of workspaces (`Docs/AGENT_CODE_FIRST_BROWSER_DIRECTIVE.md` §9) |
+| **Daemon RSS at 8 pages** | **80.9 MiB** (`82816 KiB`) — **excludes all WebKit XPC services** | per-page cost with WebKit services attributed |
+| **Runtime fleet caps** | `maxActivePages = 8`, `fleetMemoryBudget = 512 MiB` (`Sources/EngineRuntime/BrowserRuntime.swift:136-137`) | real admission control, sharding, bounded renderer pools (`Docs/ROADMAP.md`, Engine 2 — not started) |
+| **Protocol** | 85 methods over a local Unix socket | — |
+| **Platform** | macOS 27.0 floor (`Package.swift:6`); all evidence gathered on arm64, 8 CPU / 8 GiB | — |
+| **Latency vs headless Chromium** | **Slower.** Aether cold dispatch 746.6 ms / ready 1382.4 ms vs Chrome 240.9 / 570.5 on a 20-site run (`perf-results/headless_20260925_161917/report.md`) | parity |
+| **Cold-start cost per workspace** | **Not measured.** No p50/p95/p99 cold-start figure exists. | required by directive §9 |
+
+Evidence files: `agents/codex/webkit-performance/results/local-after.json` (8-page run, RSS, query/snapshot latency), `agents/opencode/perf-baseline/results/baseline-2026-09-21.md` (49.3 MiB daemon RSS with 11+ live pages; notes that WebKit XPC RSS is launchd-owned and machine-wide shared, so it is **not attributable per app**), `perf-results/` (headless latency comparisons).
+
+Two things a reader should not have to discover the hard way:
+
+1. **There is no memory-per-page number and no RSS-vs-concurrency curve.** One 20-worker sweep is recorded in `work/plan/backend/retire-custom-engine.md` (8 workers was the sweet spot; 20 workers collapsed with blocking off, survived with blocking on) and is explicitly flagged as confounded. `agents/agent-native-browser-runtime/testing-agent-2.md:87` states plainly: *"No realistic fleet concurrency, memory-pressure, suspension/resume, or many-workspace benchmark was run. No scale claim is made."*
+2. **`fleet.stats` does not measure memory or agents.** It counts pages by lifecycle state and estimates bytes from a formula (`nodeCount*256 + displayCommands*128 + imageBytes + responseBytes`, or a flat 8 MiB per live `WKWebView`). `fleet.pages` and `fleet.sweep` iterate every context and page — an O(fleet) scan, which the directive's own §9.5 forbids on any per-operation path.
 
 ## 1. Engineering laws (non-negotiable)
 
@@ -43,7 +66,7 @@ Additional laws specific to this repository:
 - **One engine, two faces.** Human UI and agent automation must call the *same* runtime. Never build a second automation path that bypasses `BrowserRuntime`.
 - **No AI inference in the browser command path.** Commands are deterministic. The model that decides *what* to do lives outside the engine.
 - **Structured state beats pixels.** Screenshots are a fallback for genuinely visual tasks, never the primary control protocol.
-- **No UI exists yet.** There is currently **zero** SwiftUI/AppKit code in this package (verified: no `import SwiftUI`, `AppKit`, `NSWindow`, or `CAMetalLayer` anywhere under `Sources/`, `Tests/`, `Benchmarks/`). Any UI work starts from scratch and must obey `DESIGN.md`.
+- **UI and automation share one runtime.** There is a native SwiftUI/AppKit shell (`AetherHumanUI`) and the agent control plane calls the same `BrowserRuntime` the human UI does. 51 files under `Sources/` import AppKit and 84 import SwiftUI. Off-screen agent pages are hosted in a real borderless `NSWindow` each (`Sources/EngineRuntime/WebKit/OffscreenPageHost.swift`) — this is a correctness requirement, not a UI feature: a `WKWebView` in no ordered window reports `visibilityState === "hidden"` and cannot receive trusted native input.
 
 ## 2. Architecture diagrams
 
@@ -526,7 +549,7 @@ swift test --no-parallel        # 138 @Test cases across 14 test targets
 | `RULES.md` | process rigor | current |
 | `DESIGN.md` | **all** native UI/visual decisions (tokens, palette, motion, bans) | current; UI not implemented |
 | `ENHANCE-DESIGN.md` | UI polish pass (run only after the UI works) | current; UI not implemented |
-| `Docs/ARCHITECTURE.md` | pipeline + module layering | accurate, but predates runtime/fleet/capture work |
+| `Docs/ARCHITECTURE.md` | pipeline + module layering | **stale** — describes the retired custom engine (`SoftwareRenderer`/`MetalRenderer` headless path) as current. Superseded by `Docs/WEBKIT.md` and `work/plan/backend/retire-custom-engine.md` |
 | `Docs/AGENT_PROTOCOL.md` | protocol overview | **stale**: documents ~25 methods; 76 exist. `AgentMessages.swift` is authoritative |
 | `Docs/IMPLEMENTATION_STATUS.md` | capability status table | mostly accurate |
 | `Docs/ROADMAP.md` | Engine 0/1/2/3 phases | accurate as intent |

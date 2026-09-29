@@ -69,6 +69,10 @@ public enum BrowserEventKind: Sendable, Equatable {
   case downloadFinished(url: String, path: String?)
   case downloadFailed(url: String, error: String)
   case popupRequested(url: String)
+  /// A real child web view was created and adopted the opener relationship. The page
+  /// renders only because the runtime stopped returning nil from `createWebViewWith`.
+  case popupOpened(url: String)
+  case popupClosed(url: String)
   case dialogOpened(kind: String, message: String)
   case permissionRequested(permission: String, origin: String, decision: String)
   case authenticationChallenge(host: String, method: String)
@@ -102,7 +106,7 @@ public enum BrowserEventKind: Sendable, Equatable {
       .networkObservationTruncated:
       return .network
     case .downloadStarted, .downloadFinished, .downloadFailed: return .download
-    case .popupRequested: return .popup
+    case .popupRequested, .popupOpened, .popupClosed: return .popup
     case .dialogOpened: return .dialog
     case .permissionRequested: return .permission
     case .authenticationChallenge: return .authentication
@@ -139,6 +143,8 @@ public enum BrowserEventKind: Sendable, Equatable {
     case .downloadFinished: return "download.finished"
     case .downloadFailed: return "download.failed"
     case .popupRequested: return "popup.requested"
+    case .popupOpened: return "popup.opened"
+    case .popupClosed: return "popup.closed"
     case .dialogOpened: return "dialog.opened"
     case .permissionRequested: return "permission.requested"
     case .authenticationChallenge: return "authentication.challenge"
@@ -195,6 +201,8 @@ public enum BrowserEventKind: Sendable, Equatable {
     case .downloadFinished(let url, let path): return ["url": url, "path": path ?? ""]
     case .downloadFailed(let url, let error): return ["url": url, "error": error]
     case .popupRequested(let url): return ["url": url]
+    case .popupOpened(let url): return ["url": url]
+    case .popupClosed(let url): return ["url": url]
     case .dialogOpened(let kind, let message): return ["kind": kind, "message": message]
     case .permissionRequested(let permission, let origin, let decision):
       return ["permission": permission, "origin": origin, "decision": decision]

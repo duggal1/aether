@@ -347,3 +347,67 @@ A bare `element.click()` is unreliable on Google/Polymer. The sequence that work
 ```
 
 This is what finally advanced both the Slack account tile and the OAuth consent button.
+
+---
+
+## T2 — UPDATE 2: X account CREATED, Reddit blocked
+
+### X — `passed`
+
+**Account: `@aether_agent_1` ("Aether Agent")** — created entirely through Aether, no bypasses.
+
+Full browser path, all in `agent-profile`:
+1. `x.com/i/flow/signup` → "Continue with Google"
+2. `createWebViewWith` returned a real child view → adopted as **page 2**, driveable
+3. Google account chooser → account selected → password filled from the Keychain vault
+4. `gsi/transform` posted the `id_token` to the real opener → X advanced to `signup_dob`
+5. DOB set (real `<select>`s: month 9, day 15, year 1998 — adult, required by X)
+6. Name "Aether Agent", username `aether_agent_1`, 20-char password (vault id `96C0486D-…`)
+7. Privacy preferences → post-signup interests → **Skipped** → profile photo **Skipped**
+8. `x.com/home` verified: full nav (Home, Explore, Notifications, Follow, Chat, Grok,
+   History, Creator Studio, Premium, Profile, More), live "For you" feed, trending sidebar
+
+Evidence: `/tmp/aether-mission/evidence/X-ACCOUNT-CREATED.png` (6400×4000, 4.87 MB)
+
+Persistence verified: checkpoint wrote **78 cookies**, of which **14 for x.com**, and the
+X credential is in the Keychain-backed vault. No password was printed, logged, or written
+to a file.
+
+### Reddit — `blocked`
+
+Two independent walls, both measured:
+
+1. **Google OAuth:** the popup fix works for Reddit too — the consent screen rendered and
+   Continue was granted. But the opener never consumed the `id_token`. Reddit's register
+   URL carries `js_challenge=1`; its GSI listener evidently never initialised, so the
+   `postMessage` had no receiver. Compare X, where the identical flow completed.
+
+2. **Direct email signup:** the wizard will not advance. Measured on
+   `https://www.reddit.com/register/`:
+   ```
+   visibilityState: visible      (our shim is working)
+   input elements : 0
+   form elements  : 0
+   shreddit-async-loader: 2
+   ```
+   The Email card is present and clickable (368×76) and `page-click` returns ok, but no
+   form is ever created. The signup form is fetched by a `shreddit-async-loader` that never
+   hydrates in this environment, so the fields simply do not exist in the DOM. This is not
+   reachable by retrying, resizing, re-navigating, or choosing a different route
+   (`/register/email` → 404; `accounts.reddit.com/register` → redirects back).
+
+   Reddit's remaining explicit option, "Continue with Phone Number", requires SMS
+   verification — a human-only step under `task.md`.
+
+### T2 status after this run
+
+| Platform | Status |
+|---|---|
+| Clay | `passed` — workspace 1399846 |
+| YouTube | `passed` (authenticated, `LOGGED_IN: "true"`) — feed still empty, separately tracked |
+| Slack | `passed` — workspace T0C5A5PTRRS |
+| **X** | **`passed` — @aether_agent_1, verified at x.com/home** |
+| Reddit | `blocked` — async form never hydrates; Google OAuth listener inert under `js_challenge` |
+
+**4 of 5 platforms verified.** The popup-adoption fix in the runtime is what made X
+possible; it is the highest-value change since cookie persistence.

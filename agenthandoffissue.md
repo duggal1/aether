@@ -370,3 +370,173 @@ Every path and symbol cited there was verified to resolve. Quick map:
   `.build/.lock`. I hit this and it wasted time.
 * Do not use `browserd --token-file` until `AgentAuth.swift:90` and the authority chain are
   both resolved.
+
+---
+
+# 9. UPDATE — solution.md findings, verified and partly fixed
+
+I worked through `solution.md`. Its diagnoses were **correct**, and I verified each against
+this working tree rather than `main`.
+
+## 9.1 Claims verified true on my tree
+
+| solution.md claim | Verified how |
+|---|---|
+| A: `createWebViewWith` returns `nil` and loads in the opener's tab | `WebKitDialogs.swift:97-102` — `if navigationAction.targetFrame == nil { webView.load(...) }; return nil` |
+| `javaScriptCanOpenWindowsAutomatically = false` | `WebKitPage.swift:215` |
+| No `NSWindow` anywhere in the daemon | `grep -rn "NSWindow\|orderBack\|contentView" Sources/browserd Sources/EngineRuntime/WebKit` → **no matches** |
+| B: `networkLog` written only by the custom engine | `page.networkLog.append` exists only at `BrowserRuntime.swift:1689`, `:2010` — both beside `buildLoaded(...)`, the experimental loader |
+| C: one principal per process | `AgentAuth.swift:90` `public nonisolated let principal` |
+| §4.1's suggestion that `WebKitInspector` might hold network plumbing | **Wrong** — it is only Web Inspector UI toggles. Thanks for correcting my handoff. |
+
+## 9.2 FIXED and verified — `document.visibilityState` (solution.md E/D)
+
+Measured before the fix: `{"vis":"hidden","focus":false}` → YouTube `0` videos.
+Measured after: `{"vis":"visible","hidden":false,"focus":true}`.
+
+`Sources/EngineRuntime/WebKit/WebKitPage.swift` — new `static let visibilityJS`, injected at
+`.atDocumentStart` in the **`.page`** world, all frames. Defines `visibilityState`, `hidden`,
+`webkitHidden`, `webkitVisibilityState`, `hasFocus`, `documentHidden`,
+`documentVisibilityState`.
+
+**The offscreen window host was NOT sufficient** — `OffscreenPageHost` (new file) creates a
+real ordered `NSWindow` per page, but a CLI process with no activation policy cannot make a
+window "visible" to macOS, so `visibilityState` stayed `hidden`. Both are kept: the host is
+still needed for native pointer delivery, the shim is what fixes visibility. **This is the
+one place I deviated from solution.md and I am reporting it as a correction, not a success.**
+
+## 9.3 FIXED and verified — `page-network-log` (solution.md B)
+
+`BrowserRuntime.swift` — new `recordNetworkEvent(_:pageID:)` in the `pageEventChannel`
+consumer, so the existing WebKit `.networkResponse` events are mirrored into
+`page.networkLog`. `WebKitPage.swift` — the observer's `forMainFrameOnly` flipped `true` →
+`false` (GSI runs in a frame). Cap raised 32 → 512.
+
+Measured before: `entries: 0`. After: `entries: 33` with real status codes.
+
+**This immediately paid for itself** — see §9.6.
+
+## 9.4 FIXED and verified — real `window.open()` popups (solution.md A)
+
+`WebKitDialogs.swift` — `createWebViewWith` now returns a real child `WKWebView` built from
+the `configuration` WebKit supplies (that object is what carries the opener relationship),
+hosted via `OffscreenPageHost`, with a private `WKUserContentController` (re-registering a
+handler name on the shared controller raises `NSInvalidArgumentException`). Added
+`webViewDidClose` → `.popupClosed`. `WebKitPage.swift:215` → `javaScriptCanOpenWindowsAutomatically = true`.
+
+**Measured on X:** before, "Continue with Google" landed on a blank `accounts.google.com/gsi/select`.
+After:
+```
+popup.requested  url: https://accounts.google.com/o/oauth2/v2/auth?as=Eg-YH8KwqxpIsBk5gdyQuK…
+popup.opened     url: https://accounts.google.com/o/oauth2/v2/auth?as=Eg-YH8KwqxpIsBk5gdyQuK…
+```
+**X's Google sign-in now takes the classic, working OAuth endpoint instead of the blank GSI
+page.** That is the single change most likely to unblock X and Reddit.
+
+### 9.4a The remaining X/Reddit gap — popup is not a driveable page
+
+The popup opens correctly but the agent cannot interact with it, so consent is never granted
+and the `postMessage` handshake never completes. X and Reddit are still **blocked**, for this
+reason only.
+
+I attempted the adoption path in `solution.md` §2.1 and **reverted it**: `WebKitPage.view` is
+a `let` (`WebKitPage.swift:158`), so a page cannot be re-pointed at an adopted child view
+without restructuring the primary initializer. A half-finished refactor was not worth a
+broken tree.
+
+**Correct implementation, for whoever picks this up:**
+1. `createWebViewWith` must return synchronously on the main actor, but `PageID`s come from
+   the `BrowserRuntime` actor. So: build the `WebKitPage` **synchronously** (returning its
+   view), then register it with the runtime afterwards via an async hop.
+2. That means `WebKitPage` needs a second initializer that takes an already-built
+   `WKWebView` plus a private `WKUserContentController` — **not** the `makeConfiguration`
+   path used today. Extract the script/handler installation from the primary `init`
+   (`WebKitPage.swift` ~719-761, the `ucc.addUserScript` / `ucc.add(...)` block) into one
+   shared function, then call it from both initializers. The `observations` KVO block at the
+   end of the primary `init` must be extracted the same way.
+3. `BrowserRuntime.adoptPopup(_:opener:)`: resolve the opener's context, `createPage` to mint
+   a real `PageID`, insert into `webPages`, and rebind `changed` to `receiveWebState`. The
+   `.pageCreated` event is already published by `createPage`, so agents will see it in
+   `page-list` / `events-recent` with no extra work.
+4. `webViewDidClose` → `destroyContext` for that page.
+5. **Retain the popup `WebKitPage` strongly in `webPages`.** Dropping it mid-handshake kills
+   the flow.
+
+Expect 1-2 compiler round-trips: the primary `init` has ~a dozen stored properties with
+defaults, and all must be initialized before `super.init()`.
+
+## 9.5 FIXED and verified — the big one: profiles never persisted cookies
+
+Found because YouTube was anonymous, then traced to root cause.
+
+**Before:** `sqlite3 state.sqlite "SELECT COUNT(*) FROM cookies"` → **`0`**, while
+`history` had 12 rows, `kv` 7, `credentials` 4. A profile signed in to Google, Clay and Slack
+came back with every site anonymous after a restart.
+
+Two independent defects, one on each side of the round trip:
+
+* **Write:** `checkpoint` built its cookie list from `context.network` — the *custom* engine's
+  jar, which is empty when WebKit does the navigating — and then handed it to
+  `saveCheckpointTables`, which does `DELETE FROM cookies` before inserting. So the write path
+  persisted an empty jar and destroyed whatever was there. Fixed with
+  `BrowserRuntime.mergedCookieRows(contextID:)` (custom jar **merged with** `WKHTTPCookieStore`,
+  WebKit winning collisions) used by `checkpoint`, plus `persistCookies` on `destroyContext`
+  (`BrowserRuntime.swift:299`) so teardown captures the session too.
+* **Read:** `attachProfile` restored cookies only into `context.network`, never into
+  `WKHTTPCookieStore` — so even a correctly written jar was never loaded. Fixed by seeding the
+  WebKit store with `setCookie(contextID:cookie:)` per stored row.
+
+**Proof, across a full daemon kill and restart:**
+```
+after sign-in, checkpoint:   cookies: 56   (SID, SSID, HSID, SAPISID, __Secure-1PSID, __Secure-3PSID)
+after kill + restart + reopen: cookies restored: 56, google auth: 18
+Gmail: {"title":"Inbox (4) - aether.agent.1@gmail.com - Gmail","url":"/mail/u/0/"}
+```
+**This is the most important fix in the whole handoff.** Until now every "persistent profile"
+was ephemeral, which silently invalidated any multi-step or restart-tolerant mission.
+
+## 9.6 YouTube — narrowed to a precise, small bug (network log paid off)
+
+With `page-network-log` working I could finally see it. After a `Cmd+R` reload and **60 seconds**
+of steady state:
+
+| Signal | Value |
+|---|---|
+| `ytcfg.get("LOGGED_IN")` | `"true"` — genuinely signed in |
+| `ytInitialData` keys | `responseContext, contents, header, trackingParams, topbar, frameworkUpdates` — **the feed data arrived** |
+| Polymer elements | all defined and upgraded |
+| `ytd-browse` | **`height: 0, children: 0`** |
+| console | only `LegacyDataMixin will be applied…` — no errors |
+| network log | **no `youtubei/v1/browse` call at all** (only `att/get`) |
+| body | `height 2888` of correct skeleton, `innerText` 2 chars |
+
+So: HTML and data present, component definitions present, **render never invoked, no innertube
+browse request, no error**. This is a YouTube-in-`WKWebView`-offscreen incompatibility, not a
+network, auth, UA, or layout problem — all four are now positively excluded.
+
+**The next thing I would try:** diff `ytInitialData.contents` against what `ytd-browse`
+expects, and check whether a feature flag or `ytcfg` value suppresses feed rendering for
+logged-out/embargoed or datacenter IPs. Also worth testing `youtube.com/feed/subscriptions`
+and a `/watch?v=…` URL — if a watch page renders, the bug is scoped to the browse/grid path
+only, which is a much smaller surface.
+
+## 9.7 What is now verified working, end to end
+
+* Google sign-in → Gmail inbox, **surviving a daemon restart**
+* YouTube authenticated (`LOGGED_IN: "true"`) — feed still empty
+* Clay workspace, Slack workspace (earlier run)
+* `page-network-log` with real status codes
+* `window.open()` popups reaching the correct OAuth endpoint
+* Form fill / click fixes (earlier run, live-verified on Google)
+* Handoff gate fail-closed (earlier run)
+
+## 9.8 Still open
+
+| Item | State |
+|---|---|
+| X signup | Popup opens at the right endpoint; needs §9.4a page adoption to grant consent |
+| Reddit signup | Same GSI→classic path; same blocker |
+| YouTube feed | Narrowed per §9.6; not fixed |
+| TISSUE-002 per-agent principals | Unchanged; still blocks a meaningful T7 test |
+| `FrameworkBoundFormFillTests.swift` | Still never executed |
+| `swift test` | **Still not run.** Release build is green; the suite is unverified. |

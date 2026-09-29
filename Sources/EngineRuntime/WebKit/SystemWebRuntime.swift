@@ -101,10 +101,20 @@ extension BrowserRuntime {
         fileUploadRequested: { [weak self] upload in
           Task { await self?.classifyFileUpload(pageID: id, context: upload) }
         },
-        emitEvent: { kind in relay.yield((eventPageID, kind)) }
+        emitEvent: { kind in relay.yield((eventPageID, kind)) },
+        popupOpened: { [weak self] popup in
+          // A popup is a real page an agent must be able to drive: Google's GSI account
+          // chooser lives entirely inside the child window, so without registration the
+          // OAuth flow can never be completed by an agent.
+          Task { await self?.adoptPopup(popup, opener: id) }
+        }
       ) { [weak self] state in
           Task { await self?.receiveWebState(state, pageID: id) }
         }
+      // No on-screen window exists in the headless daemon. Without one the view reports
+      // `visibilityState === "hidden"` (content-visibility-gated UIs never paint) and
+      // cannot receive native input, so every click degrades to `isTrusted == false`.
+      if page.view.window == nil { OffscreenPageHost.attach(page.view, pageID: id) }
       return page
     }
     webPageTasks[id] = task
@@ -448,5 +458,35 @@ extension WebKitPage {
   func applyRules(_ rules: WKContentRuleList?) {
     view.configuration.userContentController.removeAllContentRuleLists()
     if let rules { view.configuration.userContentController.add(rules) }
+  }
+}
+
+extension BrowserRuntime {
+  /// Registers an already-constructed popup page so an agent can drive it.
+  ///
+  /// `createWebViewWith` must return synchronously on the main actor, so the `WebKitPage`
+  /// and its document-start scripts are installed *there* — installing them after this hop
+  /// is too late, because the popup has already begun loading, which leaves the page
+  /// un-evaluable and its isolated-world DOM extractor absent. Only the `PageID` needs the
+  /// actor, and that arrives here. The page is retained in `webPages`: WebKit does not
+  /// strongly hold the view it was given, and dropping it mid-handshake kills the flow.
+  func adoptPopup(_ popup: WebKitPage, opener: PageID) async {
+    guard let openerContext = contextID(containing: opener) else {
+      await popup.close()
+      return
+    }
+    let info: BrowserPageInfo
+    do {
+      info = try await createPage(contextID: openerContext)
+    } catch {
+      await popup.close()
+      return
+    }
+    webPages[info.id] = popup
+    let sink: @Sendable (WebPageState) -> Void = { [weak self] state in
+      Task { await self?.receiveWebState(state, pageID: info.id) }
+    }
+    await MainActor.run { popup.rebind(changed: sink) }
+    await publishPageEvent(.popupOpened(url: popup.currentURL ?? ""), pageID: opener)
   }
 }
